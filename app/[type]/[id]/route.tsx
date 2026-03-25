@@ -1807,6 +1807,7 @@ const getProviderIconDataUri = async (iconUrl: string): Promise<string | null> =
       const sourceBuffer = Buffer.from(await response.arrayBuffer());
       const sharp = await getSharpFactory();
       const outputBuffer = await sharp(sourceBuffer)
+        .trim()
         .resize(96, 96, {
           fit: 'contain',
           background: { r: 0, g: 0, b: 0, alpha: 0 },

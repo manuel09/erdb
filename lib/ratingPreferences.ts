@@ -39,14 +39,14 @@ export const RATING_PROVIDER_OPTIONS = [
   {
     id: 'metacritic',
     label: 'Metacritic',
-    iconUrl: 'https://www.google.com/s2/favicons?domain=metacritic.com&sz=64',
+    iconUrl: 'https://www.metacritic.com/a/img/favicon.svg',
     accentColor: '#66cc33',
   },
   {
     id: 'metacriticuser',
     label: 'Metacritic User',
-    iconUrl: 'https://www.google.com/s2/favicons?domain=metacritic.com&sz=64',
-    accentColor: '#4caf50',
+    iconUrl: 'https://i.postimg.cc/g2j23W7g/Metacritic-M.png',
+    accentColor: '#66cc33',
   },
   {
     id: 'trakt',
