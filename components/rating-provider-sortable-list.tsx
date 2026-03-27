@@ -20,7 +20,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
-import { useLayoutEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { RATING_PROVIDER_OPTIONS, type RatingPreference } from '@/lib/ratingPreferences';
 import type { RatingProviderRow } from '@/lib/ratingRows';
@@ -141,7 +141,7 @@ export function RatingProviderSortableList({
   fillDirection = 'row',
 }: RatingProviderSortableListProps) {
   const [activeId, setActiveId] = useState<RatingPreference | null>(null);
-  const [overlayRoot, setOverlayRoot] = useState<HTMLElement | null>(null);
+  const overlayRoot = typeof document === 'undefined' ? null : document.body;
   const itemIds = useMemo(() => rows.map((r) => r.id), [rows]);
   const rowCount = Math.max(1, Math.ceil(rows.length / 2));
   const listStyle =
@@ -151,10 +151,6 @@ export function RatingProviderSortableList({
           gridTemplateRows: `repeat(${rowCount}, auto)`,
         }
       : undefined;
-
-  useLayoutEffect(() => {
-    setOverlayRoot(document.body);
-  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

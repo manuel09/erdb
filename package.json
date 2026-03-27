@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
-    "start": "node .next/standalone/server.js",
+    "start": "node scripts/start-server.js",
+    "start:single": "node .next/standalone/server.js",
     "lint": "eslint .",
     "clean": "next clean",
     "imdb:import": "node scripts/imdb-import.js",
@@ -13,7 +14,6 @@
     "fonts:install:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-fonts-windows.ps1",
     "postinstall": "node scripts/postinstall.js",
     "docker:up": "docker compose up --build",
-    "docker:up:scale4": "docker compose up -d --build --scale app=4",
     "docker:down": "docker compose down"
   },
   "dependencies": {

@@ -1,28 +1,12 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/realbestia1/erdb:latest
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 3000
-      PREVIEW_INTERNAL_ORIGIN: ${PREVIEW_INTERNAL_ORIGIN:-http://127.0.0.1:3000}
-      TMDB_API_KEY: ${TMDB_API_KEY}
-      MDBLIST_API_KEYS: ${MDBLIST_API_KEYS}
-      MDBLIST_API_KEY: ${MDBLIST_API_KEY}
-      ERDB_KITSU_CACHE_TTL_MS: ${ERDB_KITSU_CACHE_TTL_MS:-1800000}
-      ERDB_PROVIDER_ICON_CACHE_TTL_MS: ${ERDB_PROVIDER_ICON_CACHE_TTL_MS:-604800000}
-    expose:
-      - '3000'
-    volumes:
-      - ./data:/app/data
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    depends_on:
-      - app
+      ERDB_WORKERS: ${ERDB_WORKERS:-auto}
     ports:
       - '${ERDB_HTTP_PORT:-3000}:3000'
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data:/app/data

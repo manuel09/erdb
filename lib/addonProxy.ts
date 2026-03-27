@@ -42,6 +42,7 @@ export const ERDB_RESERVED_PARAMS = new Set<string>([
   'url',
   'tmdbKey',
   'mdblistKey',
+  'simklClientId',
   'erdbBase',
   'translateMeta',
   'posterEnabled',
@@ -61,6 +62,7 @@ export type ProxyConfig = {
   url: string;
   tmdbKey: string;
   mdblistKey: string;
+  simklClientId?: string;
   translateMeta?: boolean;
   ratings?: string;
   posterRatings?: string;
@@ -96,6 +98,7 @@ const PROXY_OPTIONAL_STRING_KEYS = [
   'posterRatings',
   'backdropRatings',
   'logoRatings',
+  'simklClientId',
   'lang',
   'streamBadges',
   'posterStreamBadges',
@@ -182,8 +185,13 @@ export const normalizeErdbId = (
 
   if (prefix === 'tmdb') {
     const explicitTypeCandidate = (parts[1] || '').trim().toLowerCase();
-    if ((explicitTypeCandidate === 'movie' || explicitTypeCandidate === 'tv') && parts.length >= 3 && parts[2]) {
-      return `tmdb:${explicitTypeCandidate}:${parts[2]}`;
+    if (
+      (explicitTypeCandidate === 'movie' || explicitTypeCandidate === 'tv' || explicitTypeCandidate === 'series') &&
+      parts.length >= 3 &&
+      parts[2]
+    ) {
+      const normalizedType = explicitTypeCandidate === 'series' ? 'tv' : explicitTypeCandidate;
+      return `tmdb:${normalizedType}:${parts[2]}`;
     }
 
     if (parts.length >= 2 && parts[1]) {
@@ -315,15 +323,19 @@ export const buildErdbImageUrl = (options: {
   erdbId: string;
   tmdbKey: string;
   mdblistKey: string;
+  simklClientId?: string;
   config?: ProxyConfig | null;
 }) => {
-  const { reqUrl, imageType, erdbId, tmdbKey, mdblistKey, config = null } = options;
+  const { reqUrl, imageType, erdbId, tmdbKey, mdblistKey, simklClientId, config = null } = options;
   const baseOverride = getProxyParam(reqUrl, config, 'erdbBase');
   const base = new URL(baseOverride || reqUrl.origin);
   base.pathname = `/${imageType}/${encodeURIComponent(erdbId)}.jpg`;
   base.search = '';
   base.searchParams.set('tmdbKey', tmdbKey);
   base.searchParams.set('mdblistKey', mdblistKey);
+  if (simklClientId) {
+    base.searchParams.set('simklClientId', simklClientId);
+  }
 
   for (const key of ERDB_OPTIONAL_PARAMS) {
     const value = getProxyParam(reqUrl, config, key as keyof ProxyConfig);

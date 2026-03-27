@@ -26,4 +26,4 @@ RUN mkdir -p /app/data
 VOLUME ["/app/data"]
 
 EXPOSE 7860
-CMD ["node", ".next/standalone/server.js"]
+CMD ["node", "scripts/start-server.js"]

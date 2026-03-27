@@ -355,6 +355,7 @@ const rewriteMetaImages = (
       erdbId,
       tmdbKey: config.tmdbKey,
       mdblistKey: config.mdblistKey,
+      simklClientId: config.simklClientId,
       config,
     });
   }
@@ -366,6 +367,7 @@ const rewriteMetaImages = (
       erdbId,
       tmdbKey: config.tmdbKey,
       mdblistKey: config.mdblistKey,
+      simklClientId: config.simklClientId,
       config,
     });
   }
@@ -377,6 +379,7 @@ const rewriteMetaImages = (
       erdbId,
       tmdbKey: config.tmdbKey,
       mdblistKey: config.mdblistKey,
+      simklClientId: config.simklClientId,
       config,
     });
   }
