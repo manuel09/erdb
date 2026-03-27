@@ -28,6 +28,16 @@ import {
   type BackdropRatingLayout,
 } from '@/lib/backdropRatingLayout';
 import {
+  THUMBNAIL_RATING_LAYOUT_OPTIONS,
+  DEFAULT_THUMBNAIL_RATING_LAYOUT,
+  type ThumbnailRatingLayout,
+} from '@/lib/thumbnailRatingLayout';
+import {
+  THUMBNAIL_SIZE_OPTIONS,
+  DEFAULT_THUMBNAIL_SIZE,
+  type ThumbnailSize,
+} from '@/lib/thumbnailSize';
+import {
   DEFAULT_POSTER_RATINGS_MAX_PER_SIDE,
   DEFAULT_POSTER_RATING_LAYOUT,
   POSTER_RATING_LAYOUT_OPTIONS,
@@ -53,8 +63,12 @@ const SUPPORTED_LANGUAGES = [
   { code: 'tr', label: 'T\u00fcrk\u00e7e', flag: '\uD83C\uDDF9\uD83C\uDDF7' },
 ];
 const VISIBLE_RATING_PROVIDER_OPTIONS = RATING_PROVIDER_OPTIONS;
-const PROXY_TYPES = ['poster', 'backdrop', 'logo'] as const;
+const THUMBNAIL_SUPPORTED_RATINGS: RatingPreference[] = ['tmdb', 'imdb'];
+const EPISODE_ID_PATTERN = /^.+:\d+:\d+$/;
+const PROXY_TYPES = ['poster', 'backdrop', 'logo', 'thumbnail'] as const;
+const PREVIEW_TYPES = ['poster', 'backdrop', 'logo', 'thumbnail'] as const;
 type ProxyType = (typeof PROXY_TYPES)[number];
+type PreviewType = (typeof PREVIEW_TYPES)[number];
 type ProxyEnabledTypes = Record<ProxyType, boolean>;
 type AiometadataPatternType = 'poster' | 'background' | 'logo' | 'episodeThumbnail';
 type StreamBadgesSetting = 'auto' | 'on' | 'off';
@@ -86,6 +100,8 @@ const RATING_PROVIDER_IDS = new Set(RATING_PROVIDER_OPTIONS.map((option) => opti
 const isRatingProviderId = (value: string): value is RatingPreference =>
   RATING_PROVIDER_IDS.has(value as RatingPreference);
 
+const isPreviewType = (value: unknown): value is PreviewType =>
+  PREVIEW_TYPES.includes(value as PreviewType);
 const isProxyType = (value: unknown): value is ProxyType =>
   PROXY_TYPES.includes(value as ProxyType);
 const isStreamBadgesSetting = (value: unknown): value is StreamBadgesSetting =>
@@ -102,6 +118,8 @@ const isPosterRatingLayout = (value: unknown): value is PosterRatingLayout =>
   POSTER_RATING_LAYOUT_OPTIONS.some((option) => option.id === value);
 const isBackdropRatingLayout = (value: unknown): value is BackdropRatingLayout =>
   BACKDROP_RATING_LAYOUT_OPTIONS.some((option) => option.id === value);
+const isThumbnailRatingLayout = (value: unknown): value is ThumbnailRatingLayout =>
+  THUMBNAIL_RATING_LAYOUT_OPTIONS.some((option) => option.id === value);
 
 const normalizeBaseUrl = (value: string) => value.trim().replace(/\/+$/, '');
 
@@ -178,7 +196,7 @@ const decodeBase64Url = (value: string) => {
 
 const buildAiometadataPattern = (options: {
   baseUrl: string;
-  imageType: 'poster' | 'backdrop' | 'logo';
+  imageType: 'poster' | 'backdrop' | 'logo' | 'thumbnail';
   idPlaceholder: string;
   tmdbKey: string;
   mdblistKey: string;
@@ -203,6 +221,8 @@ const buildAiometadataPattern = (options: {
   posterRatingsLayout: PosterRatingLayout;
   posterRatingsMaxPerSide: number | null;
   backdropRatingsLayout: BackdropRatingLayout;
+  thumbnailRatingsLayout: ThumbnailRatingLayout;
+  thumbnailSize: ThumbnailSize;
 }) => {
   const {
     baseUrl,
@@ -231,6 +251,8 @@ const buildAiometadataPattern = (options: {
     posterRatingsLayout,
     posterRatingsMaxPerSide,
     backdropRatingsLayout,
+    thumbnailRatingsLayout,
+    thumbnailSize,
   } = options;
 
   if (!baseUrl || !tmdbKey || !mdblistKey) {
@@ -278,6 +300,11 @@ const buildAiometadataPattern = (options: {
     params.push(['ratingStyle', backdropRatingStyle]);
     params.push(['imageText', backdropImageText]);
     params.push(['backdropRatingsLayout', backdropRatingsLayout]);
+  } else if (imageType === 'thumbnail') {
+    params.push(['backdropRatings', backdropRatings]);
+    params.push(['ratingStyle', backdropRatingStyle]);
+    params.push(['thumbnailRatingsLayout', thumbnailRatingsLayout]);
+    params.push(['thumbnailSize', thumbnailSize]);
   } else {
     params.push(['logoRatings', logoRatings]);
     params.push(['ratingStyle', logoRatingStyle]);
@@ -293,7 +320,7 @@ const buildAiometadataPattern = (options: {
 
 const buildAiometadataPatternBlock = (options: {
   baseUrl: string;
-  imageType: 'poster' | 'backdrop' | 'logo';
+  imageType: 'poster' | 'backdrop' | 'logo' | 'thumbnail';
   configString: string;
 }) => {
   if (!options.baseUrl || !options.configString) {
@@ -308,6 +335,7 @@ const buildAiometadataPatternBlock = (options: {
   }
 
   const params: Array<[string, string]> = [];
+  const THUMBNAIL_SUPPORTED_RATINGS = new Set(['tmdb', 'imdb']);
 
   const pushIfString = (key: string) => {
     const value = config[key];
@@ -316,19 +344,33 @@ const buildAiometadataPatternBlock = (options: {
     }
   };
 
+  const filterThumbnailRatings = (value: unknown) => {
+    if (typeof value !== 'string' || value === '') return '';
+    return value
+      .split(',')
+      .map((provider) => provider.trim().toLowerCase())
+      .filter((provider, index, providers) => {
+        return THUMBNAIL_SUPPORTED_RATINGS.has(provider) && providers.indexOf(provider) === index;
+      })
+      .join(',');
+  };
+
   pushIfString('tmdbKey');
-  pushIfString('mdblistKey');
-  pushIfString('simklClientId');
   pushIfString('lang');
-  pushIfString('ratings');
-  pushIfString('qualityBadgesSide');
-  pushIfString('posterQualityBadgesPosition');
-  pushIfString('qualityBadgesStyle');
-  pushIfString('posterQualityBadgesStyle');
-  pushIfString('backdropQualityBadgesStyle');
-  pushIfString('streamBadges');
-  pushIfString('posterStreamBadges');
-  pushIfString('backdropStreamBadges');
+
+  if (options.imageType !== 'thumbnail') {
+    pushIfString('mdblistKey');
+    pushIfString('simklClientId');
+    pushIfString('ratings');
+    pushIfString('qualityBadgesSide');
+    pushIfString('posterQualityBadgesPosition');
+    pushIfString('qualityBadgesStyle');
+    pushIfString('posterQualityBadgesStyle');
+    pushIfString('backdropQualityBadgesStyle');
+    pushIfString('streamBadges');
+    pushIfString('posterStreamBadges');
+    pushIfString('backdropStreamBadges');
+  }
 
   if (options.imageType === 'poster') {
     pushIfString('posterRatings');
@@ -345,15 +387,23 @@ const buildAiometadataPatternBlock = (options: {
     ) {
       params.push(['posterRatingsMaxPerSide', String(config.posterRatingsMaxPerSide)]);
     }
-  } else if (options.imageType === 'backdrop') {
-    pushIfString('backdropRatings');
+  } else if (options.imageType === 'backdrop' || options.imageType === 'thumbnail') {
     if (typeof config.backdropRatingStyle === 'string' && config.backdropRatingStyle !== '') {
       params.push(['ratingStyle', config.backdropRatingStyle]);
     }
-    if (typeof config.backdropImageText === 'string' && config.backdropImageText !== '') {
+    if (options.imageType !== 'thumbnail' && typeof config.backdropImageText === 'string' && config.backdropImageText !== '') {
       params.push(['imageText', config.backdropImageText]);
     }
-    pushIfString('backdropRatingsLayout');
+    pushIfString(options.imageType === 'thumbnail' ? 'thumbnailRatingsLayout' : 'backdropRatingsLayout');
+    if (options.imageType === 'thumbnail') {
+      const thumbnailRatings = filterThumbnailRatings(config.backdropRatings ?? config.ratings);
+      if (thumbnailRatings) {
+        params.push(['ratings', thumbnailRatings]);
+      }
+      pushIfString('thumbnailSize');
+    } else {
+      pushIfString('backdropRatings');
+    }
   } else {
     pushIfString('logoRatings');
     if (typeof config.logoRatingStyle === 'string' && config.logoRatingStyle !== '') {
@@ -366,7 +416,11 @@ const buildAiometadataPatternBlock = (options: {
     .map(([key, value]) => `${key}=${value}`)
     .join('&');
 
-  const basePattern = `${options.baseUrl}/${options.imageType}/{imdb_id}.jpg`;
+  const idPattern =
+    options.imageType === 'thumbnail'
+      ? '{imdb_id}:{season}:{episode}'
+      : '{imdb_id}';
+  const basePattern = `${options.baseUrl}/${options.imageType}/${idPattern}.jpg`;
   return query ? `${basePattern}?${query}` : basePattern;
 };
 
@@ -384,7 +438,7 @@ const downloadJsonFile = (payload: Record<string, unknown>, filename: string) =>
 const maskSensitiveText = (value: string) => value.replace(/[^\s]/g, '*');
 
 export default function Home() {
-  const [previewType, setPreviewType] = useState<'poster' | 'backdrop' | 'logo'>('poster');
+  const [previewType, setPreviewType] = useState<PreviewType>('poster');
   const [mediaId, setMediaId] = useState('tt0133093');
   const [lang, setLang] = useState('en');
   const [posterImageText, setPosterImageText] = useState<'original' | 'clean' | 'alternative'>('clean');
@@ -405,6 +459,8 @@ export default function Home() {
   const [backdropQualityBadgesStyle, setBackdropQualityBadgesStyle] = useState<RatingStyle>(DEFAULT_QUALITY_BADGES_STYLE);
   const [posterRatingsLayout, setPosterRatingsLayout] = useState<PosterRatingLayout>('bottom');
   const [backdropRatingsLayout, setBackdropRatingsLayout] = useState<BackdropRatingLayout>(DEFAULT_BACKDROP_RATING_LAYOUT);
+  const [thumbnailRatingsLayout, setThumbnailRatingsLayout] = useState<ThumbnailRatingLayout>(DEFAULT_THUMBNAIL_RATING_LAYOUT);
+  const [thumbnailSize, setThumbnailSize] = useState<ThumbnailSize>(DEFAULT_THUMBNAIL_SIZE);
   const [posterRatingStyle, setPosterRatingStyle] = useState<RatingStyle>(DEFAULT_RATING_STYLE);
   const [backdropRatingStyle, setBackdropRatingStyle] = useState<RatingStyle>(DEFAULT_RATING_STYLE);
   const [logoRatingStyle, setLogoRatingStyle] = useState<RatingStyle>('plain');
@@ -418,6 +474,7 @@ export default function Home() {
     poster: true,
     backdrop: true,
     logo: true,
+    thumbnail: true,
   });
   const [proxyTranslateMeta, setProxyTranslateMeta] = useState(false);
   const [proxyCopied, setProxyCopied] = useState(false);
@@ -438,13 +495,21 @@ export default function Home() {
   const shouldShowQualityBadgesSide = previewType === 'poster' && shouldShowPosterQualityBadgesSide;
   const shouldShowQualityBadgesPosition =
     previewType === 'poster' && shouldShowPosterQualityBadgesPosition;
-  const qualityBadgeTypeLabel = previewType === 'backdrop' ? 'Backdrop' : 'Poster';
-  const activeStreamBadges = previewType === 'backdrop' ? backdropStreamBadges : posterStreamBadges;
-  const setActiveStreamBadges = previewType === 'backdrop' ? setBackdropStreamBadges : setPosterStreamBadges;
+  const qualityBadgeTypeLabel = previewType === 'backdrop' || previewType === 'thumbnail' ? 'Backdrop' : 'Poster';
+  const activeStreamBadges =
+    previewType === 'backdrop' || previewType === 'thumbnail' ? backdropStreamBadges : posterStreamBadges;
+  const setActiveStreamBadges =
+    previewType === 'backdrop' || previewType === 'thumbnail'
+      ? setBackdropStreamBadges
+      : setPosterStreamBadges;
   const activeQualityBadgesStyle =
-    previewType === 'backdrop' ? backdropQualityBadgesStyle : posterQualityBadgesStyle;
+    previewType === 'backdrop' || previewType === 'thumbnail'
+      ? backdropQualityBadgesStyle
+      : posterQualityBadgesStyle;
   const setActiveQualityBadgesStyle =
-    previewType === 'backdrop' ? setBackdropQualityBadgesStyle : setPosterQualityBadgesStyle;
+    previewType === 'backdrop' || previewType === 'thumbnail'
+      ? setBackdropQualityBadgesStyle
+      : setPosterQualityBadgesStyle;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -558,7 +623,7 @@ Node/JS: const cfg = JSON.parse(Buffer.from(erdbConfig, 'base64url').toString('u
 Endpoint: GET /{type}/{id}.jpg?...queryParams
 
 Parameter               | Values                                                              | Default
-type (path)             | poster, backdrop, logo                                               | -
+type (path)             | poster, backdrop, logo, thumbnail                                    | -
 id (path)               | IMDb (tt...), TMDB (tmdb:id / tmdb:movie:id / tmdb:tv:id), Kitsu (kitsu:id), AniList, MAL          | -
 ratings                 | tmdb, mdblist, imdb, tomatoes, tomatoesaudience, letterboxd,         | all
                         | metacritic, metacriticuser, trakt, simkl, rogerebert,               |
@@ -586,21 +651,24 @@ imageText               | original, clean, alternative                          
 posterRatingsLayout     | top, bottom, left, right, top-bottom, left-right                     | top-bottom
 posterRatingsMaxPerSide | Number (1-20)                                                        | auto
 backdropRatingsLayout   | center, right, right-vertical                                        | center
+thumbnailRatingsLayout  | center, center-top, center-bottom, center-vertical, center-top-vertical, center-bottom-vertical, left, left-top, left-bottom, left-vertical, left-top-vertical, left-bottom-vertical, right, right-top, right-bottom, right-vertical, right-top-vertical, right-bottom-vertical | center
+thumbnailSize           | small, medium, large                                                 | medium
 tmdbKey (REQUIRED)      | Your TMDB v3 API Key                                                 | -
 mdblistKey (REQUIRED)   | Your MDBList.com API Key                                             | -
 simklClientId (OPTIONAL)| Your SIMKL client_id for direct SIMKL ratings                        | -
 
 --- INTEGRATION REQUIREMENTS ---
 1. Use ONLY the \"erdbConfig\" field (no modal and no extra settings panels).
-2. Add toggles to enable/disable: poster, backdrop, logo.
+2. Add toggles to enable/disable: poster, backdrop, logo, thumbnail.
 3. If a type is disabled, keep the original artwork (do not call ERDB for that type).
 4. Build ERDB URLs using the decoded config and inject them into both catalog and meta responses.
 
 --- PER-TYPE SETTINGS ---
 poster   -> ratingStyle = cfg.posterRatingStyle, imageText = cfg.posterImageText
 backdrop -> ratingStyle = cfg.backdropRatingStyle, imageText = cfg.backdropImageText
+thumbnail -> ratingStyle = cfg.backdropRatingStyle, thumbnailRatingsLayout = cfg.thumbnailRatingsLayout, thumbnailSize = cfg.thumbnailSize, ratings = TMDB/IMDb episode ratings only
 logo     -> ratingStyle = cfg.logoRatingStyle (omit imageText)
-Ratings providers can be set per-type via cfg.posterRatings / cfg.backdropRatings / cfg.logoRatings (fallback to cfg.ratings).
+Ratings providers can be set per-type via cfg.posterRatings / cfg.backdropRatings / cfg.logoRatings (fallback to cfg.ratings). Thumbnail ratings are episode-level and currently support TMDB + IMDb only.
 Quality badges style can be set per-type via cfg.posterQualityBadgesStyle / cfg.backdropQualityBadgesStyle (fallback to cfg.qualityBadgesStyle).
 
 --- URL BUILD ---
@@ -608,7 +676,8 @@ const typeRatingStyle = type === 'poster' ? cfg.posterRatingStyle : type === 'ba
 const typeImageText = type === 'backdrop' ? cfg.backdropImageText : cfg.posterImageText;
 \${cfg.baseUrl}/\${type}/\${id}.jpg?tmdbKey=\${cfg.tmdbKey}&mdblistKey=\${cfg.mdblistKey}&simklClientId=\${cfg.simklClientId}&ratings=\${cfg.ratings}&posterRatings=\${cfg.posterRatings}&backdropRatings=\${cfg.backdropRatings}&logoRatings=\${cfg.logoRatings}&lang=\${cfg.lang}&streamBadges=\${cfg.streamBadges}&posterStreamBadges=\${cfg.posterStreamBadges}&backdropStreamBadges=\${cfg.backdropStreamBadges}&qualityBadgesSide=\${cfg.qualityBadgesSide}&posterQualityBadgesPosition=\${cfg.posterQualityBadgesPosition}&qualityBadgesStyle=\${cfg.qualityBadgesStyle}&posterQualityBadgesStyle=\${cfg.posterQualityBadgesStyle}&backdropQualityBadgesStyle=\${cfg.backdropQualityBadgesStyle}&ratingStyle=\${typeRatingStyle}&imageText=\${typeImageText}&posterRatingsLayout=\${cfg.posterRatingsLayout}&posterRatingsMaxPerSide=\${cfg.posterRatingsMaxPerSide}&backdropRatingsLayout=\${cfg.backdropRatingsLayout}
 
-Omit imageText when type=logo.
+For thumbnails use thumbnailRatingsLayout and thumbnailSize instead of imageText.
+Omit imageText when type=logo or type=thumbnail.
 
 Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRatings/logoRatings to disable providers.`;
 
@@ -621,33 +690,42 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     const ratingPreferencesForType =
       previewType === 'poster'
         ? posterRatingPreferences
-        : previewType === 'backdrop'
+        : previewType === 'backdrop' || previewType === 'thumbnail'
           ? backdropRatingPreferences
           : logoRatingPreferences;
     const ratingsQuery = stringifyRatingPreferencesAllowEmpty(ratingPreferencesForType);
     const ratingStyleForType =
       previewType === 'poster'
         ? posterRatingStyle
-        : previewType === 'backdrop'
+        : previewType === 'backdrop' || previewType === 'thumbnail'
           ? backdropRatingStyle
           : logoRatingStyle;
-    const imageTextForType = previewType === 'backdrop' ? backdropImageText : posterImageText;
-    const streamBadgesForType = previewType === 'backdrop' ? backdropStreamBadges : posterStreamBadges;
+    const imageTextForType =
+      previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : posterImageText;
+    const streamBadgesForType =
+      previewType === 'backdrop' || previewType === 'thumbnail' ? backdropStreamBadges : posterStreamBadges;
     const qualityBadgesStyleForType =
-      previewType === 'backdrop' ? backdropQualityBadgesStyle : posterQualityBadgesStyle;
+      previewType === 'backdrop' || previewType === 'thumbnail'
+        ? backdropQualityBadgesStyle
+        : posterQualityBadgesStyle;
     const query = new URLSearchParams({
       ratingStyle: ratingStyleForType,
       lang,
     });
     if (previewType === 'poster') {
       query.set('posterRatings', ratingsQuery);
-    } else if (previewType === 'backdrop') {
+    } else if (previewType === 'backdrop' || previewType === 'thumbnail') {
       query.set('backdropRatings', ratingsQuery);
     } else {
       query.set('logoRatings', ratingsQuery);
     }
-    if (previewType !== 'logo' && streamBadgesForType !== 'auto') {
-      query.set(previewType === 'backdrop' ? 'backdropStreamBadges' : 'posterStreamBadges', streamBadgesForType);
+    if (previewType !== 'logo' && previewType !== 'thumbnail' && streamBadgesForType !== 'auto') {
+      query.set(
+        previewType === 'backdrop'
+          ? 'backdropStreamBadges'
+          : 'posterStreamBadges',
+        streamBadgesForType
+      );
     }
     if (shouldShowQualityBadgesSide && qualityBadgesSide !== 'left') {
       query.set('qualityBadgesSide', qualityBadgesSide);
@@ -655,9 +733,11 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     if (shouldShowQualityBadgesPosition && posterQualityBadgesPosition !== 'auto') {
       query.set('posterQualityBadgesPosition', posterQualityBadgesPosition);
     }
-    if (previewType !== 'logo' && qualityBadgesStyleForType !== DEFAULT_QUALITY_BADGES_STYLE) {
+    if (previewType !== 'logo' && previewType !== 'thumbnail' && qualityBadgesStyleForType !== DEFAULT_QUALITY_BADGES_STYLE) {
       query.set(
-        previewType === 'backdrop' ? 'backdropQualityBadgesStyle' : 'posterQualityBadgesStyle',
+        previewType === 'backdrop'
+          ? 'backdropQualityBadgesStyle'
+          : 'posterQualityBadgesStyle',
         qualityBadgesStyleForType
       );
     }
@@ -680,8 +760,15 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
       if (isVerticalPosterRatingLayout(posterRatingsLayout) && posterRatingsMaxPerSide !== null) {
         query.set('posterRatingsMaxPerSide', String(posterRatingsMaxPerSide));
       }
-    } else if (previewType === 'backdrop') {
-      query.set('backdropRatingsLayout', backdropRatingsLayout);
+    } else if (previewType === 'backdrop' || previewType === 'thumbnail') {
+      query.set(
+        previewType === 'thumbnail' ? 'thumbnailRatingsLayout' : 'backdropRatingsLayout',
+        previewType === 'thumbnail' ? thumbnailRatingsLayout : backdropRatingsLayout
+      );
+      if (previewType === 'thumbnail') {
+        query.set('thumbnailSize', thumbnailSize);
+        query.set('previewVariant', `${thumbnailSize}-${thumbnailRatingsLayout}`);
+      }
     }
 
     if (!baseUrl) {
@@ -704,6 +791,8 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     posterRatingsLayout,
     posterRatingsMaxPerSide,
     backdropRatingsLayout,
+    thumbnailRatingsLayout,
+    thumbnailSize,
     qualityBadgesSide,
     posterQualityBadgesPosition,
     posterQualityBadgesStyle,
@@ -791,6 +880,12 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     if (backdropRatingsLayout) {
       config.backdropRatingsLayout = backdropRatingsLayout;
     }
+    if (thumbnailRatingsLayout) {
+      config.thumbnailRatingsLayout = thumbnailRatingsLayout;
+    }
+    if (thumbnailSize) {
+      config.thumbnailSize = thumbnailSize;
+    }
 
     return encodeBase64Url(JSON.stringify(config));
   }, [
@@ -818,6 +913,8 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     posterRatingsLayout,
     posterRatingsMaxPerSide,
     backdropRatingsLayout,
+    thumbnailRatingsLayout,
+    thumbnailSize,
   ]);
 
   const proxyUrl = useMemo(() => {
@@ -883,6 +980,7 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     config.posterEnabled = proxyEnabledTypes.poster;
     config.backdropEnabled = proxyEnabledTypes.backdrop;
     config.logoEnabled = proxyEnabledTypes.logo;
+    config.thumbnailEnabled = proxyEnabledTypes.thumbnail;
     if (proxyTranslateMeta) {
       config.translateMeta = true;
     }
@@ -895,6 +993,12 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     }
     if (backdropRatingsLayout) {
       config.backdropRatingsLayout = backdropRatingsLayout;
+    }
+    if (thumbnailRatingsLayout) {
+      config.thumbnailRatingsLayout = thumbnailRatingsLayout;
+    }
+    if (thumbnailSize) {
+      config.thumbnailSize = thumbnailSize;
     }
 
     config.erdbBase = baseUrl;
@@ -925,6 +1029,8 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     posterRatingsLayout,
     posterRatingsMaxPerSide,
     backdropRatingsLayout,
+    thumbnailRatingsLayout,
+    thumbnailSize,
     proxyEnabledTypes,
     proxyTranslateMeta,
     baseUrl,
@@ -947,7 +1053,11 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
         imageType: 'logo',
         configString,
       }),
-      episodeThumbnail: '',
+      episodeThumbnail: buildAiometadataPatternBlock({
+        baseUrl,
+        imageType: 'thumbnail',
+        configString,
+      }),
     };
   }, [
     baseUrl,
@@ -955,15 +1065,26 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
   ]);
 
   const updateRatingRowsForType = (
-    type: 'poster' | 'backdrop' | 'logo',
+    type: PreviewType,
     updater: (current: RatingProviderRow[]) => RatingProviderRow[]
   ) => {
     if (type === 'poster') {
       setPosterRatingRows(updater);
       return;
     }
-    if (type === 'backdrop') {
-      setBackdropRatingRows(updater);
+    if (type === 'backdrop' || type === 'thumbnail') {
+      setBackdropRatingRows((current) => {
+        const next = updater(current);
+        if (type !== 'thumbnail') {
+          return next;
+        }
+
+        const supportedSet = new Set<RatingPreference>(THUMBNAIL_SUPPORTED_RATINGS);
+        return next.map((row) => ({
+          ...row,
+          enabled: supportedSet.has(row.id) ? row.enabled : false,
+        }));
+      });
       return;
     }
     setLogoRatingRows(updater);
@@ -1046,6 +1167,7 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
       posterRatingsLayout,
       posterRatingsMaxPerSide,
       backdropRatingsLayout,
+      thumbnailRatingsLayout,
       proxyManifestUrl,
       proxyEnabledTypes,
       translateMeta: proxyTranslateMeta,
@@ -1079,7 +1201,7 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     if (typeof payload.lang === 'string') {
       setLang(payload.lang);
     }
-    if (typeof payload.previewType === 'string' && isProxyType(payload.previewType)) {
+    if (typeof payload.previewType === 'string' && isPreviewType(payload.previewType)) {
       setPreviewType(payload.previewType);
     }
     if (typeof payload.posterImageText === 'string' && isImageText(payload.posterImageText)) {
@@ -1123,6 +1245,12 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     }
     if (typeof payload.backdropRatingsLayout === 'string' && isBackdropRatingLayout(payload.backdropRatingsLayout)) {
       setBackdropRatingsLayout(payload.backdropRatingsLayout);
+    }
+    if (typeof payload.thumbnailRatingsLayout === 'string' && isThumbnailRatingLayout(payload.thumbnailRatingsLayout)) {
+      setThumbnailRatingsLayout(payload.thumbnailRatingsLayout);
+    }
+    if (typeof payload.thumbnailSize === 'string' && THUMBNAIL_SIZE_OPTIONS.some((option) => option.id === payload.thumbnailSize)) {
+      setThumbnailSize(payload.thumbnailSize as ThumbnailSize);
     }
 
     if (payload.posterRatingsMaxPerSide === null) {
@@ -1183,6 +1311,7 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
         poster: typeof enabled.poster === 'boolean' ? enabled.poster : current.poster,
         backdrop: typeof enabled.backdrop === 'boolean' ? enabled.backdrop : current.backdrop,
         logo: typeof enabled.logo === 'boolean' ? enabled.logo : current.logo,
+        thumbnail: typeof enabled.thumbnail === 'boolean' ? enabled.thumbnail : current.thumbnail,
       }));
     }
     if (typeof payload.translateMeta === 'boolean') {
@@ -1239,36 +1368,50 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
   const activeRatingStyle =
     previewType === 'poster'
       ? posterRatingStyle
-      : previewType === 'backdrop'
+      : previewType === 'backdrop' || previewType === 'thumbnail'
         ? backdropRatingStyle
         : logoRatingStyle;
-  const activeImageText = previewType === 'backdrop' ? backdropImageText : posterImageText;
+  const activeImageText =
+    previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : posterImageText;
   const styleLabel =
     previewType === 'poster'
       ? 'Poster Ratings Style'
       : previewType === 'backdrop'
         ? 'Backdrop Ratings Style'
+        : previewType === 'thumbnail'
+          ? 'Thumbnail Ratings Style'
         : 'Logo Ratings Style';
-  const textLabel = previewType === 'backdrop' ? 'Backdrop Text' : 'Poster Text';
+  const textLabel =
+    previewType === 'backdrop' ? 'Backdrop Text' : previewType === 'thumbnail' ? 'Thumbnail Text' : 'Poster Text';
   const providersLabel =
     previewType === 'poster'
       ? 'Poster Providers'
       : previewType === 'backdrop'
         ? 'Backdrop Providers'
+        : previewType === 'thumbnail'
+          ? 'Thumbnail Providers'
         : 'Logo Providers';
   const ratingProviderRows =
     previewType === 'poster'
       ? posterRatingRows
-      : previewType === 'backdrop'
+      : previewType === 'backdrop' || previewType === 'thumbnail'
         ? backdropRatingRows
         : logoRatingRows;
+  const visibleRatingProviderRows =
+    previewType === 'thumbnail'
+      ? ratingProviderRows.filter((row) => THUMBNAIL_SUPPORTED_RATINGS.includes(row.id))
+      : ratingProviderRows;
+  const previewNotice =
+    previewType === 'thumbnail' && !EPISODE_ID_PATTERN.test(mediaId.trim())
+      ? 'Movies are not supported for thumbnails.'
+      : null;
 
   const setRatingStyleForType = (value: RatingStyle) => {
     if (previewType === 'poster') {
       setPosterRatingStyle(value);
       return;
     }
-    if (previewType === 'backdrop') {
+    if (previewType === 'backdrop' || previewType === 'thumbnail') {
       setBackdropRatingStyle(value);
       return;
     }
@@ -1276,13 +1419,12 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
   };
 
   const setImageTextForType = (value: 'original' | 'clean' | 'alternative') => {
-    if (previewType === 'backdrop') {
+    if (previewType === 'backdrop' || previewType === 'thumbnail') {
       setBackdropImageText(value);
       return;
     }
     setPosterImageText(value);
   };
-
   const viewProps: HomePageViewProps = {
     refs: {
       navRef,
@@ -1304,6 +1446,8 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
       posterRatingsLayout,
       posterRatingsMaxPerSide,
       backdropRatingsLayout,
+      thumbnailRatingsLayout,
+      thumbnailSize,
       qualityBadgesSide,
       posterQualityBadgesPosition,
       configCopied,
@@ -1313,9 +1457,10 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     },
     derived: {
       baseUrl,
-      previewUrl,
-      proxyUrl,
-      canGenerateConfig,
+    previewUrl,
+    proxyUrl,
+      previewNotice,
+    canGenerateConfig,
       canGenerateProxy,
       isConfigStringVisible,
       isProxyUrlVisible,
@@ -1326,7 +1471,7 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
       providersLabel,
       activeRatingStyle,
       activeImageText,
-      ratingProviderRows,
+      ratingProviderRows: visibleRatingProviderRows,
       shouldShowQualityBadgesPosition,
       shouldShowQualityBadgesSide,
       qualityBadgeTypeLabel,
@@ -1351,6 +1496,8 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
       setPosterRatingsLayout,
       setPosterRatingsMaxPerSide,
       setBackdropRatingsLayout,
+      setThumbnailRatingsLayout,
+      setThumbnailSize,
       setPosterQualityBadgesPosition,
       setQualityBadgesSide,
       setRatingStyleForType,
