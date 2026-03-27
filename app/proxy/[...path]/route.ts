@@ -325,10 +325,60 @@ const getPublicRequestUrl = (request: NextRequest) => {
 const buildError = (message: string, status = 400) =>
   NextResponse.json({ error: message }, { status, headers: corsHeaders });
 
-const isTypeEnabled = (config: ProxyConfig, type: 'poster' | 'backdrop' | 'logo') => {
+const isTypeEnabled = (config: ProxyConfig, type: 'poster' | 'backdrop' | 'logo' | 'thumbnail') => {
   if (type === 'poster') return config.posterEnabled !== false;
   if (type === 'backdrop') return config.backdropEnabled !== false;
-  return config.logoEnabled !== false;
+  if (type === 'logo') return config.logoEnabled !== false;
+  return config.thumbnailEnabled !== false;
+};
+
+const rewriteMetaVideoThumbnails = (
+  meta: Record<string, unknown>,
+  requestUrl: URL,
+  config: ProxyConfig,
+) => {
+  if (!isTypeEnabled(config, 'thumbnail')) return meta;
+  if (!Array.isArray(meta.videos) || meta.videos.length === 0) return meta;
+
+  const rawId = typeof meta.id === 'string' ? meta.id : null;
+  const rawType = typeof meta.type === 'string' ? meta.type : null;
+  const erdbId = normalizeErdbId(rawId, rawType);
+  if (!erdbId) return meta;
+
+  const nextVideos = meta.videos.map((video) => {
+    if (!video || typeof video !== 'object') return video;
+    const typedVideo = video as Record<string, unknown>;
+    const seasonValue =
+      typeof typedVideo.season === 'number'
+        ? typedVideo.season
+        : parseInt(String(typedVideo.season || ''), 10);
+    const episodeValue =
+      typeof typedVideo.episode === 'number'
+        ? typedVideo.episode
+        : parseInt(String(typedVideo.episode || ''), 10);
+    if (!Number.isFinite(seasonValue) || !Number.isFinite(episodeValue)) {
+      return video;
+    }
+
+    const episodeErdbId = `${erdbId}:${seasonValue}:${episodeValue}`;
+    return {
+      ...typedVideo,
+      thumbnail: buildErdbImageUrl({
+        reqUrl: requestUrl,
+        imageType: 'thumbnail',
+        erdbId: episodeErdbId,
+        tmdbKey: config.tmdbKey,
+        mdblistKey: config.mdblistKey,
+        simklClientId: config.simklClientId,
+        config,
+      }),
+    };
+  });
+
+  return {
+    ...meta,
+    videos: nextVideos,
+  };
 };
 
 export async function OPTIONS() {
@@ -384,7 +434,7 @@ const rewriteMetaImages = (
     });
   }
 
-  return nextMeta;
+  return rewriteMetaVideoThumbnails(nextMeta, requestUrl, config);
 };
 
 export async function GET(

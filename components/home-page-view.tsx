@@ -1,6 +1,4 @@
 'use client';
-
-import Image from 'next/image';
 import type { ChangeEvent, Dispatch, MouseEvent, RefObject, SetStateAction } from 'react';
 import {
   Image as ImageIcon,
@@ -30,6 +28,14 @@ import {
   type BackdropRatingLayout,
 } from '@/lib/backdropRatingLayout';
 import {
+  THUMBNAIL_RATING_LAYOUT_OPTIONS,
+  type ThumbnailRatingLayout,
+} from '@/lib/thumbnailRatingLayout';
+import {
+  THUMBNAIL_SIZE_OPTIONS,
+  type ThumbnailSize,
+} from '@/lib/thumbnailSize';
+import {
   POSTER_RATING_LAYOUT_OPTIONS,
   isVerticalPosterRatingLayout,
   type PosterRatingLayout,
@@ -39,8 +45,9 @@ import {
   type RatingStyle,
 } from '@/lib/ratingStyle';
 
-type PreviewType = 'poster' | 'backdrop' | 'logo';
-type ProxyEnabledTypes = Record<PreviewType, boolean>;
+type PreviewType = 'poster' | 'backdrop' | 'logo' | 'thumbnail';
+type ProxyType = PreviewType;
+type ProxyEnabledTypes = Record<ProxyType, boolean>;
 type SupportedLanguage = {
   code: string;
   label: string;
@@ -68,6 +75,8 @@ type HomePageViewState = {
   posterRatingsLayout: PosterRatingLayout;
   posterRatingsMaxPerSide: number | null;
   backdropRatingsLayout: BackdropRatingLayout;
+  thumbnailRatingsLayout: ThumbnailRatingLayout;
+  thumbnailSize: ThumbnailSize;
   qualityBadgesSide: QualityBadgesSide;
   posterQualityBadgesPosition: PosterQualityBadgesPosition;
   configCopied: boolean;
@@ -80,6 +89,7 @@ type HomePageViewDerived = {
   baseUrl: string;
   previewUrl: string;
   proxyUrl: string;
+  previewNotice: string | null;
   canGenerateConfig: boolean;
   canGenerateProxy: boolean;
   isConfigStringVisible: boolean;
@@ -117,6 +127,8 @@ type HomePageViewActions = {
   setPosterRatingsLayout: Dispatch<SetStateAction<PosterRatingLayout>>;
   setPosterRatingsMaxPerSide: Dispatch<SetStateAction<number | null>>;
   setBackdropRatingsLayout: Dispatch<SetStateAction<BackdropRatingLayout>>;
+  setThumbnailRatingsLayout: Dispatch<SetStateAction<ThumbnailRatingLayout>>;
+  setThumbnailSize: Dispatch<SetStateAction<ThumbnailSize>>;
   setPosterQualityBadgesPosition: Dispatch<SetStateAction<PosterQualityBadgesPosition>>;
   setQualityBadgesSide: Dispatch<SetStateAction<QualityBadgesSide>>;
   setRatingStyleForType: (value: RatingStyle) => void;
@@ -126,7 +138,7 @@ type HomePageViewActions = {
   toggleRatingPreference: (rating: RatingPreference) => void;
   reorderRatingPreference: (fromIndex: number, toIndex: number) => void;
   updateProxyManifestUrl: (value: string) => void;
-  toggleProxyEnabledType: (type: PreviewType) => void;
+  toggleProxyEnabledType: (type: ProxyType) => void;
   toggleProxyTranslateMeta: () => void;
   toggleConfigStringVisibility: () => void;
   toggleProxyUrlVisibility: () => void;
@@ -141,7 +153,7 @@ export type HomePageViewProps = {
   actions: HomePageViewActions;
 };
 
-const PROXY_TYPES: PreviewType[] = ['poster', 'backdrop', 'logo'];
+const PROXY_TYPES: ProxyType[] = ['poster', 'backdrop', 'logo', 'thumbnail'];
 const STREAM_BADGE_OPTIONS: Array<{ id: StreamBadgesSetting; label: string }> = [
   { id: 'auto', label: 'Auto' },
   { id: 'on', label: 'On' },
@@ -179,6 +191,8 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
     posterRatingsLayout,
     posterRatingsMaxPerSide,
     backdropRatingsLayout,
+    thumbnailRatingsLayout,
+    thumbnailSize,
     qualityBadgesSide,
     posterQualityBadgesPosition,
     configCopied,
@@ -190,6 +204,7 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
     baseUrl,
     previewUrl,
     proxyUrl,
+    previewNotice,
     canGenerateConfig,
     canGenerateProxy,
     isConfigStringVisible,
@@ -226,6 +241,8 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
     setPosterRatingsLayout,
     setPosterRatingsMaxPerSide,
     setBackdropRatingsLayout,
+    setThumbnailRatingsLayout,
+    setThumbnailSize,
     setPosterQualityBadgesPosition,
     setQualityBadgesSide,
     setRatingStyleForType,
@@ -287,7 +304,7 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                 </span>
               </h1>
               <p className="text-lg text-slate-400 leading-relaxed max-w-xl">
-                Generate expressive posters, backdrops, and logos for addons in real time.
+                Generate expressive posters, backdrops, logos, and thumbnails for addons in real time.
                 Pass parameters once and ship beautiful media metadata anywhere.
               </p>
               <div className="flex flex-wrap items-center gap-3">
@@ -340,7 +357,7 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                 <div className="mt-3 space-y-2 text-sm text-slate-300">
                   <div>Config string ready for sharing.</div>
                   <div>Translation pipeline for meta content.</div>
-                  <div>Works with posters, backdrops, logos.</div>
+                  <div>Works with posters, backdrops, logos, thumbnails.</div>
                 </div>
               </div>
             </div>
@@ -439,11 +456,12 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                     <div>
                       <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">Type</span>
                       <div className="flex gap-1 p-1 bg-[#0b0f15] rounded-lg border border-white/10">
-                        {(['poster', 'backdrop', 'logo'] as const).map(type => (
+                        {(['poster', 'backdrop', 'logo', 'thumbnail'] as const).map(type => (
                           <button key={type} onClick={() => setPreviewType(type)} className={`px-2 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1 ${previewType === type ? 'bg-[#141b26] text-white' : 'text-slate-400 hover:text-white'}`}>
                             {type === 'poster' && <ImageIcon className="w-3.5 h-3.5" />}
                             {type === 'backdrop' && <MonitorPlay className="w-3.5 h-3.5" />}
                             {type === 'logo' && <Layers className="w-3.5 h-3.5" />}
+                            {type === 'thumbnail' && <MonitorPlay className="w-3.5 h-3.5" />}
                             {type.charAt(0).toUpperCase() + type.slice(1)}
                           </button>
                         ))}
@@ -451,7 +469,7 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                     </div>
                     <div className="flex-1 min-w-[140px]">
                       <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">Media ID</span>
-                      <input type="text" value={mediaId} onChange={(e) => setMediaId(e.target.value)} placeholder="tt0133093" className="w-full bg-[#080b10] border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:border-orange-500/50 outline-none" />
+                      <input type="text" value={mediaId} onChange={(e) => setMediaId(e.target.value)} placeholder={previewType === 'thumbnail' ? 'tt0944947:1:1' : 'tt0133093'} className="w-full bg-[#080b10] border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:border-orange-500/50 outline-none" />
                     </div>
                     {tmdbKey ? (
                       <div className="w-32">
@@ -481,7 +499,7 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                         ))}
                       </div>
                     </div>
-                    {previewType !== 'logo' && (
+                    {previewType !== 'logo' && previewType !== 'thumbnail' && (
                       <div>
                         <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">{textLabel}</span>
                         <div className="flex gap-1 p-1 bg-[#0b0f15] rounded-lg border border-white/10">
@@ -494,7 +512,7 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                   </div>
                 </div>
 
-                {(previewType === 'poster' || previewType === 'backdrop') && (
+                {(previewType === 'poster' || previewType === 'backdrop' || previewType === 'thumbnail') && (
                   <div className="rounded-xl border border-white/10 bg-[#0b0f15]/80 p-3 space-y-3">
                     <div className="text-[11px] font-semibold text-slate-400">Layouts</div>
                     {previewType === 'poster' && (
@@ -529,10 +547,28 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                         </div>
                       </div>
                     )}
+                    {previewType === 'thumbnail' && (
+                      <div className="rounded-xl border border-white/10 bg-white/[0.04] p-2.5 space-y-2">
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Thumbnail Layout</div>
+                        <div className="flex flex-wrap gap-1">
+                          {THUMBNAIL_RATING_LAYOUT_OPTIONS.map(opt => (
+                            <button key={opt.id} onClick={() => setThumbnailRatingsLayout(opt.id as ThumbnailRatingLayout)} className={`rounded-lg border px-2 py-1.5 text-[11px] font-medium transition-colors ${thumbnailRatingsLayout === opt.id ? 'border-orange-500/60 bg-[#141b26] text-white' : 'border-white/10 bg-[#0b0f15] text-slate-400 hover:text-white'}`}>{opt.label}</button>
+                          ))}
+                        </div>
+                        <div className="pt-1">
+                          <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-2">Thumbnail Size</div>
+                          <div className="flex flex-wrap gap-1">
+                            {THUMBNAIL_SIZE_OPTIONS.map(opt => (
+                              <button key={opt.id} onClick={() => setThumbnailSize(opt.id as ThumbnailSize)} className={`rounded-lg border px-2 py-1.5 text-[11px] font-medium transition-colors ${thumbnailSize === opt.id ? 'border-orange-500/60 bg-[#141b26] text-white' : 'border-white/10 bg-[#0b0f15] text-slate-400 hover:text-white'}`}>{opt.label}</button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {previewType !== 'logo' && (
+                {previewType !== 'logo' && previewType !== 'thumbnail' && (
                   <div className="rounded-xl border border-white/10 bg-[#0b0f15]/80 p-2.5 space-y-2">
                     <div className="text-[11px] font-semibold text-slate-400">
                       Quality Badges - {qualityBadgeTypeLabel}
@@ -606,22 +642,27 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                   All ratings are normalized to a 0-10 scale.
                 </p>
                 <div className="mt-4 rounded-2xl border border-white/10 bg-[#080b10]/90 p-3 min-h-[260px] flex items-center justify-center flex-col">
-
-                  {previewUrl ? (
+                  {previewNotice ? (
+                    <div className="max-w-md text-center">
+                      <div className="text-sm font-semibold text-orange-300">{previewNotice}</div>
+                      <div className="mt-2 text-xs text-slate-500">
+                        Use an episode ID in the format `imdb_id:season:episode`.
+                      </div>
+                    </div>
+                  ) : previewUrl ? (
                     <div className="z-10 w-full flex flex-col items-center gap-8">
                       <div className={`relative shadow-2xl shadow-black ring-1 ring-white/10 rounded-2xl overflow-hidden ${previewType === 'poster'
                         ? 'aspect-[2/3] w-60'
-                        : previewType === 'logo'
-                          ? 'h-40 w-full max-w-lg'
+                          : previewType === 'logo'
+                            ? 'h-40 w-full max-w-lg'
                           : 'aspect-video w-full max-w-lg'
                         }`}>
-                        <Image
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
                           key={previewUrl}
                           src={previewUrl}
                           alt="Preview"
-                          unoptimized
-                          fill
-                          className={previewType === 'logo' ? 'object-contain' : 'object-cover'}
+                          className={`h-full w-full ${previewType === 'logo' ? 'object-contain' : 'object-cover'}`}
                         />
                       </div>
                     </div>
@@ -789,7 +830,7 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                     </div>
                     <div className="space-y-1">
                       <div className="text-slate-200 font-semibold">Replace enabled types</div>
-                      <div>Proxy rewrites enabled `meta.poster`, `meta.background`, `meta.logo` for both `catalog` and `meta` responses.</div>
+                      <div>Proxy rewrites enabled `meta.poster`, `meta.background`, `meta.logo`, and `meta.videos[].thumbnail` where available.</div>
                     </div>
                   </div>
                 </div>
@@ -804,9 +845,7 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                 <Terminal className="w-5 h-5 text-orange-500" /> Aiometadata Patterns
               </h3>
             </div>
-            <p className="mt-2 text-sm text-slate-400 max-w-3xl">
-              Copy these URL patterns directly into aiometadata. These patterns use direct ERDB image URLs with <code>{'{imdb_id}'}</code>, which is the format currently confirmed to be accepted by aiometadata.
-            </p>
+            <p className="mt-2 text-sm text-slate-400 max-w-3xl">Copy these URL patterns directly into aiometadata.</p>
             <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-3">
               {([
                 ['poster', 'Poster URL Pattern'],
@@ -841,7 +880,7 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                     </div>
                     <div className="mt-2 rounded-xl border border-white/10 bg-[#0b0f15]/80 p-3 min-h-28">
                       <div className="font-mono text-xs text-slate-300 break-all whitespace-pre-wrap">
-                        {value || 'Not available. ERDB currently does not expose a dedicated episode thumbnail endpoint.'}
+                        {value || 'Not available.'}
                       </div>
                     </div>
                   </div>
@@ -895,7 +934,7 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                     <tbody className="divide-y divide-white/5">
                       <tr>
                         <td className="px-5 py-2 font-mono text-orange-400 text-xs">type <span className="text-slate-500">(path)</span></td>
-                        <td className="px-5 py-2 text-slate-400 text-xs">poster, backdrop, logo</td>
+                        <td className="px-5 py-2 text-slate-400 text-xs">poster, backdrop, logo, thumbnail</td>
                         <td className="px-5 py-2 text-slate-500 text-xs">-</td>
                       </tr>
                       <tr>
@@ -994,6 +1033,16 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                         <td className="px-5 py-2 text-slate-500 text-xs">center</td>
                       </tr>
                       <tr>
+                        <td className="px-5 py-2 font-mono text-orange-400 text-xs">thumbnailRatingsLayout</td>
+                        <td className="px-5 py-2 text-slate-400 text-xs">center, center-top, center-bottom, center-vertical, left/right variants, vertical variants</td>
+                        <td className="px-5 py-2 text-slate-500 text-xs">center</td>
+                      </tr>
+                      <tr>
+                        <td className="px-5 py-2 font-mono text-orange-400 text-xs">thumbnailSize</td>
+                        <td className="px-5 py-2 text-slate-400 text-xs">small, medium, large</td>
+                        <td className="px-5 py-2 text-slate-500 text-xs">medium</td>
+                      </tr>
+                      <tr>
                         <td className="px-5 py-2 font-mono text-orange-400 text-xs">tmdbKey <span className="font-bold">(req)</span></td>
                         <td className="px-5 py-2 text-slate-400 text-xs">TMDB v3 API Key</td>
                         <td className="px-5 py-2 text-slate-500 text-xs">-</td>
@@ -1053,6 +1102,22 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                           <div className="space-y-1">
                             <div>original, clean, alternative</div>
                             <div>center, right, right-vertical</div>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-5 py-2 font-mono text-orange-400 text-xs">thumbnail</td>
+                        <td className="px-5 py-2 text-slate-400 text-xs">
+                          <div className="space-y-1">
+                            <div>thumbnailRatingsLayout</div>
+                            <div>thumbnailSize</div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-2 text-slate-400 text-xs">
+                          <div className="space-y-1">
+                            <div>thumbnail-specific layout options</div>
+                            <div>small, medium, large</div>
+                            <div>Uses episode stills and episode TMDB/IMDb ratings</div>
                           </div>
                         </td>
                       </tr>
@@ -1239,6 +1304,8 @@ imageText               | original, clean, alternative                          
 posterRatingsLayout     | top, bottom, left, right, top-bottom, left-right                     | top-bottom
 posterRatingsMaxPerSide | Number (1-20)                                                        | auto
 backdropRatingsLayout   | center, right, right-vertical                                        | center
+thumbnailRatingsLayout  | center + thumbnail-only side/top/bottom/vertical variants            | center
+thumbnailSize           | small, medium, large                                                 | medium
 tmdbKey (REQUIRED)      | Your TMDB v3 API Key                                                 | -
 mdblistKey (REQUIRED)   | Your MDBList.com API Key                                             | -
 simklClientId (OPTIONAL)| Your SIMKL client_id for direct SIMKL ratings                        | -
@@ -1247,15 +1314,16 @@ TMDB NOTE: Always prefer tmdb:movie:id or tmdb:tv:id. Using bare tmdb:id can col
 
 --- INTEGRATION REQUIREMENTS ---
 1. Use ONLY the "erdbConfig" field (no modal and no extra settings panels).
-2. Add toggles to enable/disable: poster, backdrop, logo.
+2. Add toggles to enable/disable: poster, backdrop, logo, thumbnail.
 3. If a type is disabled, keep the original artwork (do not call ERDB for that type).
 4. Build ERDB URLs using the decoded config and inject them into both catalog and meta responses.
 
 --- PER-TYPE SETTINGS ---
 poster   -> ratingStyle = cfg.posterRatingStyle, imageText = cfg.posterImageText
 backdrop -> ratingStyle = cfg.backdropRatingStyle, imageText = cfg.backdropImageText
+thumbnail -> ratingStyle = cfg.backdropRatingStyle, thumbnailRatingsLayout = cfg.thumbnailRatingsLayout, thumbnailSize = cfg.thumbnailSize
 logo     -> ratingStyle = cfg.logoRatingStyle (omit imageText)
-Ratings providers can be set per-type via cfg.posterRatings / cfg.backdropRatings / cfg.logoRatings (fallback to cfg.ratings).
+Ratings providers can be set per-type via cfg.posterRatings / cfg.backdropRatings / cfg.logoRatings (fallback to cfg.ratings). Thumbnail ratings are episode-level and currently support TMDB + IMDb only.
 Quality badges style can be set per-type via cfg.posterQualityBadgesStyle / cfg.backdropQualityBadgesStyle (fallback to cfg.qualityBadgesStyle).
 
 --- URL BUILD ---
@@ -1263,7 +1331,8 @@ const typeRatingStyle = type === 'poster' ? cfg.posterRatingStyle : type === 'ba
 const typeImageText = type === 'backdrop' ? cfg.backdropImageText : cfg.posterImageText;
 \${cfg.baseUrl}/\${type}/\${id}.jpg?tmdbKey=\${cfg.tmdbKey}&mdblistKey=\${cfg.mdblistKey}&simklClientId=\${cfg.simklClientId}&ratings=\${cfg.ratings}&posterRatings=\${cfg.posterRatings}&backdropRatings=\${cfg.backdropRatings}&logoRatings=\${cfg.logoRatings}&lang=\${cfg.lang}&streamBadges=\${cfg.streamBadges}&posterStreamBadges=\${cfg.posterStreamBadges}&backdropStreamBadges=\${cfg.backdropStreamBadges}&qualityBadgesSide=\${cfg.qualityBadgesSide}&posterQualityBadgesPosition=\${cfg.posterQualityBadgesPosition}&qualityBadgesStyle=\${cfg.qualityBadgesStyle}&posterQualityBadgesStyle=\${cfg.posterQualityBadgesStyle}&backdropQualityBadgesStyle=\${cfg.backdropQualityBadgesStyle}&ratingStyle=\${typeRatingStyle}&imageText=\${typeImageText}&posterRatingsLayout=\${cfg.posterRatingsLayout}&posterRatingsMaxPerSide=\${cfg.posterRatingsMaxPerSide}&backdropRatingsLayout=\${cfg.backdropRatingsLayout}
 
-Omit imageText when type=logo.
+For thumbnails use thumbnailRatingsLayout and thumbnailSize instead of imageText.
+Omit imageText when type=logo or type=thumbnail.
 
 Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRatings/logoRatings to disable providers.`}</div>
                 </div>

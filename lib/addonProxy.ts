@@ -10,11 +10,14 @@ const ERDB_OPTIONAL_PARAMS = [
   'posterRatingsLayout',
   'posterRatingsMaxPerSide',
   'backdropRatingsLayout',
+  'thumbnailRatingsLayout',
+  'thumbnailSize',
 ];
 const ERDB_TYPE_OPTIONAL_PARAMS = {
   poster: ['posterStreamBadges', 'posterQualityBadgesStyle', 'posterRatings'],
   backdrop: ['backdropStreamBadges', 'backdropQualityBadgesStyle', 'backdropRatings'],
   logo: ['logoRatings'],
+  thumbnail: ['backdropStreamBadges', 'backdropQualityBadgesStyle', 'backdropRatings'],
 } as const;
 const ERDB_OPTIONAL_PARAM_KEYS = [
   ...ERDB_OPTIONAL_PARAMS,
@@ -36,6 +39,10 @@ const ERDB_TYPE_STYLE_PARAMS = {
     ratingStyle: ['logoRatingStyle', 'ratingStyle'],
     imageText: [],
   },
+  thumbnail: {
+    ratingStyle: ['backdropRatingStyle', 'ratingStyle'],
+    imageText: ['backdropImageText', 'imageText'],
+  },
 } as const;
 
 export const ERDB_RESERVED_PARAMS = new Set<string>([
@@ -48,6 +55,7 @@ export const ERDB_RESERVED_PARAMS = new Set<string>([
   'posterEnabled',
   'backdropEnabled',
   'logoEnabled',
+  'thumbnailEnabled',
   'ratingStyle',
   'imageText',
   'posterRatingStyle',
@@ -87,10 +95,13 @@ export type ProxyConfig = {
   posterRatingsLayout?: string;
   posterRatingsMaxPerSide?: string;
   backdropRatingsLayout?: string;
+  thumbnailRatingsLayout?: string;
+  thumbnailSize?: string;
   erdbBase?: string;
   posterEnabled?: boolean;
   backdropEnabled?: boolean;
   logoEnabled?: boolean;
+  thumbnailEnabled?: boolean;
 };
 
 const PROXY_OPTIONAL_STRING_KEYS = [
@@ -118,6 +129,8 @@ const PROXY_OPTIONAL_STRING_KEYS = [
   'posterRatingsLayout',
   'posterRatingsMaxPerSide',
   'backdropRatingsLayout',
+  'thumbnailRatingsLayout',
+  'thumbnailSize',
   'erdbBase',
  ] as const satisfies readonly (keyof ProxyConfig)[];
 type ProxyOptionalStringKey = (typeof PROXY_OPTIONAL_STRING_KEYS)[number];
@@ -127,6 +140,7 @@ const PROXY_OPTIONAL_BOOLEAN_KEYS = [
   'posterEnabled',
   'backdropEnabled',
   'logoEnabled',
+  'thumbnailEnabled',
 ] as const satisfies readonly (keyof ProxyConfig)[];
 type ProxyOptionalBooleanKey = (typeof PROXY_OPTIONAL_BOOLEAN_KEYS)[number];
 
@@ -319,7 +333,7 @@ const getProxyParam = (reqUrl: URL, config: ProxyConfig | null, key: keyof Proxy
 
 export const buildErdbImageUrl = (options: {
   reqUrl: URL;
-  imageType: 'poster' | 'backdrop' | 'logo';
+  imageType: 'poster' | 'backdrop' | 'logo' | 'thumbnail';
   erdbId: string;
   tmdbKey: string;
   mdblistKey: string;
