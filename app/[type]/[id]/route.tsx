@@ -4176,17 +4176,22 @@ export async function GET(
           : isTmdb && mediaId
             ? String(mediaId)
             : null;
-      let torrentioIdForCache: string | null = isImdbId(mediaId) ? mediaId : null;
-      if (!torrentioIdForCache) {
-        torrentioIdForCache = media?.imdb_id || mappedImdbId || null;
+      let streamBadgesIdForCache: string | null = isImdbId(mediaId) ? mediaId : null;
+      if (!streamBadgesIdForCache) {
+        streamBadgesIdForCache = media?.imdb_id || mappedImdbId || null;
       }
-      if (!torrentioIdForCache && tmdbIdForCache) {
-        torrentioIdForCache = `tmdb:${tmdbIdForCache}`;
+      if (!streamBadgesIdForCache && tmdbIdForCache) {
+        streamBadgesIdForCache = `tmdb:${tmdbIdForCache}`;
+      }
+      if (mediaType === 'tv' && streamBadgesIdForCache) {
+        const streamSeason = season || '1';
+        const streamEpisode = episode || '1';
+        streamBadgesIdForCache = `${streamBadgesIdForCache}:${streamSeason}:${streamEpisode}`;
       }
       const streamBadgesWindowTtlMs = shouldRenderStreamBadges
-        ? mediaType && torrentioIdForCache
+        ? mediaType && streamBadgesIdForCache
           ? getRatingCacheTtlMs({
-            id: torrentioIdForCache,
+            id: streamBadgesIdForCache,
             mediaType: mediaType as 'movie' | 'tv',
             releaseDate: releaseDateForCache,
             defaultTtlMs: STREAM_BADGES_CACHE_TTL_MS,
@@ -4920,19 +4925,24 @@ export async function GET(
                 : isTmdb && mediaId
                   ? String(mediaId)
                   : null;
-            const torrentioId = imdbId || (tmdbId ? `tmdb:${tmdbId}` : null);
-            if (!torrentioId) {
+            let streamBadgesId = imdbId || (tmdbId ? `tmdb:${tmdbId}` : null);
+            if (!streamBadgesId) {
               return { badges: [], cacheTtlMs: STREAM_BADGES_CACHE_TTL_MS };
+            }
+            if (mediaType === 'tv') {
+              const streamSeason = season || '1';
+              const streamEpisode = episode || '1';
+              streamBadgesId = `${streamBadgesId}:${streamSeason}:${streamEpisode}`;
             }
             const torrentioType = mediaType === 'movie' ? 'movie' : 'series';
             const torrentioCacheTtlMs = getRatingCacheTtlMs({
-              id: torrentioId,
+              id: streamBadgesId,
               mediaType: mediaType as 'movie' | 'tv',
               releaseDate: mediaType === 'movie' ? media?.release_date : media?.first_air_date,
               defaultTtlMs: STREAM_BADGES_CACHE_TTL_MS,
               oldTtlMs: MDBLIST_OLD_MOVIE_CACHE_TTL_MS,
             });
-            return fetchStreamBadges({ type: torrentioType, id: torrentioId, phases, cacheTtlMs: torrentioCacheTtlMs });
+            return fetchStreamBadges({ type: torrentioType, id: streamBadgesId, phases, cacheTtlMs: torrentioCacheTtlMs });
           })()
           : null;
 
