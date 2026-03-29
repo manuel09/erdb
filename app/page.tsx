@@ -9,6 +9,8 @@ import {
   useState,
   useSyncExternalStore,
   type ChangeEvent,
+  type Dispatch,
+  type SetStateAction,
 } from 'react';
 import {
   RATING_PROVIDER_OPTIONS,
@@ -65,6 +67,8 @@ const SUPPORTED_LANGUAGES = [
 const VISIBLE_RATING_PROVIDER_OPTIONS = RATING_PROVIDER_OPTIONS;
 const THUMBNAIL_SUPPORTED_RATINGS: RatingPreference[] = ['tmdb', 'imdb'];
 const EPISODE_ID_PATTERN = /^.+:\d+:\d+$/;
+const DEFAULT_SERIES_ID = 'tt4574334';
+const DEFAULT_THUMBNAIL_ID = 'tt4574334:1:1';
 const PROXY_TYPES = ['poster', 'backdrop', 'logo', 'thumbnail'] as const;
 const PREVIEW_TYPES = ['poster', 'backdrop', 'logo', 'thumbnail'] as const;
 type ProxyType = (typeof PROXY_TYPES)[number];
@@ -95,6 +99,7 @@ const POSTER_QUALITY_BADGE_POSITION_OPTIONS: Array<{
 const TMDB_KEY_STORAGE_KEY = 'erdb_tmdb_key';
 const MDBLIST_KEY_STORAGE_KEY = 'erdb_mdblist_key';
 const SIMKL_CLIENT_ID_STORAGE_KEY = 'erdb_simkl_client_id';
+const PREVIEW_CONFIG_STORAGE_KEY = 'erdb_preview_config';
 const EXPORT_CONFIG_VERSION = 1;
 const RATING_PROVIDER_IDS = new Set(RATING_PROVIDER_OPTIONS.map((option) => option.id));
 const isRatingProviderId = (value: string): value is RatingPreference =>
@@ -442,7 +447,7 @@ const maskSensitiveText = (value: string) => value.replace(/[^\s]/g, '*');
 
 export default function Home() {
   const [previewType, setPreviewType] = useState<PreviewType>('poster');
-  const [mediaId, setMediaId] = useState('tt0133093');
+  const [mediaId, setMediaId] = useState(DEFAULT_SERIES_ID);
   const [lang, setLang] = useState('en');
   const [posterImageText, setPosterImageText] = useState<'original' | 'clean' | 'alternative'>('clean');
   const [backdropImageText, setBackdropImageText] = useState<'original' | 'clean' | 'alternative'>('clean');
@@ -541,6 +546,23 @@ export default function Home() {
       }
       if (storedSimklClientId) {
         setSimklClientId(storedSimklClientId);
+      }
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const storedPreviewConfig = safeLocalStorageGet(PREVIEW_CONFIG_STORAGE_KEY);
+    if (!storedPreviewConfig) {
+      return;
+    }
+    const frameId = window.requestAnimationFrame(() => {
+      try {
+        const parsed = JSON.parse(storedPreviewConfig) as Record<string, unknown>;
+        applyImportedConfig(parsed);
+      } catch {
+        safeLocalStorageRemove(PREVIEW_CONFIG_STORAGE_KEY);
       }
     });
     return () => window.cancelAnimationFrame(frameId);
@@ -1381,6 +1403,66 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     setImportMessage('Config loaded.');
   };
 
+  useEffect(() => {
+    const payload: Record<string, unknown> = {
+      version: EXPORT_CONFIG_VERSION,
+      previewType,
+      mediaId,
+      lang,
+      posterImageText,
+      backdropImageText,
+      posterRatingPreferences,
+      backdropRatingPreferences,
+      thumbnailRatingPreferences,
+      logoRatingPreferences,
+      posterStreamBadges,
+      backdropStreamBadges,
+      qualityBadgesSide,
+      posterQualityBadgesPosition,
+      posterQualityBadgesStyle,
+      backdropQualityBadgesStyle,
+      posterRatingStyle,
+      backdropRatingStyle,
+      logoRatingStyle,
+      posterRatingsLayout,
+      posterRatingsMaxPerSide,
+      backdropRatingsLayout,
+      thumbnailRatingsLayout,
+      thumbnailSize,
+      proxyManifestUrl,
+      proxyEnabledTypes,
+      translateMeta: proxyTranslateMeta,
+    };
+    safeLocalStorageSet(PREVIEW_CONFIG_STORAGE_KEY, JSON.stringify(payload));
+  }, [
+    previewType,
+    mediaId,
+    lang,
+    posterImageText,
+    backdropImageText,
+    posterRatingPreferences,
+    backdropRatingPreferences,
+    thumbnailRatingPreferences,
+    logoRatingPreferences,
+    posterStreamBadges,
+    backdropStreamBadges,
+    qualityBadgesSide,
+    posterQualityBadgesPosition,
+    posterQualityBadgesStyle,
+    backdropQualityBadgesStyle,
+    posterRatingStyle,
+    backdropRatingStyle,
+    logoRatingStyle,
+    posterRatingsLayout,
+    posterRatingsMaxPerSide,
+    backdropRatingsLayout,
+    thumbnailRatingsLayout,
+    thumbnailSize,
+    proxyManifestUrl,
+    proxyEnabledTypes,
+    proxyTranslateMeta,
+  ]);
+
   const handleImportFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -1486,6 +1568,17 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     }
     setPosterImageText(value);
   };
+  const handleSetPreviewType: Dispatch<SetStateAction<PreviewType>> = (value) => {
+    const nextPreviewType = typeof value === 'function' ? value(previewType) : value;
+    setPreviewType(nextPreviewType);
+    setMediaId((currentMediaId) => {
+      const trimmed = currentMediaId.trim();
+      if (nextPreviewType === 'thumbnail') {
+        return EPISODE_ID_PATTERN.test(trimmed) ? trimmed : DEFAULT_THUMBNAIL_ID;
+      }
+      return EPISODE_ID_PATTERN.test(trimmed) ? DEFAULT_SERIES_ID : trimmed || DEFAULT_SERIES_ID;
+    });
+  };
   const viewProps: HomePageViewProps = {
     refs: {
       navRef,
@@ -1548,7 +1641,7 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
       handleCopyProxy,
       handleCopyPrompt,
       handleCopyAiometadataPattern,
-      setPreviewType,
+      setPreviewType: handleSetPreviewType,
       setMediaId,
       setLang,
         setTmdbKey,
