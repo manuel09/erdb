@@ -2766,7 +2766,7 @@ const buildQualityBadgeSvg = (
   const radius = style === 'glass' ? Math.round(h / 2) : Math.round(h * 0.18);
   const strokeWidth =
     style === 'glass'
-      ? Math.max(1, Math.round(h * 0.04))
+      ? 1
       : style === 'square'
         ? Math.max(1, Math.round(h * 0.05))
         : Math.max(2, Math.round(h * 0.08));
@@ -2778,16 +2778,18 @@ const buildQualityBadgeSvg = (
     if (style === 'plain') return null;
     if (style === 'glass') {
       return {
-        stroke: 'rgba(255,255,255,0.45)',
+        stroke: accentColor,
+        strokeOpacity: '0.58',
         fill: 'rgba(17,24,39,0.70)',
       };
     }
-    return { stroke: accentColor, fill: '#0b0b0b' };
+    return { stroke: accentColor, strokeOpacity: '1', fill: '#0b0b0b' };
   };
   const buildRect = (width: number, accentColor: string, extra = '') => {
     const chrome = resolveChrome(accentColor);
     if (!chrome) return '';
-    return baseRect(width, chrome.stroke, chrome.fill, extra);
+    const chromeExtra = chrome.strokeOpacity ? `${extra} stroke-opacity="${chrome.strokeOpacity}"` : extra;
+    return baseRect(width, chrome.stroke, chrome.fill, chromeExtra);
   };
 
   if (key === '4k') {
@@ -2953,7 +2955,7 @@ const buildBadgeSvg = ({
   const outerRect =
     ratingStyle === 'plain'
       ? ''
-      : `<rect x="0.75" y="0.75" width="${Math.max(0, width - 1.5)}" height="${Math.max(0, height - 1.5)}" rx="${radius}" fill="${ratingStyle === 'square' ? 'rgb(5,5,5)' : 'rgb(17,24,39)'}" fill-opacity="${ratingStyle === 'square' ? '0.94' : '0.70'}" stroke="${ratingStyle === 'square' ? accentColor : 'rgba(255,255,255,0.30)'}" stroke-width="${ratingStyle === 'square' ? '1.5' : '1'}" />`;
+      : `<rect x="0.75" y="0.75" width="${Math.max(0, width - 1.5)}" height="${Math.max(0, height - 1.5)}" rx="${radius}" fill="${ratingStyle === 'square' ? 'rgb(5,5,5)' : 'rgb(17,24,39)'}" fill-opacity="${ratingStyle === 'square' ? '0.94' : '0.70'}" stroke="${ratingStyle === 'square' ? accentColor : accentColor}" stroke-opacity="${ratingStyle === 'square' ? '1' : '0.58'}" stroke-width="${ratingStyle === 'square' ? '1.5' : '1'}" />`;
   const monogramFill = ratingStyle === 'glass' ? 'white' : accentColor;
   const textShadowFilter =
     ratingStyle === 'plain'
