@@ -1391,6 +1391,23 @@ const fetchKitsuRating = async (kitsuId: string, phases: PhaseDurations) => {
   return normalizeRatingValue(attributes?.averageRating);
 };
 
+// Older proxy URLs may still include a placeholder season: `kitsu:id:season:episode`.
+const parseKitsuInputParts = (parts: string[]) => {
+  const mediaId = parts[1] || '';
+  if (parts.length >= 4) {
+    return {
+      mediaId,
+      season: null,
+      episode: parts[3] || null,
+    };
+  }
+  return {
+    mediaId,
+    season: null,
+    episode: parts.length > 2 ? parts[2] : null,
+  };
+};
+
 const ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co';
 
 const fetchAnilistRating = async (anilistId: string, phases: PhaseDurations) => {
@@ -4663,8 +4680,10 @@ export async function GET(
     episode = parts.length > 3 ? parts[3] : null;
   } else if (idPrefix === 'kitsu') {
     isKitsu = true;
-    mediaId = parts[1];
-    episode = parts.length > 2 ? parts[2] : null;
+    const parsedKitsu = parseKitsuInputParts(parts);
+    mediaId = parsedKitsu.mediaId;
+    season = parsedKitsu.season;
+    episode = parsedKitsu.episode;
   } else if (idPrefix === 'imdb' && inputAnimeMappingExternalId) {
     mediaId = inputAnimeMappingExternalId;
     season = parts.length > 2 ? parts[2] : null;
