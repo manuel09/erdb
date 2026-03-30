@@ -1,6 +1,5 @@
 export const BACKDROP_RATING_LAYOUT_OPTIONS = [
   { id: 'center', label: 'Center' },
-  { id: 'right', label: 'Right' },
   { id: 'right-vertical', label: 'Right Vertical' },
 ] as const;
 
@@ -14,6 +13,9 @@ const BACKDROP_RATING_LAYOUT_SET = new Set<BackdropRatingLayout>(
 
 export const normalizeBackdropRatingLayout = (value?: string | null): BackdropRatingLayout => {
   const normalized = (value || '').trim().toLowerCase();
+  if (normalized === 'right') {
+    return 'right-vertical';
+  }
   return BACKDROP_RATING_LAYOUT_SET.has(normalized as BackdropRatingLayout)
     ? (normalized as BackdropRatingLayout)
     : DEFAULT_BACKDROP_RATING_LAYOUT;

@@ -59,6 +59,7 @@ type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide;
 type AiometadataPatternType = 'poster' | 'background' | 'logo' | 'episodeThumbnail';
 type AiometadataEpisodeProvider = 'tvdb' | 'realimdb';
 type ProxyEpisodeProvider = 'custom' | 'realimdb';
+type VerticalBadgeContent = 'standard' | 'stacked';
 
 type HomePageViewState = {
   previewType: PreviewType;
@@ -79,6 +80,9 @@ type HomePageViewState = {
   posterRatingsMaxPerSide: number | null;
   backdropRatingsLayout: BackdropRatingLayout;
   thumbnailRatingsLayout: ThumbnailRatingLayout;
+  posterVerticalBadgeContent: VerticalBadgeContent;
+  backdropVerticalBadgeContent: VerticalBadgeContent;
+  thumbnailVerticalBadgeContent: VerticalBadgeContent;
   thumbnailSize: ThumbnailSize;
   qualityBadgesSide: QualityBadgesSide;
   posterQualityBadgesPosition: PosterQualityBadgesPosition;
@@ -135,6 +139,9 @@ type HomePageViewActions = {
   setPosterRatingsMaxPerSide: Dispatch<SetStateAction<number | null>>;
   setBackdropRatingsLayout: Dispatch<SetStateAction<BackdropRatingLayout>>;
   setThumbnailRatingsLayout: Dispatch<SetStateAction<ThumbnailRatingLayout>>;
+  setPosterVerticalBadgeContent: Dispatch<SetStateAction<VerticalBadgeContent>>;
+  setBackdropVerticalBadgeContent: Dispatch<SetStateAction<VerticalBadgeContent>>;
+  setThumbnailVerticalBadgeContent: Dispatch<SetStateAction<VerticalBadgeContent>>;
   setThumbnailSize: Dispatch<SetStateAction<ThumbnailSize>>;
   setAiometadataEpisodeProvider: Dispatch<SetStateAction<AiometadataEpisodeProvider>>;
   setProxyAiometadataProvider: Dispatch<SetStateAction<ProxyEpisodeProvider>>;
@@ -180,6 +187,10 @@ const POSTER_QUALITY_BADGE_POSITION_OPTIONS: Array<{
   { id: 'left', label: 'Left' },
   { id: 'right', label: 'Right' },
 ];
+const VERTICAL_BADGE_CONTENT_OPTIONS: Array<{ id: VerticalBadgeContent; label: string }> = [
+  { id: 'standard', label: 'Standard' },
+  { id: 'stacked', label: 'Stacked' },
+];
 const AIOMETADATA_EPISODE_PROVIDER_OPTIONS: Array<{ id: AiometadataEpisodeProvider; label: string }> = [
   { id: 'realimdb', label: 'IMDb' },
   { id: 'tvdb', label: 'TVDB' },
@@ -210,6 +221,9 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
     posterRatingsMaxPerSide,
     backdropRatingsLayout,
     thumbnailRatingsLayout,
+    posterVerticalBadgeContent,
+    backdropVerticalBadgeContent,
+    thumbnailVerticalBadgeContent,
     thumbnailSize,
     qualityBadgesSide,
     posterQualityBadgesPosition,
@@ -264,6 +278,9 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
     setPosterRatingsMaxPerSide,
     setBackdropRatingsLayout,
     setThumbnailRatingsLayout,
+    setPosterVerticalBadgeContent,
+    setBackdropVerticalBadgeContent,
+    setThumbnailVerticalBadgeContent,
     setThumbnailSize,
     setAiometadataEpisodeProvider,
     setProxyAiometadataProvider,
@@ -281,6 +298,12 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
     toggleConfigStringVisibility,
     toggleProxyUrlVisibility,
   } = actions;
+  const shouldShowVerticalBadgeContent =
+    (previewType === 'poster' && isVerticalPosterRatingLayout(posterRatingsLayout)) ||
+    (previewType === 'backdrop' && backdropRatingsLayout === 'right-vertical') ||
+    (previewType === 'thumbnail' && thumbnailRatingsLayout.endsWith('-vertical'));
+  const activeVerticalBadgeContent =
+    previewType === 'poster' ? posterVerticalBadgeContent : previewType === 'thumbnail' ? thumbnailVerticalBadgeContent : backdropVerticalBadgeContent;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#06070b] text-slate-200 selection:bg-orange-400/30 font-[var(--font-body)]">
@@ -604,6 +627,19 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                             ))}
                           </div>
                         </div>
+                      </div>
+                    )}
+                    {shouldShowVerticalBadgeContent && (
+                      <div className="rounded-xl border border-white/10 bg-white/[0.04] p-2.5 space-y-2">
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Vertical Badge Content</div>
+                        <div className="flex flex-wrap gap-1">
+                          {VERTICAL_BADGE_CONTENT_OPTIONS.map(option => (
+                            <button key={option.id} onClick={() => (previewType === 'poster' ? setPosterVerticalBadgeContent(option.id) : previewType === 'thumbnail' ? setThumbnailVerticalBadgeContent(option.id) : setBackdropVerticalBadgeContent(option.id))} className={`rounded-lg border px-2 py-1.5 text-[11px] font-medium transition-colors ${activeVerticalBadgeContent === option.id ? 'border-orange-500/60 bg-[#141b26] text-white' : 'border-white/10 bg-[#0b0f15] text-slate-400 hover:text-white'}`}>
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="text-[10px] text-slate-500">For vertical layouts, keep badges standard or stack icon and value vertically.</div>
                       </div>
                     )}
                   </div>
@@ -1105,7 +1141,7 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                       </tr>
                       <tr>
                         <td className="px-5 py-2 font-mono text-orange-400 text-xs">backdropRatingsLayout</td>
-                        <td className="px-5 py-2 text-slate-400 text-xs">center, right, right-vertical</td>
+                        <td className="px-5 py-2 text-slate-400 text-xs">center, right-vertical</td>
                         <td className="px-5 py-2 text-slate-500 text-xs">center</td>
                       </tr>
                       <tr>
@@ -1117,6 +1153,11 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                         <td className="px-5 py-2 font-mono text-orange-400 text-xs">thumbnailSize</td>
                         <td className="px-5 py-2 text-slate-400 text-xs">small, medium, large</td>
                         <td className="px-5 py-2 text-slate-500 text-xs">medium</td>
+                      </tr>
+                      <tr>
+                        <td className="px-5 py-2 font-mono text-orange-400 text-xs">posterVerticalBadgeContent / backdropVerticalBadgeContent / thumbnailVerticalBadgeContent</td>
+                        <td className="px-5 py-2 text-slate-400 text-xs">standard, stacked (vertical layouts only)</td>
+                        <td className="px-5 py-2 text-slate-500 text-xs">standard</td>
                       </tr>
                       <tr>
                         <td className="px-5 py-2 font-mono text-orange-400 text-xs">tmdbKey <span className="font-bold">(req)</span></td>
@@ -1156,6 +1197,7 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                             <div>imageText</div>
                             <div>posterRatingsLayout</div>
                             <div>posterRatingsMaxPerSide</div>
+                            <div>posterVerticalBadgeContent</div>
                           </div>
                         </td>
                         <td className="px-5 py-2 text-slate-400 text-xs">
@@ -1163,6 +1205,7 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                             <div>original, clean, alternative</div>
                             <div>top, bottom, left, right, top-bottom, left-right</div>
                             <div>1-20 (auto if omitted)</div>
+                            <div>standard, stacked (when using left/right vertical poster layouts)</div>
                           </div>
                         </td>
                       </tr>
@@ -1172,12 +1215,14 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                           <div className="space-y-1">
                             <div>imageText</div>
                             <div>backdropRatingsLayout</div>
+                            <div>backdropVerticalBadgeContent</div>
                           </div>
                         </td>
                         <td className="px-5 py-2 text-slate-400 text-xs">
                           <div className="space-y-1">
                             <div>original, clean, alternative</div>
-                            <div>center, right, right-vertical</div>
+                            <div>center, right-vertical</div>
+                            <div>standard, stacked (when using right-vertical)</div>
                           </div>
                         </td>
                       </tr>
@@ -1187,12 +1232,14 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                           <div className="space-y-1">
                             <div>thumbnailRatingsLayout</div>
                             <div>thumbnailSize</div>
+                            <div>thumbnailVerticalBadgeContent</div>
                           </div>
                         </td>
                         <td className="px-5 py-2 text-slate-400 text-xs">
                           <div className="space-y-1">
                             <div>thumbnail-specific layout options</div>
                             <div>small, medium, large</div>
+                            <div>standard, stacked (when using a vertical thumbnail layout)</div>
                             <div>Uses episode stills and episode TMDB/IMDb ratings</div>
                           </div>
                         </td>
@@ -1206,7 +1253,7 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                   </table>
                 </div>
                 <div className="px-5 pb-5 pt-3 text-[11px] text-slate-500">
-                  Base params for all types: ratings (global fallback), lang, ratingStyle, tmdbKey, mdblistKey, simklClientId. Use posterRatings/backdropRatings/logoRatings to override per type.
+                  Base params for all types: ratings (global fallback), lang, ratingStyle, tmdbKey, mdblistKey, simklClientId. Use `posterVerticalBadgeContent` for poster vertical layouts, `backdropVerticalBadgeContent` for backdrop vertical layouts, and `thumbnailVerticalBadgeContent` for thumbnail vertical layouts.
                 </div>
               </div>
 
@@ -1276,6 +1323,12 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                     <span className="text-orange-400 font-bold">posterRatingsMaxPerSide</span>=<span className="text-slate-400 font-bold">{'{max}'}</span>
                     <span className="text-white">&</span>
                     <span className="text-orange-400 font-bold">backdropRatingsLayout</span>=<span className="text-slate-400 font-bold">{'{bLayout}'}</span>
+                    <span className="text-white">&</span>
+                    <span className="text-orange-400 font-bold">posterVerticalBadgeContent</span>=<span className="text-slate-400 font-bold">{'{posterVerticalBadgeContent}'}</span>
+                    <span className="text-white">&</span>
+                    <span className="text-orange-400 font-bold">backdropVerticalBadgeContent</span>=<span className="text-slate-400 font-bold">{'{backdropVerticalBadgeContent}'}</span>
+                    <span className="text-white">&</span>
+                    <span className="text-orange-400 font-bold">thumbnailVerticalBadgeContent</span>=<span className="text-slate-400 font-bold">{'{thumbnailVerticalBadgeContent}'}</span>
                     <span className="text-white">&</span>
                     <span className="text-orange-400 font-bold">tmdbKey</span>=<span className="text-slate-400 font-bold">{'{tmdbKey}'}</span>
                     <span className="text-white">&</span>
@@ -1379,8 +1432,11 @@ ratingStyle             | glass, square, plain                                  
 imageText               | original, clean, alternative                                         | original
 posterRatingsLayout     | top, bottom, left, right, top-bottom, left-right                     | top-bottom
 posterRatingsMaxPerSide | Number (1-20)                                                        | auto
-backdropRatingsLayout   | center, right, right-vertical                                        | center
+backdropRatingsLayout   | center, right-vertical                                               | center
 thumbnailRatingsLayout  | center + thumbnail-only side/top/bottom/vertical variants            | center
+posterVerticalBadgeContent   | standard, stacked (poster vertical layouts only)                 | standard
+backdropVerticalBadgeContent | standard, stacked (backdrop vertical layouts only)               | standard
+thumbnailVerticalBadgeContent| standard, stacked (thumbnail vertical layouts only)              | standard
 thumbnailSize           | small, medium, large                                                 | medium
 tmdbKey (REQUIRED)      | Your TMDB v3 API Key                                                 | -
 mdblistKey (REQUIRED)   | Your MDBList.com API Key                                             | -
@@ -1401,11 +1457,12 @@ thumbnail -> ratingStyle = cfg.backdropRatingStyle, thumbnailRatingsLayout = cfg
 logo     -> ratingStyle = cfg.logoRatingStyle (omit imageText)
 Ratings providers can be set per-type via cfg.posterRatings / cfg.backdropRatings / cfg.logoRatings (fallback to cfg.ratings). Thumbnail ratings are episode-level and currently support TMDB + IMDb only.
 Quality badges style can be set per-type via cfg.posterQualityBadgesStyle / cfg.backdropQualityBadgesStyle (fallback to cfg.qualityBadgesStyle).
+Use cfg.posterVerticalBadgeContent for poster vertical layouts, cfg.backdropVerticalBadgeContent for backdrop, and cfg.thumbnailVerticalBadgeContent for thumbnail vertical layouts when you want icon and value stacked instead of inline.
 
 --- URL BUILD ---
 const typeRatingStyle = type === 'poster' ? cfg.posterRatingStyle : type === 'backdrop' ? cfg.backdropRatingStyle : cfg.logoRatingStyle;
 const typeImageText = type === 'backdrop' ? cfg.backdropImageText : cfg.posterImageText;
-\${cfg.baseUrl}/\${type}/\${id}.jpg?tmdbKey=\${cfg.tmdbKey}&mdblistKey=\${cfg.mdblistKey}&simklClientId=\${cfg.simklClientId}&ratings=\${cfg.ratings}&posterRatings=\${cfg.posterRatings}&backdropRatings=\${cfg.backdropRatings}&logoRatings=\${cfg.logoRatings}&lang=\${cfg.lang}&streamBadges=\${cfg.streamBadges}&posterStreamBadges=\${cfg.posterStreamBadges}&backdropStreamBadges=\${cfg.backdropStreamBadges}&qualityBadgesSide=\${cfg.qualityBadgesSide}&posterQualityBadgesPosition=\${cfg.posterQualityBadgesPosition}&qualityBadgesStyle=\${cfg.qualityBadgesStyle}&posterQualityBadgesStyle=\${cfg.posterQualityBadgesStyle}&backdropQualityBadgesStyle=\${cfg.backdropQualityBadgesStyle}&ratingStyle=\${typeRatingStyle}&imageText=\${typeImageText}&posterRatingsLayout=\${cfg.posterRatingsLayout}&posterRatingsMaxPerSide=\${cfg.posterRatingsMaxPerSide}&backdropRatingsLayout=\${cfg.backdropRatingsLayout}
+\${cfg.baseUrl}/\${type}/\${id}.jpg?tmdbKey=\${cfg.tmdbKey}&mdblistKey=\${cfg.mdblistKey}&simklClientId=\${cfg.simklClientId}&ratings=\${cfg.ratings}&posterRatings=\${cfg.posterRatings}&backdropRatings=\${cfg.backdropRatings}&logoRatings=\${cfg.logoRatings}&lang=\${cfg.lang}&streamBadges=\${cfg.streamBadges}&posterStreamBadges=\${cfg.posterStreamBadges}&backdropStreamBadges=\${cfg.backdropStreamBadges}&qualityBadgesSide=\${cfg.qualityBadgesSide}&posterQualityBadgesPosition=\${cfg.posterQualityBadgesPosition}&qualityBadgesStyle=\${cfg.qualityBadgesStyle}&posterQualityBadgesStyle=\${cfg.posterQualityBadgesStyle}&backdropQualityBadgesStyle=\${cfg.backdropQualityBadgesStyle}&ratingStyle=\${typeRatingStyle}&imageText=\${typeImageText}&posterRatingsLayout=\${cfg.posterRatingsLayout}&posterRatingsMaxPerSide=\${cfg.posterRatingsMaxPerSide}&backdropRatingsLayout=\${cfg.backdropRatingsLayout}&posterVerticalBadgeContent=\${cfg.posterVerticalBadgeContent}&backdropVerticalBadgeContent=\${cfg.backdropVerticalBadgeContent}&thumbnailVerticalBadgeContent=\${cfg.thumbnailVerticalBadgeContent}
 
 For thumbnails use thumbnailRatingsLayout and thumbnailSize instead of imageText.
 Omit imageText when type=logo or type=thumbnail.
