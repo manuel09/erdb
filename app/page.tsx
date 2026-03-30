@@ -1459,7 +1459,7 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     if (isVerticalBadgeContent(payload.thumbnailVerticalBadgeContent)) {
       setThumbnailVerticalBadgeContent(payload.thumbnailVerticalBadgeContent);
     } else if (isVerticalBadgeContent(payload.verticalBadgeContent)) {
-      setBackdropVerticalBadgeContent(payload.verticalBadgeContent);
+      setThumbnailVerticalBadgeContent(payload.verticalBadgeContent);
     }
     if (typeof payload.thumbnailSize === 'string' && THUMBNAIL_SIZE_OPTIONS.some((option) => option.id === payload.thumbnailSize)) {
       setThumbnailSize(payload.thumbnailSize as ThumbnailSize);
@@ -1592,6 +1592,7 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
       thumbnailRatingsLayout,
       posterVerticalBadgeContent,
       backdropVerticalBadgeContent,
+      thumbnailVerticalBadgeContent,
       thumbnailSize,
       aiometadataEpisodeProvider,
       proxyAiometadataProvider,
@@ -1625,6 +1626,7 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     thumbnailRatingsLayout,
     posterVerticalBadgeContent,
     backdropVerticalBadgeContent,
+    thumbnailVerticalBadgeContent,
     thumbnailSize,
     aiometadataEpisodeProvider,
     proxyAiometadataProvider,

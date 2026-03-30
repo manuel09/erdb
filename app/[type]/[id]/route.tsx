@@ -4578,7 +4578,14 @@ export async function GET(
     request.nextUrl.searchParams.get('backdropVerticalBadgeContent') ||
     request.nextUrl.searchParams.get('verticalBadgeContent')
   );
-  const verticalBadgeContent = imageType === 'poster' ? posterVerticalBadgeContent : imageType === 'thumbnail' ? thumbnailVerticalBadgeContent : backdropVerticalBadgeContent;
+  const verticalBadgeContent =
+    imageType === 'poster'
+      ? posterVerticalBadgeContent
+      : imageType === 'thumbnail'
+        ? thumbnailVerticalBadgeContent
+        : imageType === 'backdrop'
+          ? backdropVerticalBadgeContent
+          : 'standard';
   const thumbnailSize = normalizeThumbnailSize(request.nextUrl.searchParams.get('thumbnailSize'));
   const globalStreamBadgesSetting = normalizeStreamBadgesSetting(request.nextUrl.searchParams.get('streamBadges'));
   const posterStreamBadgesSetting = normalizeStreamBadgesSetting(
