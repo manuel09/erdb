@@ -124,7 +124,7 @@ const resolveAnimeToTmdb = async (
   provider: string,
   externalId: string,
 ) => {
-  const url = `https://animemapping.stremio.dpdns.org/${provider}/${encodeURIComponent(externalId)}?ep=1`;
+  const url = `https://animemapping.realbestia.com/${provider}/${encodeURIComponent(externalId)}?ep=1`;
   const data = await fetchAnimemappingJson(url);
   if (!data) return null;
   

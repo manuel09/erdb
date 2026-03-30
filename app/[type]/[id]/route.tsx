@@ -1142,7 +1142,7 @@ const fetchAnimemappingPayload = async ({
   }
   const query = searchParams.toString();
   const cacheKey = `animemapping:${provider}:${normalizedExternalId}:s:${normalizedSeason || '-'}:e:${normalizedEpisode || '-'}`;
-  const url = `https://animemapping.stremio.dpdns.org/${provider}/${encodeURIComponent(normalizedExternalId)}${query ? `?${query}` : ''}`;
+  const url = `https://animemapping.realbestia.com/${provider}/${encodeURIComponent(normalizedExternalId)}${query ? `?${query}` : ''}`;
 
   try {
     const response = await fetchJsonCached(
@@ -4893,7 +4893,7 @@ export async function GET(
           }
         }
       } else if (isKitsu) {
-        let mappingUrl = `https://animemapping.stremio.dpdns.org/kitsu/${mediaId}`;
+        let mappingUrl = `https://animemapping.realbestia.com/kitsu/${mediaId}`;
         if (episode) {
           mappingUrl += `?ep=${episode}`;
         }
@@ -4935,7 +4935,7 @@ export async function GET(
         if (mappingSubtype !== 'movie' && !season) {
           const seasonProbeResponse = await fetchJsonCached(
             `kitsu:mapping:${mediaId}:1`,
-            `https://animemapping.stremio.dpdns.org/kitsu/${mediaId}?ep=1`,
+            `https://animemapping.realbestia.com/kitsu/${mediaId}?ep=1`,
             KITSU_CACHE_TTL_MS,
             phases,
             'tmdb'
