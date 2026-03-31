@@ -59,6 +59,7 @@ export const runtime = 'nodejs';
 type PosterTextPreference = 'original' | 'clean' | 'alternative';
 type RenderImageType = 'poster' | 'backdrop' | 'logo' | 'thumbnail';
 type AnimeMappingProvider = 'mal' | 'anilist' | 'imdb' | 'tmdb' | 'anidb';
+type AiometadataEpisodeProvider = 'tvdb' | 'realimdb';
 type StreamBadgeKey = '4k' | 'hdr' | 'dolbyvision' | 'dolbyatmos' | 'remux';
 type BadgeKey = RatingPreference | StreamBadgeKey;
 type QualityBadgesSide = 'left' | 'right';
@@ -81,6 +82,7 @@ const ANIME_MAPPING_PROVIDER_SET = new Set<AnimeMappingProvider>([
   'tmdb',
   'anidb',
 ]);
+const AIOMETADATA_EPISODE_PROVIDER_SET = new Set<AiometadataEpisodeProvider>(['tvdb', 'realimdb']);
 const ANIME_NATIVE_INPUT_ID_PREFIX_SET = new Set(['kitsu', 'mal', 'anilist', 'anidb']);
 const parseApiKeyList = (...values: Array<string | undefined>) => {
   const result: string[] = [];
@@ -102,6 +104,13 @@ const toAnimeMappingProvider = (value?: string | null): AnimeMappingProvider | n
   if (!normalized) return null;
   return ANIME_MAPPING_PROVIDER_SET.has(normalized as AnimeMappingProvider)
     ? (normalized as AnimeMappingProvider)
+    : null;
+};
+const normalizeAiometadataEpisodeProvider = (value?: string | null): AiometadataEpisodeProvider | null => {
+  const normalized = (value || '').trim().toLowerCase();
+  if (!normalized) return null;
+  return AIOMETADATA_EPISODE_PROVIDER_SET.has(normalized as AiometadataEpisodeProvider)
+    ? (normalized as AiometadataEpisodeProvider)
     : null;
 };
 const parseCacheTtlMs = (value: string | undefined, fallbackMs: number, minMs: number, maxMs: number) => {
@@ -1682,6 +1691,49 @@ const resolveTvdbEpisodeToTmdb = async (
     showId: String(showId),
     season: Number.isFinite(seasonNumber) ? String(seasonNumber) : null,
     episode: Number.isFinite(episodeNumber) ? String(episodeNumber) : null,
+  };
+};
+
+const resolveImdbEpisodeWithTvdbOrderToTmdb = async (
+  imdbSeriesId: string,
+  season: string,
+  episode: string,
+  tmdbKey: string,
+  phases: PhaseDurations
+) => {
+  const findResponse = await fetchJsonCached(
+    `tmdb:find:imdb-series:${imdbSeriesId}`,
+    `https://api.themoviedb.org/3/find/${imdbSeriesId}?api_key=${tmdbKey}&external_source=imdb_id`,
+    TMDB_CACHE_TTL_MS,
+    phases,
+    'tmdb'
+  );
+  const tvResult = Array.isArray(findResponse.data?.tv_results) ? findResponse.data.tv_results[0] : null;
+  const tmdbShowId = Number(tvResult?.id);
+  if (!Number.isFinite(tmdbShowId)) return null;
+
+  const externalIdsResponse = await fetchJsonCached(
+    `tmdb:tv:${tmdbShowId}:external_ids`,
+    `https://api.themoviedb.org/3/tv/${tmdbShowId}/external_ids?api_key=${tmdbKey}`,
+    TMDB_CACHE_TTL_MS,
+    phases,
+    'tmdb'
+  );
+  const rawTvdbSeriesId = externalIdsResponse.data?.tvdb_id;
+  const tvdbSeriesId =
+    typeof rawTvdbSeriesId === 'number' && Number.isFinite(rawTvdbSeriesId)
+      ? String(rawTvdbSeriesId)
+      : typeof rawTvdbSeriesId === 'string' && rawTvdbSeriesId.trim().length > 0
+        ? rawTvdbSeriesId.trim()
+        : null;
+  if (!tvdbSeriesId) return null;
+
+  const mappedEpisode = await resolveTvdbEpisodeToTmdb(tvdbSeriesId, season, episode, tmdbKey, phases);
+  if (!mappedEpisode?.showId) return null;
+
+  return {
+    ...mappedEpisode,
+    tvdbSeriesId,
   };
 };
 
@@ -4746,6 +4798,9 @@ export async function GET(
 
   const requestedImageLang = normalizeTmdbLanguageCode(lang) || FALLBACK_IMAGE_LANGUAGE;
   const includeImageLanguage = buildIncludeImageLanguage(requestedImageLang, FALLBACK_IMAGE_LANGUAGE);
+  const aiometadataEpisodeProvider = normalizeAiometadataEpisodeProvider(
+    request.nextUrl.searchParams.get('aiometadataProvider')
+  );
   const posterTextPreference: PosterTextPreference =
     imageText === 'clean' || imageText === 'alternative' || imageText === 'original'
       ? (imageText as PosterTextPreference)
@@ -4809,6 +4864,7 @@ export async function GET(
     imageType !== 'logo' ? qualityBadgesStyle : '-',
     imageType === 'backdrop' ? backdropRatingsLayout : imageType === 'thumbnail' ? thumbnailRatingsLayout : '-',
     imageType === 'thumbnail' ? thumbnailSize : '-',
+    imageType === 'thumbnail' ? aiometadataEpisodeProvider || '-' : '-',
     ratingStyle,
     effectiveRatingPreferences.join(',') || 'none',
     mdblistCacheSeed,
@@ -5142,28 +5198,69 @@ export async function GET(
           }
         }
       } else {
-        // 1. Resolve IMDb IDs directly through TMDB. Keep the requested season/episode unchanged.
+        // Aiometadata can emit IMDb series IDs paired with TVDB season/episode numbering.
+        // In that mode, bridge IMDb -> TMDB -> TVDB aired order before rendering thumbnails.
         if (isImdbId(mediaId)) {
-          const findResponse = await fetchJsonCached(
-            `tmdb:find:${mediaId}`,
-            `https://api.themoviedb.org/3/find/${mediaId}?api_key=${tmdbKey}&external_source=imdb_id`,
-            TMDB_CACHE_TTL_MS,
-            phases,
-            'tmdb'
-          );
-          const findData = findResponse.data || {};
-          const prefersTvResult =
-            imageType === 'thumbnail' ||
-            (typeof season === 'string' && season.length > 0) ||
-            (typeof episode === 'string' && episode.length > 0);
-          media = prefersTvResult
-            ? findData.tv_results?.[0] || findData.movie_results?.[0]
-            : findData.movie_results?.[0] || findData.tv_results?.[0];
-          mediaType = media
-            ? findData.tv_results?.[0] && media === findData.tv_results[0]
-              ? 'tv'
-              : 'movie'
-            : null;
+          const rawImdbSeriesId = mediaId;
+          const shouldResolveTvdbAiredOrder =
+            imageType === 'thumbnail' &&
+            aiometadataEpisodeProvider === 'tvdb' &&
+            typeof season === 'string' &&
+            season.length > 0 &&
+            typeof episode === 'string' &&
+            episode.length > 0;
+
+          if (shouldResolveTvdbAiredOrder) {
+            const mappedEpisode = await resolveImdbEpisodeWithTvdbOrderToTmdb(
+              rawImdbSeriesId,
+              season,
+              episode,
+              tmdbKey,
+              phases
+            );
+            if (mappedEpisode?.showId) {
+              mediaId = mappedEpisode.showId;
+              season = mappedEpisode.season;
+              episode = mappedEpisode.episode;
+              tvdbSeriesId = mappedEpisode.tvdbSeriesId;
+              mappedImdbId = rawImdbSeriesId;
+
+              const showResponse = await fetchJsonCached(
+                `tmdb:tv:${mediaId}`,
+                `https://api.themoviedb.org/3/tv/${mediaId}?api_key=${tmdbKey}`,
+                TMDB_CACHE_TTL_MS,
+                phases,
+                'tmdb'
+              );
+              if (showResponse.ok) {
+                media = showResponse.data;
+                mediaType = 'tv';
+              }
+            }
+          }
+
+          if (!media) {
+            const findResponse = await fetchJsonCached(
+              `tmdb:find:${rawImdbSeriesId}`,
+              `https://api.themoviedb.org/3/find/${rawImdbSeriesId}?api_key=${tmdbKey}&external_source=imdb_id`,
+              TMDB_CACHE_TTL_MS,
+              phases,
+              'tmdb'
+            );
+            const findData = findResponse.data || {};
+            const prefersTvResult =
+              imageType === 'thumbnail' ||
+              (typeof season === 'string' && season.length > 0) ||
+              (typeof episode === 'string' && episode.length > 0);
+            media = prefersTvResult
+              ? findData.tv_results?.[0] || findData.movie_results?.[0]
+              : findData.movie_results?.[0] || findData.tv_results?.[0];
+            mediaType = media
+              ? findData.tv_results?.[0] && media === findData.tv_results[0]
+                ? 'tv'
+                : 'movie'
+              : null;
+          }
         }
       }
 
@@ -5307,6 +5404,7 @@ export async function GET(
         imageType !== 'logo' ? qualityBadgesStyle : '-',
         imageType === 'backdrop' ? backdropRatingsLayout : imageType === 'thumbnail' ? thumbnailRatingsLayout : '-',
         imageType === 'thumbnail' ? thumbnailSize : '-',
+        imageType === 'thumbnail' ? aiometadataEpisodeProvider || '-' : '-',
         verticalBadgeContent,
         ratingStyle,
         effectiveRatingPreferences.join(',') || 'none',

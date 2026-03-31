@@ -56,7 +56,7 @@ type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide;
 type AiometadataPatternType = 'poster' | 'background' | 'logo' | 'episodeThumbnail';
 type AiometadataEpisodeProvider = 'tvdb' | 'realimdb';
 type ProxySeriesMetadataProvider = 'tmdb' | 'imdb';
-type ProxyEpisodeProvider = 'custom' | 'realimdb';
+type ProxyEpisodeProvider = 'custom' | 'realimdb' | 'tvdb';
 type VerticalBadgeContent = 'standard' | 'stacked';
 
 type HomePageViewState = {
@@ -214,6 +214,7 @@ const PROXY_SERIES_METADATA_PROVIDER_OPTIONS: Array<{ id: ProxySeriesMetadataPro
 ];
 const PROXY_EPISODE_PROVIDER_OPTIONS: Array<{ id: ProxyEpisodeProvider; label: string }> = [
   { id: 'realimdb', label: 'IMDb' },
+  { id: 'tvdb', label: 'TVDB' },
   { id: 'custom', label: 'Custom' },
 ];
 const isCinemetaManifestUrl = (value: string) => {
@@ -1002,7 +1003,7 @@ export function HomePageView({ refs, state, derived, actions }: HomePageViewProp
                   )}
                   {isAiometadataProxyManifest && (
                     <div className="space-y-2">
-                      <p className="text-[11px] text-slate-500">The proxy cannot reliably distinguish AIOMetadata series from anime in every case, so use the same provider for both. Select <span className="text-slate-300 font-medium">IMDb</span> if AIOMetadata uses IMDb as the meta provider for both series and anime, so ERDB can upgrade `tt...` IDs to `realimdb:`. If AIOMetadata uses TVDB internally but still forces IMDb `tt...` IDs in its output, the proxy cannot detect that and cannot convert those IDs to `tvdb:` automatically. Select <span className="text-slate-300 font-medium">Custom</span> to keep the addon IDs exactly as they are.</p>
+                      <p className="text-[11px] text-slate-500">The proxy cannot reliably distinguish AIOMetadata series from anime in every case, so use the same provider for both. Select <span className="text-slate-300 font-medium">IMDb</span> if AIOMetadata uses IMDb as the meta provider for both series and anime, so ERDB can upgrade `tt...` IDs to `realimdb:`. Select <span className="text-slate-300 font-medium">TVDB</span> if AIOMetadata keeps IMDb `tt...` IDs but uses TVDB season and episode numbering for thumbnails: ERDB will bridge IMDb to TVDB aired order automatically when rendering episode thumbnails. Select <span className="text-slate-300 font-medium">Custom</span> to keep the addon IDs exactly as they are.</p>
                       <div>
                         <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1.5">AiOMetadata Series/Anime Provider</span>
                         <div className="flex flex-wrap gap-1.5">

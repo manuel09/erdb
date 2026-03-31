@@ -79,7 +79,7 @@ type ProxyEnabledTypes = Record<ProxyType, boolean>;
 type AiometadataPatternType = 'poster' | 'background' | 'logo' | 'episodeThumbnail';
 type AiometadataEpisodeProvider = 'tvdb' | 'realimdb';
 type ProxySeriesMetadataProvider = 'tmdb' | 'imdb';
-type ProxyEpisodeProvider = 'custom' | 'realimdb';
+type ProxyEpisodeProvider = 'custom' | 'realimdb' | 'tvdb';
 type StreamBadgesSetting = 'auto' | 'on' | 'off';
 type QualityBadgesSide = 'left' | 'right';
 type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide;
@@ -135,7 +135,7 @@ const isThumbnailRatingLayout = (value: unknown): value is ThumbnailRatingLayout
 const isProxySeriesMetadataProvider = (value: unknown): value is ProxySeriesMetadataProvider =>
   value === 'tmdb' || value === 'imdb';
 const isProxyEpisodeProvider = (value: unknown): value is ProxyEpisodeProvider =>
-  value === 'custom' || value === 'realimdb';
+  value === 'custom' || value === 'realimdb' || value === 'tvdb';
 const isAiometadataEpisodeProvider = (value: unknown): value is AiometadataEpisodeProvider =>
   value === 'tvdb' || value === 'realimdb';
 const isVerticalBadgeContent = (value: unknown): value is VerticalBadgeContent =>
