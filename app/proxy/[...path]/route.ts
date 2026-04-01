@@ -10,6 +10,7 @@ import {
   type ProxyConfig,
 } from '@/lib/addonProxy';
 import { applyProxyCatalogOverrides, unwrapProxyCatalogVariantId } from '@/lib/proxyCatalog';
+import { fetchWithRetry } from '@/lib/request';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -45,7 +46,7 @@ const fetchTmdbJson = async (url: string) => {
 const fetchText = async (url: string) => {
   const cached = textFetchCache.get(url);
   if (cached) return cached;
-  const promise = fetch(url, { cache: 'no-store', redirect: 'follow' })
+  const promise = fetchWithRetry(url, { cache: 'no-store', redirect: 'follow' })
     .then(async (response) => {
       if (!response.ok) return null;
       try {
@@ -69,7 +70,7 @@ const extractTvdbEpisodeIdFromAiredOrder = async (
   if (!Number.isFinite(seasonNumber) || !Number.isFinite(episodeNumber)) return null;
 
   const seriesUrl = `https://thetvdb.com/dereferrer/series/${encodeURIComponent(seriesId)}`;
-  const seriesResponse = await fetch(seriesUrl, { cache: 'no-store', redirect: 'follow' }).catch(() => null);
+  const seriesResponse = await fetchWithRetry(seriesUrl, { cache: 'no-store', redirect: 'follow' }).catch(() => null);
   const seriesPageUrl = seriesResponse?.url;
   if (!seriesPageUrl) return null;
 
