@@ -17,9 +17,11 @@ function Get-FontFamilyName {
 
 function Install-FontFile {
   param([string]$FontPath)
+
   if (-not $script:installedHashes) {
     $script:installedHashes = @{}
   }
+
   try {
     $hash = (Get-FileHash -Path $FontPath -Algorithm SHA256).Hash
     if ($script:installedHashes.ContainsKey($hash)) {
@@ -28,12 +30,14 @@ function Install-FontFile {
     }
     $script:installedHashes[$hash] = $true
   } catch {
-    # If hashing fails, continue without dedupe
+    # continue without dedupe if hashing fails
   }
+
   $fontsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
   if (-not (Test-Path $fontsDir)) {
     New-Item -ItemType Directory -Path $fontsDir | Out-Null
   }
+
   $dest = Join-Path $fontsDir (Split-Path $FontPath -Leaf)
   Copy-Item $FontPath $dest -Force
 
@@ -51,6 +55,7 @@ function Download-FirstAvailable {
     [string[]]$Urls,
     [string]$OutPath
   )
+
   foreach ($u in $Urls) {
     try {
       Invoke-WebRequest -Uri $u -OutFile $OutPath -UseBasicParsing
@@ -60,99 +65,226 @@ function Download-FirstAvailable {
       }
       Remove-Item $OutPath -Force -ErrorAction SilentlyContinue
     } catch {
-      # try next
+      # try next mirror
     }
   }
+
   return $null
 }
 
-$targets = @(
-  @{ Label = "Noto Sans"; Query = "Noto Sans"; IdRegex = "Noto.*Sans" },
-  @{ Label = "Noto Serif"; Query = "Noto Serif"; IdRegex = "Noto.*Serif" },
-  @{ Label = "DejaVu"; Query = "DejaVu"; IdRegex = "DejaVu|dejavu" },
-  @{ Label = "FreeFont"; Query = "FreeFont"; IdRegex = "FreeFont|freefont" }
-)
-
-$installedAny = $false
-$installedAny = $false
 if ($env:ERDB_FONT_DOWNLOAD -eq "0") {
   Write-Warning "Font download disabled (ERDB_FONT_DOWNLOAD=0)."
   exit 1
 }
 
-Write-Host "Downloading fonts directly..."
-  $downloadTargets = @(
-    @{
-      Label = "Noto Sans"
-      Files = @(
-        @{
-          Name = "NotoSans-Regular.ttf"
-          Urls = @(
-            "https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/static/NotoSans-Regular.ttf",
-            "https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/NotoSans[wdth,wght].ttf",
-            "https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/NotoSans-VariableFont_wdth,wght.ttf"
-          )
-        },
-        @{
-          Name = "NotoSans-Bold.ttf"
-          Urls = @(
-            "https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/static/NotoSans-Bold.ttf",
-            "https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/NotoSans[wdth,wght].ttf",
-            "https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/NotoSans-VariableFont_wdth,wght.ttf"
-          )
-        }
-      )
-    },
-    @{
-      Label = "Noto Serif"
-      Files = @(
-        @{
-          Name = "NotoSerif-Regular.ttf"
-          Urls = @(
-            "https://raw.githubusercontent.com/google/fonts/main/ofl/notoserif/static/NotoSerif-Regular.ttf",
-            "https://raw.githubusercontent.com/google/fonts/main/ofl/notoserif/NotoSerif[wght].ttf",
-            "https://raw.githubusercontent.com/google/fonts/main/ofl/notoserif/NotoSerif[wdth,wght].ttf",
-            "https://raw.githubusercontent.com/google/fonts/main/ofl/notoserif/NotoSerif-VariableFont_wght.ttf",
-            "https://raw.githubusercontent.com/google/fonts/main/ofl/notoserif/NotoSerif-VariableFont_wdth,wght.ttf"
-          )
-        },
-        @{
-          Name = "NotoSerif-Bold.ttf"
-          Urls = @(
-            "https://raw.githubusercontent.com/google/fonts/main/ofl/notoserif/static/NotoSerif-Bold.ttf",
-            "https://raw.githubusercontent.com/google/fonts/main/ofl/notoserif/NotoSerif[wght].ttf",
-            "https://raw.githubusercontent.com/google/fonts/main/ofl/notoserif/NotoSerif[wdth,wght].ttf",
-            "https://raw.githubusercontent.com/google/fonts/main/ofl/notoserif/NotoSerif-VariableFont_wght.ttf",
-            "https://raw.githubusercontent.com/google/fonts/main/ofl/notoserif/NotoSerif-VariableFont_wdth,wght.ttf"
-          )
-        }
-      )
-    }
-  )
+$script:installedAny = $false
 
-  foreach ($d in $downloadTargets) {
-    $tmpDir = Join-Path $env:TEMP ("erdb-fonts-" + [guid]::NewGuid().ToString("N"))
-    New-Item -ItemType Directory -Path $tmpDir | Out-Null
-    try {
-      Write-Host "Downloading $($d.Label)..."
-      foreach ($f in $d.Files) {
-        $outPath = Join-Path $tmpDir $f.Name
-        $usedUrl = Download-FirstAvailable -Urls $f.Urls -OutPath $outPath
-        if (-not $usedUrl) {
-          Write-Warning "Download failed for $($f.Name)."
-          continue
-        }
-        Write-Host "Downloaded $($f.Name) from $usedUrl"
-        Install-FontFile -FontPath $outPath
+$downloadTargets = @(
+  @{
+    Label = "Noto Sans"
+    Files = @(
+      @{
+        Name = "NotoSans-Regular.ttf"
+        Urls = @(
+          "https://raw.githubusercontent.com/notofonts/noto-fonts/main/hinted/ttf/NotoSans/NotoSans-Regular.ttf"
+        )
+      },
+      @{
+        Name = "NotoSans-Bold.ttf"
+        Urls = @(
+          "https://raw.githubusercontent.com/notofonts/noto-fonts/main/hinted/ttf/NotoSans/NotoSans-Bold.ttf"
+        )
       }
-    } catch {
-      Write-Warning "Download/install failed for $($d.Label): $($_.Exception.Message)"
-    } finally {
-      Remove-Item $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
-    }
+    )
+  },
+  @{
+    Label = "Noto Serif"
+    Files = @(
+      @{
+        Name = "NotoSerif-Regular.ttf"
+        Urls = @(
+          "https://raw.githubusercontent.com/notofonts/noto-fonts/main/hinted/ttf/NotoSerif/NotoSerif-Regular.ttf"
+        )
+      },
+      @{
+        Name = "NotoSerif-Bold.ttf"
+        Urls = @(
+          "https://raw.githubusercontent.com/notofonts/noto-fonts/main/hinted/ttf/NotoSerif/NotoSerif-Bold.ttf"
+        )
+      }
+    )
+  },
+  @{
+    Label = "Spicy Sale"
+    Files = @(
+      @{
+        Name = "spicy-sale.regular.ttf"
+        Urls = @(
+          "https://st.1001fonts.net/download/font/spicy-sale.regular.ttf"
+        )
+      }
+    )
+  },
+  @{
+    Label = "Somelist"
+    Files = @(
+      @{
+        Name = "somelist.regular.ttf"
+        Urls = @(
+          "https://st.1001fonts.net/download/font/somelist.regular.ttf"
+        )
+      }
+    )
+  },
+  @{
+    Label = "Rubik Spray Paint"
+    Files = @(
+      @{
+        Name = "RubikSprayPaint-Regular.ttf"
+        Urls = @(
+          "https://raw.githubusercontent.com/google/fonts/main/ofl/rubikspraypaint/RubikSprayPaint-Regular.ttf"
+        )
+      }
+    )
+  },
+  @{
+    Label = "Nabla"
+    Files = @(
+      @{
+        Name = "nabla.regular.ttf"
+        Urls = @(
+          "https://st.1001fonts.net/download/font/nabla.regular.ttf"
+        )
+      }
+    )
+  },
+  @{
+    Label = "Honk"
+    Files = @(
+      @{
+        Name = "honk.regular.ttf"
+        Urls = @(
+          "https://st.1001fonts.net/download/font/honk.regular.ttf"
+        )
+      }
+    )
+  },
+  @{
+    Label = "Paper Scratch"
+    Files = @(
+      @{
+        Name = "paper-scratch.regular.otf"
+        Urls = @(
+          "https://st.1001fonts.net/download/font/paper-scratch.regular.otf"
+        )
+      }
+    )
+  },
+  @{
+    Label = "Sludgeborn"
+    Files = @(
+      @{
+        Name = "sludgeborn.regular.ttf"
+        Urls = @(
+          "https://st.1001fonts.net/download/font/sludgeborn.regular.ttf"
+        )
+      }
+    )
+  },
+  @{
+    Label = "Playgum"
+    Files = @(
+      @{
+        Name = "playgum.regular.ttf"
+        Urls = @(
+          "https://st.1001fonts.net/download/font/playgum.regular.ttf"
+        )
+      }
+    )
+  },
+  @{
+    Label = "Atlas Memo"
+    Files = @(
+      @{
+        Name = "atlasmemo.atlas-memo.ttf"
+        Urls = @(
+          "https://st.1001fonts.net/download/font/atlasmemo.atlas-memo.ttf"
+        )
+      }
+    )
+  },
+  @{
+    Label = "Dracutaz"
+    Files = @(
+      @{
+        Name = "dracutaz.regular.ttf"
+        Urls = @(
+          "https://st.1001fonts.net/download/font/dracutaz.regular.ttf"
+        )
+      }
+    )
+  },
+  @{
+    Label = "Banana Chips"
+    Files = @(
+      @{
+        Name = "banana-chips.regular.otf"
+        Urls = @(
+          "https://st.1001fonts.net/download/font/banana-chips.regular.otf"
+        )
+      }
+    )
+  },
+  @{
+    Label = "Holy Star"
+    Files = @(
+      @{
+        Name = "holy-star.holy-star.ttf"
+        Urls = @(
+          "https://st.1001fonts.net/download/font/holy-star.holy-star.ttf"
+        )
+      }
+    )
+  },
+  @{
+    Label = "Rocks Serif"
+    Files = @(
+      @{
+        Name = "rocks-serif.regular.ttf"
+        Urls = @(
+          "https://st.1001fonts.net/download/font/rocks-serif.regular.ttf"
+        )
+      }
+    )
   }
+)
 
-if (-not $installedAny) {
+Write-Host "Downloading ERDB fonts..."
+
+foreach ($target in $downloadTargets) {
+  $tmpDir = Join-Path $env:TEMP ("erdb-fonts-" + [guid]::NewGuid().ToString("N"))
+  New-Item -ItemType Directory -Path $tmpDir | Out-Null
+
+  try {
+    Write-Host "Downloading $($target.Label)..."
+    foreach ($file in $target.Files) {
+      $outPath = Join-Path $tmpDir $file.Name
+      $usedUrl = Download-FirstAvailable -Urls $file.Urls -OutPath $outPath
+      if (-not $usedUrl) {
+        Write-Warning "Download failed for $($file.Name)."
+        continue
+      }
+      Write-Host "Downloaded $($file.Name) from $usedUrl"
+      Install-FontFile -FontPath $outPath
+    }
+  } catch {
+    Write-Warning "Download/install failed for $($target.Label): $($_.Exception.Message)"
+  } finally {
+    Remove-Item $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
+  }
+}
+
+if (-not $script:installedAny) {
   Write-Warning "No fonts installed. You may need to install manually."
   exit 1
 }

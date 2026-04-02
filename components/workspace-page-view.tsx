@@ -56,6 +56,20 @@ import {
   RATING_STYLE_OPTIONS,
   type RatingStyle,
 } from '@/lib/ratingStyle';
+import {
+  LOGO_MODE_OPTIONS,
+  type LogoMode,
+} from '@/lib/logoMode';
+import {
+  LOGO_FONT_VARIANT_OPTIONS,
+  type LogoFontVariant,
+} from '@/lib/logoFontVariant';
+import {
+  DEFAULT_LOGO_CUSTOM_PRIMARY,
+  DEFAULT_LOGO_CUSTOM_SECONDARY,
+  DEFAULT_LOGO_CUSTOM_OUTLINE,
+} from '@/lib/logoCustomColors';
+import { LOGO_COLOR_PRESETS } from '@/lib/logoColorPresets';
 
 type PreviewType = 'poster' | 'backdrop' | 'logo' | 'thumbnail';
 type ProxyType = PreviewType;
@@ -95,6 +109,11 @@ type HomePageViewState = {
   posterRatingsLayout: PosterRatingLayout;
   posterRatingsMaxPerSide: number | null;
   logoRatingsMax: number | null;
+  logoMode: LogoMode;
+  logoFontVariant: LogoFontVariant;
+  logoCustomPrimary: string;
+  logoCustomSecondary: string;
+  logoCustomOutline: string;
   backdropRatingsLayout: BackdropRatingLayout;
   thumbnailRatingsLayout: ThumbnailRatingLayout;
   posterVerticalBadgeContent: VerticalBadgeContent;
@@ -156,6 +175,11 @@ type HomePageViewActions = {
   setPosterRatingsLayout: Dispatch<SetStateAction<PosterRatingLayout>>;
   setPosterRatingsMaxPerSide: Dispatch<SetStateAction<number | null>>;
   setLogoRatingsMax: Dispatch<SetStateAction<number | null>>;
+  setLogoMode: Dispatch<SetStateAction<LogoMode>>;
+  setLogoFontVariant: Dispatch<SetStateAction<LogoFontVariant>>;
+  setLogoCustomPrimary: Dispatch<SetStateAction<string>>;
+  setLogoCustomSecondary: Dispatch<SetStateAction<string>>;
+  setLogoCustomOutline: Dispatch<SetStateAction<string>>;
   setBackdropRatingsLayout: Dispatch<SetStateAction<BackdropRatingLayout>>;
   setThumbnailRatingsLayout: Dispatch<SetStateAction<ThumbnailRatingLayout>>;
   setPosterVerticalBadgeContent: Dispatch<SetStateAction<VerticalBadgeContent>>;
@@ -172,6 +196,8 @@ type HomePageViewActions = {
   setActiveStreamBadges: Dispatch<SetStateAction<StreamBadgesSetting>>;
   setActiveQualityBadgesStyle: Dispatch<SetStateAction<RatingStyle>>;
   toggleRatingPreference: (rating: RatingPreference) => void;
+  enableAllRatingPreferences: () => void;
+  disableAllRatingPreferences: () => void;
   reorderRatingPreference: (fromIndex: number, toIndex: number) => void;
   updateProxyManifestUrl: (value: string) => void;
   updateProxyCatalogName: (key: string, value: string) => void;
@@ -285,6 +311,11 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
     posterRatingsLayout,
     posterRatingsMaxPerSide,
     logoRatingsMax,
+    logoMode,
+    logoFontVariant,
+    logoCustomPrimary,
+    logoCustomSecondary,
+    logoCustomOutline,
     backdropRatingsLayout,
     thumbnailRatingsLayout,
     posterVerticalBadgeContent,
@@ -343,6 +374,11 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
     setPosterRatingsLayout,
     setPosterRatingsMaxPerSide,
     setLogoRatingsMax,
+    setLogoMode,
+    setLogoFontVariant,
+    setLogoCustomPrimary,
+    setLogoCustomSecondary,
+    setLogoCustomOutline,
     setBackdropRatingsLayout,
     setThumbnailRatingsLayout,
     setPosterVerticalBadgeContent,
@@ -359,6 +395,8 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
     setActiveStreamBadges,
     setActiveQualityBadgesStyle,
     toggleRatingPreference,
+    enableAllRatingPreferences,
+    disableAllRatingPreferences,
     reorderRatingPreference,
     updateProxyManifestUrl,
     updateProxyCatalogName,
@@ -782,6 +820,124 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
                   )}
                   {previewType === 'logo' && (
                     <div className={`${INNER_PANEL_CLASS} p-3 space-y-2`}>
+                      <div>
+                        <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Logo Mode</div>
+                        <div className="flex flex-wrap gap-1">
+                          {LOGO_MODE_OPTIONS.map((option) => (
+                            <button
+                              key={option.id}
+                              onClick={() => setLogoMode(option.id)}
+                              className={`rounded-lg border px-2 py-1.5 text-[11px] font-bold transition-all ${logoMode === option.id ? 'border-orange-400/20 bg-orange-500/10 text-white' : 'border-white/10 bg-[#0a0a0a] text-slate-400 hover:text-white'}`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {logoMode === 'custom-logo' && (
+                        <div className="space-y-3">
+                          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Logo Font</div>
+                          <div className="flex flex-wrap gap-1">
+                            {LOGO_FONT_VARIANT_OPTIONS.map((option) => (
+                              <button
+                                key={option.id}
+                                onClick={() => setLogoFontVariant(option.id)}
+                                className={`rounded-lg border px-2 py-1.5 text-[11px] font-bold transition-all ${logoFontVariant === option.id ? 'border-orange-400/20 bg-orange-500/10 text-white' : 'border-white/10 bg-[#0a0a0a] text-slate-400 hover:text-white'}`}
+                              >
+                                {option.label}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="grid gap-3 lg:grid-cols-3">
+                            <label className="space-y-1">
+                              <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Primary</span>
+                              <div className="flex min-w-0 items-center gap-2">
+                                <input
+                                  type="color"
+                                  value={logoCustomPrimary}
+                                  onChange={(e) => setLogoCustomPrimary(e.target.value)}
+                                  className="h-9 w-14 shrink-0 cursor-pointer rounded border border-white/10 bg-[#0a0a0a] p-1"
+                                />
+                                <input
+                                  type="text"
+                                  value={logoCustomPrimary}
+                                  onChange={(e) => setLogoCustomPrimary(e.target.value)}
+                                  className={`min-w-0 flex-1 ${INPUT_COMPACT_CLASS}`}
+                                />
+                              </div>
+                            </label>
+                            <label className="space-y-1">
+                              <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Secondary</span>
+                              <div className="flex min-w-0 items-center gap-2">
+                                <input
+                                  type="color"
+                                  value={logoCustomSecondary}
+                                  onChange={(e) => setLogoCustomSecondary(e.target.value)}
+                                  className="h-9 w-14 shrink-0 cursor-pointer rounded border border-white/10 bg-[#0a0a0a] p-1"
+                                />
+                                <input
+                                  type="text"
+                                  value={logoCustomSecondary}
+                                  onChange={(e) => setLogoCustomSecondary(e.target.value)}
+                                  className={`min-w-0 flex-1 ${INPUT_COMPACT_CLASS}`}
+                                />
+                              </div>
+                            </label>
+                            <label className="space-y-1">
+                              <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Outline</span>
+                              <div className="flex min-w-0 items-center gap-2">
+                                <input
+                                  type="color"
+                                  value={logoCustomOutline}
+                                  onChange={(e) => setLogoCustomOutline(e.target.value)}
+                                  className="h-9 w-14 shrink-0 cursor-pointer rounded border border-white/10 bg-[#0a0a0a] p-1"
+                                />
+                                <input
+                                  type="text"
+                                  value={logoCustomOutline}
+                                  onChange={(e) => setLogoCustomOutline(e.target.value)}
+                                  className={`min-w-0 flex-1 ${INPUT_COMPACT_CLASS}`}
+                                />
+                              </div>
+                            </label>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Color Presets</div>
+                            <div className="flex flex-wrap gap-1">
+                              {LOGO_COLOR_PRESETS.map((preset) => (
+                                <button
+                                  key={preset.id}
+                                  onClick={() => {
+                                    setLogoCustomPrimary(preset.primary);
+                                    setLogoCustomSecondary(preset.secondary);
+                                    setLogoCustomOutline(preset.outline);
+                                  }}
+                                  className="rounded-lg border border-white/10 bg-[#0a0a0a] px-2 py-1.5 text-[11px] font-bold text-slate-300 transition-all hover:text-white"
+                                >
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: preset.primary }} />
+                                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: preset.secondary }} />
+                                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: preset.outline }} />
+                                    <span>{preset.label}</span>
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() => {
+                                setLogoCustomPrimary(DEFAULT_LOGO_CUSTOM_PRIMARY);
+                                setLogoCustomSecondary(DEFAULT_LOGO_CUSTOM_SECONDARY);
+                                setLogoCustomOutline(DEFAULT_LOGO_CUSTOM_OUTLINE);
+                              }}
+                              className="rounded-lg border border-white/10 bg-[#0a0a0a] px-2 py-1.5 text-[11px] text-slate-300 hover:bg-[#121212]"
+                            >
+                              Reset Colors
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Logo Ratings</div>
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Max badges</span>
@@ -854,12 +1010,32 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
                   )}
 
                   <div className={`${INNER_PANEL_CLASS} p-3 space-y-2`}>
-                    <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                      {providersLabel} - drag the grip to reorder (left to right / top to bottom)
-                    </span>
-                    <span className="block text-[10px] text-slate-500/80">
-                      Order flows top to bottom, then continues in the right column.
-                    </span>
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                          {providersLabel} - drag the grip to reorder (left to right / top to bottom)
+                        </span>
+                        <span className="block text-[10px] text-slate-500/80">
+                          Order flows top to bottom, then continues in the right column.
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        <button
+                          type="button"
+                          onClick={enableAllRatingPreferences}
+                          className="rounded-lg border border-white/10 bg-[#0a0a0a] px-2 py-1.5 text-[11px] font-semibold text-slate-200 transition-colors hover:bg-[#121212]"
+                        >
+                          Attiva tutti
+                        </button>
+                        <button
+                          type="button"
+                          onClick={disableAllRatingPreferences}
+                          className="rounded-lg border border-white/10 bg-[#0a0a0a] px-2 py-1.5 text-[11px] font-semibold text-slate-200 transition-colors hover:bg-[#121212]"
+                        >
+                          Disattiva tutti
+                        </button>
+                      </div>
+                    </div>
                     <RatingProviderSortableList
                       rows={ratingProviderRows}
                       onReorder={reorderRatingPreference}
@@ -1583,118 +1759,7 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
                       </div>
                     </div>
 
-                    <div className="mb-10 bg-orange-500/5 border border-orange-500/10 rounded-2xl md:rounded-3xl p-5 md:p-8">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-                        <div className="flex items-center gap-4">
-                          <div className="p-3 bg-orange-500/20 rounded-2xl">
-                            <Bot className="w-6 h-6 text-orange-500" />
-                          </div>
-                          <div>
-                            <h4 className="text-lg font-[var(--font-display)] text-white">AI Developer Prompt</h4>
-                            <p className="text-xs text-slate-500">Copy this prompt to help an AI agent implement this API in your addon.</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={handleCopyPrompt}
-                            className={`mt-4 px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${copied ? 'bg-green-500 text-white' : 'bg-orange-500 text-black hover:bg-orange-400'}`}
-                          >
-                            {copied ? (
-                              <>
-                                <Check className="w-4 h-4" />
-                                <span>COPIED!</span>
-                              </>
-                            ) : (
-                              <>
-                                <Clipboard className="w-4 h-4" />
-                                <span>COPY PROMPT</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="bg-[#0a0a0a]/80 border border-white/5 rounded-xl p-4 font-mono text-[11px] text-slate-400 leading-relaxed overflow-auto relative max-h-[340px]">
-                        <div className="whitespace-pre-wrap">{`Act as an expert addon developer. I want to implement the ERDB Stateless API into my media center addon.
-
---- CONFIG INPUT ---
-Add a single text field called "erdbConfig" (base64url). The user will paste it from the ERDB site after configuring there.
-Do NOT hardcode API keys or base URL. Always use cfg.baseUrl from erdbConfig.
-
---- DECODE ---
-Node/JS: const cfg = JSON.parse(Buffer.from(erdbConfig, 'base64url').toString('utf8'));
-
---- FULL API REFERENCE ---
-Endpoint: GET /{type}/{id}.jpg?...queryParams
-
-Parameter               | Values                                                              | Default
-type (path)             | poster, backdrop, logo                                               | -
-id (path)               | IMDb (tt...), TMDB (tmdb:id / tmdb:movie:id / tmdb:tv:id), Kitsu (kitsu:id), AniList, MAL          | -
-ratings                 | tmdb, mdblist, imdb, tomatoes, tomatoesaudience, letterboxd,         | all
-                        | metacritic, metacriticuser, trakt, simkl, rogerebert,               |
-                        | myanimelist, anilist, kitsu (global fallback)                       |
-posterRatings           | tmdb, mdblist, imdb, tomatoes, tomatoesaudience, letterboxd,         | all
-                        | metacritic, metacriticuser, trakt, simkl, rogerebert,               |
-                        | myanimelist, anilist, kitsu (poster only)                           |
-backdropRatings         | tmdb, mdblist, imdb, tomatoes, tomatoesaudience, letterboxd,         | all
-                        | metacritic, metacriticuser, trakt, simkl, rogerebert,               |
-                        | myanimelist, anilist, kitsu (backdrop only)                         |
-logoRatings             | tmdb, mdblist, imdb, tomatoes, tomatoesaudience, letterboxd,         | all
-                        | metacritic, metacriticuser, trakt, simkl, rogerebert,               |
-                        | myanimelist, anilist, kitsu (logo only)                             |
-logoRatingsMax          | Number (1-20)                                                        | auto
-lang                    | Any TMDB language code (en, es-ES, es-MX, pt-PT, pt-BR, etc.)        | en
-streamBadges            | auto, on, off (global fallback)                                      | auto
-posterStreamBadges      | auto, on, off (poster only)                                          | auto
-backdropStreamBadges    | auto, on, off (backdrop only)                                        | auto
-qualityBadgesSide       | left, right (poster top-bottom only)                                 | left
-posterQualityBadgesPosition | auto, left, right (poster top/bottom only)                       | auto
-qualityBadgesStyle      | glass, square, plain (global fallback)                               | glass
-posterQualityBadgesStyle| glass, square, plain (poster only)                                   | glass
-backdropQualityBadgesStyle| glass, square, plain (backdrop only)                               | glass
-ratingStyle             | glass, square, plain                                                 | glass
-imageText               | original, clean, alternative                                         | original
-posterRatingsLayout     | top, bottom, left, right, top-bottom, left-right                     | top-bottom
-posterRatingsMaxPerSide | Number (1-20)                                                        | auto
-backdropRatingsLayout   | center, right-vertical                                               | center
-thumbnailRatingsLayout  | center + thumbnail-only side/top/bottom/vertical variants            | center
-posterVerticalBadgeContent   | standard, stacked (poster vertical layouts only)                 | standard
-backdropVerticalBadgeContent | standard, stacked (backdrop vertical layouts only)               | standard
-thumbnailVerticalBadgeContent| standard, stacked (thumbnail vertical layouts only)              | standard
-thumbnailSize           | small, medium, large                                                 | medium
-tmdbKey (REQUIRED)      | Your TMDB v3 API Key                                                 | -
-mdblistKey (REQUIRED)   | Your MDBList.com API Key                                             | -
-simklClientId (OPTIONAL)| Your SIMKL client_id for direct SIMKL ratings                        | -
-
-TMDB NOTE: Always prefer tmdb:movie:id or tmdb:tv:id. Using bare tmdb:id can collide between movie and tv.
-LANG NOTE: Pass cfg.lang through exactly as the TMDB language code provided by ERDB (for example en, it, es-ES, pt-BR).
-
---- INTEGRATION REQUIREMENTS ---
-1. Use ONLY the "erdbConfig" field (no modal and no extra settings panels).
-2. Add toggles to enable/disable: poster, backdrop, logo, thumbnail.
-3. If a type is disabled, keep the original artwork (do not call ERDB for that type).
-4. Build ERDB URLs using the decoded config and inject them into both catalog and meta responses.
-
---- PER-TYPE SETTINGS ---
-poster   -> ratingStyle = cfg.posterRatingStyle, imageText = cfg.posterImageText
-backdrop -> ratingStyle = cfg.backdropRatingStyle, imageText = cfg.backdropImageText
-thumbnail -> ratingStyle = cfg.backdropRatingStyle, thumbnailRatingsLayout = cfg.thumbnailRatingsLayout, thumbnailSize = cfg.thumbnailSize
-logo     -> ratingStyle = cfg.logoRatingStyle, logoRatingsMax = cfg.logoRatingsMax (omit imageText)
-Ratings providers can be set per-type via cfg.posterRatings / cfg.backdropRatings / cfg.logoRatings (fallback to cfg.ratings). Thumbnail ratings are episode-level and currently support TMDB + IMDb only.
-Quality badges style can be set per-type via cfg.posterQualityBadgesStyle / cfg.backdropQualityBadgesStyle (fallback to cfg.qualityBadgesStyle).
-Use cfg.posterVerticalBadgeContent for poster vertical layouts, cfg.backdropVerticalBadgeContent for backdrop, and cfg.thumbnailVerticalBadgeContent for thumbnail vertical layouts when you want icon and value stacked instead of inline.
-
---- URL BUILD ---
-const typeRatingStyle = type === 'poster' ? cfg.posterRatingStyle : type === 'backdrop' ? cfg.backdropRatingStyle : cfg.logoRatingStyle;
-const typeImageText = type === 'backdrop' ? cfg.backdropImageText : cfg.posterImageText;
-\${cfg.baseUrl}/\${type}/\${id}.jpg?tmdbKey=\${cfg.tmdbKey}&mdblistKey=\${cfg.mdblistKey}&simklClientId=\${cfg.simklClientId}&ratings=\${cfg.ratings}&posterRatings=\${cfg.posterRatings}&backdropRatings=\${cfg.backdropRatings}&logoRatings=\${cfg.logoRatings}&logoRatingsMax=\${cfg.logoRatingsMax}&lang=\${cfg.lang}&streamBadges=\${cfg.streamBadges}&posterStreamBadges=\${cfg.posterStreamBadges}&backdropStreamBadges=\${cfg.backdropStreamBadges}&qualityBadgesSide=\${cfg.qualityBadgesSide}&posterQualityBadgesPosition=\${cfg.posterQualityBadgesPosition}&qualityBadgesStyle=\${cfg.qualityBadgesStyle}&posterQualityBadgesStyle=\${cfg.posterQualityBadgesStyle}&backdropQualityBadgesStyle=\${cfg.backdropQualityBadgesStyle}&ratingStyle=\${typeRatingStyle}&imageText=\${typeImageText}&posterRatingsLayout=\${cfg.posterRatingsLayout}&posterRatingsMaxPerSide=\${cfg.posterRatingsMaxPerSide}&backdropRatingsLayout=\${cfg.backdropRatingsLayout}&posterVerticalBadgeContent=\${cfg.posterVerticalBadgeContent}&backdropVerticalBadgeContent=\${cfg.backdropVerticalBadgeContent}&thumbnailVerticalBadgeContent=\${cfg.thumbnailVerticalBadgeContent}
-
-For thumbnails use thumbnailRatingsLayout and thumbnailSize instead of imageText.
-Omit imageText when type=logo or type=thumbnail.
-
-Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRatings/logoRatings to disable providers.`}</div>
-                      </div>
-
+                    <div className="mb-10">
                       <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Live Examples</h4>
                       <pre className="text-xs font-mono text-slate-400 leading-6 space-y-1.5">
                         <div className="text-slate-600 font-bold">{'// Movie Poster (IMDb)'}</div>
@@ -1702,7 +1767,6 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
 
                         <div className="text-slate-600 font-bold mt-4">{'// Backdrop (TMDB)'}</div>
                         <div className="text-orange-200/70 truncate bg-white/[0.04] p-3 rounded-lg border border-white/5">{`${baseUrl || 'http://localhost:3000'}/backdrop/tmdb:603.jpg?ratings=mdblist&backdropRatingsLayout=right-vertical`}</div>
-
                       </pre>
                     </div>
                   </div>

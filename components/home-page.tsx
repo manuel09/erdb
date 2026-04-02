@@ -53,6 +53,23 @@ import {
   normalizeLogoRatingsMax,
 } from '@/lib/logoRatingsMax';
 import {
+  DEFAULT_LOGO_MODE,
+  isLogoMode,
+  normalizeLogoMode,
+  type LogoMode,
+} from '@/lib/logoMode';
+import {
+  DEFAULT_LOGO_FONT_VARIANT,
+  isLogoFontVariant,
+  type LogoFontVariant,
+} from '@/lib/logoFontVariant';
+import {
+  DEFAULT_LOGO_CUSTOM_PRIMARY,
+  DEFAULT_LOGO_CUSTOM_OUTLINE,
+  DEFAULT_LOGO_CUSTOM_SECONDARY,
+  normalizeHexColor,
+} from '@/lib/logoCustomColors';
+import {
   DEFAULT_RATING_STYLE,
   RATING_STYLE_OPTIONS,
   type RatingStyle,
@@ -64,6 +81,7 @@ import {
   type SupportedLanguage,
   type TmdbConfigurationLanguage,
 } from '@/lib/tmdbLanguage';
+import { ERDB_AI_INTEGRATION_PROMPT } from '@/lib/aiIntegrationPrompt';
 import {
   normalizeProxyCatalogBooleanOverrides,
   normalizeProxyCatalogKeyList,
@@ -316,6 +334,11 @@ const buildAiometadataPattern = (options: {
   thumbnailRatings: string;
   logoRatings: string;
   logoRatingsMax: number | null;
+  logoMode: LogoMode;
+  logoFontVariant: LogoFontVariant;
+  logoCustomPrimary: string;
+  logoCustomSecondary: string;
+  logoCustomOutline: string;
   posterStreamBadges: StreamBadgesSetting;
   backdropStreamBadges: StreamBadgesSetting;
   shouldShowPosterQualityBadgesSide: boolean;
@@ -351,6 +374,11 @@ const buildAiometadataPattern = (options: {
     thumbnailRatings,
     logoRatings,
     logoRatingsMax,
+    logoMode,
+    logoFontVariant,
+    logoCustomPrimary,
+    logoCustomSecondary,
+    logoCustomOutline,
     posterStreamBadges,
     backdropStreamBadges,
     shouldShowPosterQualityBadgesSide,
@@ -438,6 +466,13 @@ const buildAiometadataPattern = (options: {
     if (logoRatingsMax !== null) {
       params.push(['logoRatingsMax', String(logoRatingsMax)]);
     }
+    params.push(['logoMode', logoMode]);
+    if (logoMode === 'custom-logo') {
+      params.push(['logoFontVariant', logoFontVariant]);
+      params.push(['logoPrimary', logoCustomPrimary]);
+      params.push(['logoSecondary', logoCustomSecondary]);
+      params.push(['logoOutline', logoCustomOutline]);
+    }
     params.push(['ratingStyle', logoRatingStyle]);
   }
 
@@ -505,7 +540,6 @@ const buildAiometadataPatternBlock = (options: {
     pushIfString('streamBadges');
     pushIfString('posterStreamBadges');
     pushIfString('backdropStreamBadges');
-    pushIfString('thumbnailRatings');
   }
 
   if (options.imageType === 'poster') {
@@ -547,6 +581,21 @@ const buildAiometadataPatternBlock = (options: {
     pushIfString('logoRatings');
     if (typeof config.logoRatingsMax === 'string' || typeof config.logoRatingsMax === 'number') {
       params.push(['logoRatingsMax', String(config.logoRatingsMax)]);
+    }
+    if (typeof config.logoMode === 'string' && config.logoMode !== '') {
+      params.push(['logoMode', config.logoMode]);
+    }
+    if (typeof config.logoFontVariant === 'string' && config.logoFontVariant !== '') {
+      params.push(['logoFontVariant', config.logoFontVariant]);
+    }
+    if (typeof config.logoPrimary === 'string' && config.logoPrimary !== '') {
+      params.push(['logoPrimary', config.logoPrimary]);
+    }
+    if (typeof config.logoSecondary === 'string' && config.logoSecondary !== '') {
+      params.push(['logoSecondary', config.logoSecondary]);
+    }
+    if (typeof config.logoOutline === 'string' && config.logoOutline !== '') {
+      params.push(['logoOutline', config.logoOutline]);
     }
     if (typeof config.logoRatingStyle === 'string' && config.logoRatingStyle !== '') {
       params.push(['ratingStyle', config.logoRatingStyle]);
@@ -625,6 +674,11 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
   const [logoRatingStyle, setLogoRatingStyle] = useState<RatingStyle>('plain');
   const [posterRatingsMaxPerSide, setPosterRatingsMaxPerSide] = useState<number | null>(DEFAULT_POSTER_RATINGS_MAX_PER_SIDE);
   const [logoRatingsMax, setLogoRatingsMax] = useState<number | null>(DEFAULT_LOGO_RATINGS_MAX);
+  const [logoMode, setLogoMode] = useState<LogoMode>(DEFAULT_LOGO_MODE);
+  const [logoFontVariant, setLogoFontVariant] = useState<LogoFontVariant>(DEFAULT_LOGO_FONT_VARIANT);
+  const [logoCustomPrimary, setLogoCustomPrimary] = useState(DEFAULT_LOGO_CUSTOM_PRIMARY);
+  const [logoCustomSecondary, setLogoCustomSecondary] = useState(DEFAULT_LOGO_CUSTOM_SECONDARY);
+  const [logoCustomOutline, setLogoCustomOutline] = useState(DEFAULT_LOGO_CUSTOM_OUTLINE);
   const [tmdbLanguages, setTmdbLanguages] = useState<TmdbConfigurationLanguage[]>([]);
   const [tmdbPrimaryTranslations, setTmdbPrimaryTranslations] = useState<string[]>([]);
   const [mdblistKey, setMdblistKey] = useState('');
@@ -654,7 +708,7 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
   const [showProxyUrl, setShowProxyUrl] = useState(false);
   const [aiometadataCopiedType, setAiometadataCopiedType] = useState<AiometadataPatternType | null>(null);
   const [aiometadataEpisodeProvider, setAiometadataEpisodeProvider] = useState<AiometadataEpisodeProvider>('realimdb');
-  const [currentVersion, setCurrentVersion] = useState('0.2.6');
+  const [currentVersion, setCurrentVersion] = useState('0.2.7');
   const [githubPackageVersion, setGithubPackageVersion] = useState<string | null>(null);
   const [repoUrl, setRepoUrl] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<'idle' | 'with' | 'without'>('idle');
@@ -964,85 +1018,7 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
   }, [proxyManifestUrl]);
 
   const handleCopyPrompt = useCallback(() => {
-    const prompt = `Act as an expert addon developer. I want to implement the ERDB Stateless API into my media center addon.
-
---- CONFIG INPUT ---
-Add a single text field called \"erdbConfig\" (base64url). The user will paste it from the ERDB site after configuring there.
-Do NOT hardcode API keys or base URL. Always use cfg.baseUrl from erdbConfig.
-
---- DECODE ---
-Node/JS: const cfg = JSON.parse(Buffer.from(erdbConfig, 'base64url').toString('utf8'));
-
---- FULL API REFERENCE ---
-Endpoint: GET /{type}/{id}.jpg?...queryParams
-
-Parameter               | Values                                                              | Default
-type (path)             | poster, backdrop, logo, thumbnail                                    | -
-id (path)               | IMDb (tt...), TMDB (tmdb:id / tmdb:movie:id / tmdb:tv:id), Kitsu (kitsu:id), AniList, MAL          | -
-ratings                 | tmdb, mdblist, imdb, tomatoes, tomatoesaudience, letterboxd,         | all
-                        | metacritic, metacriticuser, trakt, simkl, rogerebert,               |
-                        | myanimelist, anilist, kitsu (global fallback)                       |
-posterRatings           | tmdb, mdblist, imdb, tomatoes, tomatoesaudience, letterboxd,         | all
-                        | metacritic, metacriticuser, trakt, simkl, rogerebert,               |
-                        | myanimelist, anilist, kitsu (poster only)                           |
-backdropRatings         | tmdb, mdblist, imdb, tomatoes, tomatoesaudience, letterboxd,         | all
-                        | metacritic, metacriticuser, trakt, simkl, rogerebert,               |
-                        | myanimelist, anilist, kitsu (backdrop only)                         |
-logoRatings             | tmdb, mdblist, imdb, tomatoes, tomatoesaudience, letterboxd,         | all
-                        | metacritic, metacriticuser, trakt, simkl, rogerebert,               |
-                        | myanimelist, anilist, kitsu (logo only)                             |
-logoRatingsMax          | Number (1-20)                                                        | auto
-lang                    | ${TMDB_LANGUAGE_DOC_EXAMPLES}                 | en
-streamBadges            | auto, on, off (global fallback)                                      | auto
-posterStreamBadges      | auto, on, off (poster only)                                          | auto
-backdropStreamBadges    | auto, on, off (backdrop only)                                        | auto
-qualityBadgesSide       | left, right (poster top-bottom only)                                 | left
-posterQualityBadgesPosition | auto, left, right (poster top/bottom only)                       | auto
-qualityBadgesStyle      | glass, square, plain (global fallback)                               | glass
-posterQualityBadgesStyle| glass, square, plain (poster only)                                   | glass
-backdropQualityBadgesStyle| glass, square, plain (backdrop only)                               | glass
-ratingStyle             | glass, square, plain                                                 | glass
-imageText               | original, clean, alternative                                         | original
-posterRatingsLayout     | top, bottom, left, right, top-bottom, left-right                     | top-bottom
-posterRatingsMaxPerSide | Number (1-20)                                                        | auto
-backdropRatingsLayout   | center, right-vertical                                               | center
-thumbnailRatingsLayout  | center, center-top, center-bottom, center-vertical, center-top-vertical, center-bottom-vertical, left, left-top, left-bottom, left-vertical, left-top-vertical, left-bottom-vertical, right, right-top, right-bottom, right-vertical, right-top-vertical, right-bottom-vertical | center
-posterVerticalBadgeContent   | standard, stacked (poster vertical layouts only)                 | standard
-backdropVerticalBadgeContent | standard, stacked (backdrop vertical layouts only)               | standard
-thumbnailVerticalBadgeContent| standard, stacked (thumbnail vertical layouts only)              | standard
-thumbnailSize           | small, medium, large                                                 | medium
-tmdbKey (REQUIRED)      | Your TMDB v3 API Key                                                 | -
-mdblistKey (REQUIRED)   | Your MDBList.com API Key                                             | -
-simklClientId (OPTIONAL)| Your SIMKL client_id for direct SIMKL ratings                        | -
-
-LANG NOTE: Pass cfg.lang through exactly as the TMDB language code provided by ERDB (for example en, it, es-ES, pt-BR).
-
---- INTEGRATION REQUIREMENTS ---
-1. Use ONLY the \"erdbConfig\" field (no modal and no extra settings panels).
-2. Add toggles to enable/disable: poster, backdrop, logo, thumbnail.
-3. If a type is disabled, keep the original artwork (do not call ERDB for that type).
-4. Build ERDB URLs using the decoded config and inject them into both catalog and meta responses.
-
---- PER-TYPE SETTINGS ---
-poster   -> ratingStyle = cfg.posterRatingStyle, imageText = cfg.posterImageText
-backdrop -> ratingStyle = cfg.backdropRatingStyle, imageText = cfg.backdropImageText
-thumbnail -> ratingStyle = cfg.backdropRatingStyle, thumbnailRatingsLayout = cfg.thumbnailRatingsLayout, thumbnailSize = cfg.thumbnailSize, ratings = cfg.thumbnailRatings ?? cfg.ratings filtered to TMDB/IMDb
-logo     -> ratingStyle = cfg.logoRatingStyle, logoRatingsMax = cfg.logoRatingsMax (omit imageText)
-Ratings providers can be set per-type via cfg.posterRatings / cfg.backdropRatings / cfg.thumbnailRatings / cfg.logoRatings (fallback to cfg.ratings). Thumbnail ratings are episode-level and currently support TMDB + IMDb only.
-Quality badges style can be set per-type via cfg.posterQualityBadgesStyle / cfg.backdropQualityBadgesStyle (fallback to cfg.qualityBadgesStyle).
-Use cfg.posterVerticalBadgeContent for poster vertical layouts, cfg.backdropVerticalBadgeContent for backdrop, and cfg.thumbnailVerticalBadgeContent for thumbnail vertical layouts when you want icon and value stacked instead of inline.
-
---- URL BUILD ---
-const typeRatingStyle = type === 'poster' ? cfg.posterRatingStyle : type === 'backdrop' ? cfg.backdropRatingStyle : cfg.logoRatingStyle;
-const typeImageText = type === 'backdrop' ? cfg.backdropImageText : cfg.posterImageText;
-\${cfg.baseUrl}/\${type}/\${id}.jpg?tmdbKey=\${cfg.tmdbKey}&mdblistKey=\${cfg.mdblistKey}&simklClientId=\${cfg.simklClientId}&ratings=\${cfg.ratings}&posterRatings=\${cfg.posterRatings}&backdropRatings=\${cfg.backdropRatings}&thumbnailRatings=\${cfg.thumbnailRatings}&logoRatings=\${cfg.logoRatings}&logoRatingsMax=\${cfg.logoRatingsMax}&lang=\${cfg.lang}&streamBadges=\${cfg.streamBadges}&posterStreamBadges=\${cfg.posterStreamBadges}&backdropStreamBadges=\${cfg.backdropStreamBadges}&qualityBadgesSide=\${cfg.qualityBadgesSide}&posterQualityBadgesPosition=\${cfg.posterQualityBadgesPosition}&qualityBadgesStyle=\${cfg.qualityBadgesStyle}&posterQualityBadgesStyle=\${cfg.posterQualityBadgesStyle}&backdropQualityBadgesStyle=\${cfg.backdropQualityBadgesStyle}&ratingStyle=\${typeRatingStyle}&imageText=\${typeImageText}&posterRatingsLayout=\${cfg.posterRatingsLayout}&posterRatingsMaxPerSide=\${cfg.posterRatingsMaxPerSide}&backdropRatingsLayout=\${cfg.backdropRatingsLayout}&posterVerticalBadgeContent=\${cfg.posterVerticalBadgeContent}&backdropVerticalBadgeContent=\${cfg.backdropVerticalBadgeContent}&thumbnailVerticalBadgeContent=\${cfg.thumbnailVerticalBadgeContent}
-
-For thumbnails use thumbnailRatingsLayout and thumbnailSize instead of imageText.
-Omit imageText when type=logo or type=thumbnail.
-
-Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRatings/thumbnailRatings/logoRatings to disable providers.`;
-
-    navigator.clipboard.writeText(prompt);
+    navigator.clipboard.writeText(ERDB_AI_INTEGRATION_PROMPT);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, []);
@@ -1085,6 +1061,13 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
       query.set('logoRatings', ratingsQuery);
       if (logoRatingsMax !== null) {
         query.set('logoRatingsMax', String(logoRatingsMax));
+      }
+      query.set('logoMode', logoMode);
+      if (logoMode === 'custom-logo') {
+        query.set('logoFontVariant', logoFontVariant);
+        query.set('logoPrimary', logoCustomPrimary);
+        query.set('logoSecondary', logoCustomSecondary);
+        query.set('logoOutline', logoCustomOutline);
       }
     }
     if (previewType !== 'logo' && previewType !== 'thumbnail' && streamBadgesForType !== 'auto') {
@@ -1177,6 +1160,11 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     posterRatingsLayout,
     posterRatingsMaxPerSide,
     logoRatingsMax,
+    logoMode,
+    logoFontVariant,
+    logoCustomPrimary,
+    logoCustomSecondary,
+    logoCustomOutline,
     backdropRatingsLayout,
     thumbnailRatingsLayout,
     posterVerticalBadgeContent,
@@ -1205,7 +1193,8 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     }
 
     const config: Record<string, string | number> = {
-      baseUrl,
+      erdbBase: baseUrl,
+      baseUrl: baseUrl,
       tmdbKey: tmdb,
       mdblistKey: mdb,
     };
@@ -1274,6 +1263,15 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     if (logoRatingsMax !== null) {
       config.logoRatingsMax = logoRatingsMax;
     }
+    if (logoMode !== DEFAULT_LOGO_MODE) {
+      config.logoMode = logoMode;
+    }
+    if (logoMode === 'custom-logo') {
+      config.logoFontVariant = logoFontVariant;
+      config.logoPrimary = logoCustomPrimary;
+      config.logoSecondary = logoCustomSecondary;
+      config.logoOutline = logoCustomOutline;
+    }
     if (backdropRatingsLayout) {
       config.backdropRatingsLayout = backdropRatingsLayout;
     }
@@ -1321,6 +1319,11 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     posterRatingStyle,
     backdropRatingStyle,
     logoRatingStyle,
+    logoMode,
+    logoFontVariant,
+    logoCustomPrimary,
+    logoCustomSecondary,
+    logoCustomOutline,
     posterImageText,
     backdropImageText,
     posterRatingsLayout,
@@ -1352,6 +1355,8 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
       url: manifestUrl,
       tmdbKey: tmdb,
       mdblistKey: mdb,
+      erdbBase: baseUrl,
+      baseUrl: baseUrl,
     };
     if (simkl) {
       config.simklClientId = simkl;
@@ -1398,6 +1403,11 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     config.posterRatingStyle = posterRatingStyle;
     config.backdropRatingStyle = backdropRatingStyle;
     config.logoRatingStyle = logoRatingStyle;
+    config.logoMode = logoMode;
+    config.logoFontVariant = logoFontVariant;
+    config.logoPrimary = logoCustomPrimary;
+    config.logoSecondary = logoCustomSecondary;
+    config.logoOutline = logoCustomOutline;
     config.posterImageText = posterImageText;
     config.backdropImageText = backdropImageText;
     config.posterEnabled = proxyEnabledTypes.poster;
@@ -1483,6 +1493,11 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     posterRatingStyle,
     backdropRatingStyle,
     logoRatingStyle,
+    logoMode,
+    logoFontVariant,
+    logoCustomPrimary,
+    logoCustomSecondary,
+    logoCustomOutline,
     posterImageText,
     backdropImageText,
     posterRatingsLayout,
@@ -1570,6 +1585,14 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     updateRatingRowsForType(previewType, (rows) =>
       rows.map((r) => (r.id === rating ? { ...r, enabled: !r.enabled } : r))
     );
+  };
+
+  const enableAllRatingPreferences = () => {
+    updateRatingRowsForType(previewType, (rows) => rows.map((row) => ({ ...row, enabled: true })));
+  };
+
+  const disableAllRatingPreferences = () => {
+    updateRatingRowsForType(previewType, (rows) => rows.map((row) => ({ ...row, enabled: false })));
   };
 
   const reorderRatingPreference = (fromIndex: number, toIndex: number) => {
@@ -1663,9 +1686,14 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
       posterRatingStyle,
       backdropRatingStyle,
       logoRatingStyle,
+      logoMode,
+      logoFontVariant,
+      logoCustomPrimary,
+      logoCustomSecondary,
+      logoCustomOutline,
+      logoRatingsMax,
       posterRatingsLayout,
       posterRatingsMaxPerSide,
-      logoRatingsMax,
       backdropRatingsLayout,
       thumbnailRatingsLayout,
       posterVerticalBadgeContent,
@@ -1750,6 +1778,21 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     }
     if (typeof payload.logoRatingStyle === 'string' && isRatingStyle(payload.logoRatingStyle)) {
       setLogoRatingStyle(payload.logoRatingStyle);
+    }
+    if (typeof payload.logoMode === 'string') {
+      setLogoMode(normalizeLogoMode(payload.logoMode));
+    }
+    if (isLogoFontVariant(payload.logoFontVariant)) {
+      setLogoFontVariant(payload.logoFontVariant);
+    }
+    if (typeof payload.logoCustomPrimary === 'string') {
+      setLogoCustomPrimary(normalizeHexColor(payload.logoCustomPrimary, DEFAULT_LOGO_CUSTOM_PRIMARY));
+    }
+    if (typeof payload.logoCustomSecondary === 'string') {
+      setLogoCustomSecondary(normalizeHexColor(payload.logoCustomSecondary, DEFAULT_LOGO_CUSTOM_SECONDARY));
+    }
+    if (typeof payload.logoCustomOutline === 'string') {
+      setLogoCustomOutline(normalizeHexColor(payload.logoCustomOutline, DEFAULT_LOGO_CUSTOM_OUTLINE));
     }
     if (typeof payload.posterRatingsLayout === 'string' && isPosterRatingLayout(payload.posterRatingsLayout)) {
       setPosterRatingsLayout(payload.posterRatingsLayout);
@@ -1968,6 +2011,12 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
       posterRatingStyle,
       backdropRatingStyle,
       logoRatingStyle,
+      logoMode,
+      logoFontVariant,
+      logoCustomPrimary,
+      logoCustomSecondary,
+      logoCustomOutline,
+      logoRatingsMax,
       posterRatingsLayout,
       posterRatingsMaxPerSide,
       backdropRatingsLayout,
@@ -2007,6 +2056,11 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
     posterRatingStyle,
     backdropRatingStyle,
     logoRatingStyle,
+    logoMode,
+    logoFontVariant,
+    logoCustomPrimary,
+    logoCustomSecondary,
+    logoCustomOutline,
     posterRatingsLayout,
     posterRatingsMaxPerSide,
     logoRatingsMax,
@@ -2181,6 +2235,11 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
       posterRatingsLayout,
       posterRatingsMaxPerSide,
       logoRatingsMax,
+      logoMode,
+      logoFontVariant,
+      logoCustomPrimary,
+      logoCustomSecondary,
+      logoCustomOutline,
       backdropRatingsLayout,
       thumbnailRatingsLayout,
       posterVerticalBadgeContent,
@@ -2242,6 +2301,11 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
       setPosterRatingsLayout,
       setPosterRatingsMaxPerSide,
       setLogoRatingsMax,
+      setLogoMode,
+      setLogoFontVariant,
+      setLogoCustomPrimary,
+      setLogoCustomSecondary,
+      setLogoCustomOutline,
       setBackdropRatingsLayout,
       setThumbnailRatingsLayout,
       setPosterVerticalBadgeContent,
@@ -2258,6 +2322,8 @@ Skip any params that are undefined. Keep empty ratings/posterRatings/backdropRat
       setActiveStreamBadges,
       setActiveQualityBadgesStyle,
       toggleRatingPreference,
+      enableAllRatingPreferences,
+      disableAllRatingPreferences,
       reorderRatingPreference,
       updateProxyManifestUrl: (value) => {
         setProxyManifestUrl(normalizeManifestUrl(value, true));

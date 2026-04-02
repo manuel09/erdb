@@ -12,6 +12,8 @@ import type { ThumbnailRatingLayout } from '@/lib/thumbnailRatingLayout';
 import type { ThumbnailSize } from '@/lib/thumbnailSize';
 import type { PosterRatingLayout } from '@/lib/posterRatingLayout';
 import type { RatingStyle } from '@/lib/ratingStyle';
+import type { LogoMode } from '@/lib/logoMode';
+import type { LogoFontVariant } from '@/lib/logoFontVariant';
 
 type PreviewType = 'poster' | 'backdrop' | 'logo' | 'thumbnail';
 type ProxyType = PreviewType;
@@ -51,6 +53,11 @@ type HomePageViewState = {
   posterRatingsLayout: PosterRatingLayout;
   posterRatingsMaxPerSide: number | null;
   logoRatingsMax: number | null;
+  logoMode: LogoMode;
+  logoFontVariant: LogoFontVariant;
+  logoCustomPrimary: string;
+  logoCustomSecondary: string;
+  logoCustomOutline: string;
   backdropRatingsLayout: BackdropRatingLayout;
   thumbnailRatingsLayout: ThumbnailRatingLayout;
   posterVerticalBadgeContent: VerticalBadgeContent;
@@ -112,6 +119,11 @@ type HomePageViewActions = {
   setPosterRatingsLayout: Dispatch<SetStateAction<PosterRatingLayout>>;
   setPosterRatingsMaxPerSide: Dispatch<SetStateAction<number | null>>;
   setLogoRatingsMax: Dispatch<SetStateAction<number | null>>;
+  setLogoMode: Dispatch<SetStateAction<LogoMode>>;
+  setLogoFontVariant: Dispatch<SetStateAction<LogoFontVariant>>;
+  setLogoCustomPrimary: Dispatch<SetStateAction<string>>;
+  setLogoCustomSecondary: Dispatch<SetStateAction<string>>;
+  setLogoCustomOutline: Dispatch<SetStateAction<string>>;
   setBackdropRatingsLayout: Dispatch<SetStateAction<BackdropRatingLayout>>;
   setThumbnailRatingsLayout: Dispatch<SetStateAction<ThumbnailRatingLayout>>;
   setPosterVerticalBadgeContent: Dispatch<SetStateAction<VerticalBadgeContent>>;
@@ -128,6 +140,8 @@ type HomePageViewActions = {
   setActiveStreamBadges: Dispatch<SetStateAction<StreamBadgesSetting>>;
   setActiveQualityBadgesStyle: Dispatch<SetStateAction<RatingStyle>>;
   toggleRatingPreference: (rating: RatingPreference) => void;
+  enableAllRatingPreferences: () => void;
+  disableAllRatingPreferences: () => void;
   reorderRatingPreference: (fromIndex: number, toIndex: number) => void;
   updateProxyManifestUrl: (value: string) => void;
   updateProxyCatalogName: (key: string, value: string) => void;

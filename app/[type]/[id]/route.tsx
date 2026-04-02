@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+﻿import { NextRequest } from 'next/server';
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import {
   ALL_RATING_PREFERENCES,
@@ -32,6 +32,14 @@ import {
   type PosterRatingLayout,
 } from '@/lib/posterRatingLayout';
 import { normalizeLogoRatingsMax } from '@/lib/logoRatingsMax';
+import { DEFAULT_LOGO_MODE, normalizeLogoMode, type LogoMode } from '@/lib/logoMode';
+import { DEFAULT_LOGO_FONT_VARIANT, normalizeLogoFontVariant, type LogoFontVariant } from '@/lib/logoFontVariant';
+import {
+  DEFAULT_LOGO_CUSTOM_PRIMARY,
+  DEFAULT_LOGO_CUSTOM_OUTLINE,
+  DEFAULT_LOGO_CUSTOM_SECONDARY,
+  normalizeHexColor,
+} from '@/lib/logoCustomColors';
 import {
   DEFAULT_RATING_STYLE,
   normalizeRatingStyle,
@@ -55,6 +63,7 @@ import {
 } from '@/lib/objectStorage';
 import { getMetadata, setMetadata } from '@/lib/metadataCache';
 import { fetchWithRetry } from '@/lib/request';
+import { buildPublicImageCacheControl } from '@/lib/imageCacheTtl';
 
 export const runtime = 'nodejs';
 
@@ -127,7 +136,7 @@ const parseNonNegativeInt = (value?: string | null, max = Number.MAX_SAFE_INTEGE
   if (!Number.isFinite(parsed) || parsed < 0) return null;
   return Math.min(max, Math.floor(parsed));
 };
-const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v54';
+const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v58';
 const TMDB_CACHE_TTL_MS = parseCacheTtlMs(
   process.env.ERDB_TMDB_CACHE_TTL_MS,
   3 * 24 * 60 * 60 * 1000,
@@ -193,10 +202,17 @@ const PROVIDER_ICON_CACHE_TTL_MS = parseCacheTtlMs(
   60 * 60 * 1000,
   30 * 24 * 60 * 60 * 1000
 );
+const GENERATED_LOGO_VARIANT_CACHE_TTL_MS = parseCacheTtlMs(
+  process.env.ERDB_GENERATED_LOGO_CACHE_TTL_MS,
+  30 * 24 * 60 * 60 * 1000,
+  60 * 60 * 1000,
+  365 * 24 * 60 * 60 * 1000
+);
 const FINAL_IMAGE_CACHE_MAX_ENTRIES = 300;
 const SOURCE_IMAGE_CACHE_MAX_ENTRIES = 128;
 const METADATA_CACHE_MAX_ENTRIES = 2000;
 const PROVIDER_ICON_CACHE_MAX_ENTRIES = 64;
+const GENERATED_LOGO_VARIANT_CACHE_MAX_ENTRIES = 256;
 const TMDB_ANIMATION_GENRE_ID = 16;
 const MDBLIST_API_KEYS = parseApiKeyList(process.env.MDBLIST_API_KEYS, process.env.MDBLIST_API_KEY);
 const SIMKL_CLIENT_ID =
@@ -264,12 +280,14 @@ class HttpError extends Error {
     this.headers = headers;
   }
 }
-const finalImageInFlight = new Map<string, Promise<RenderedImagePayload>>();
+const finalImageInFlight = new Map<string, Promise<Response>>();
 const sourceImageInFlight = new Map<string, Promise<RenderedImagePayload>>();
 const metadataInFlight = new Map<string, Promise<CachedJsonResponse>>();
 const providerIconInFlight = new Map<string, Promise<string | null>>();
 const streamBadgesInFlight = new Map<string, Promise<StreamBadgesResult>>();
 const mdbListRateLimitedUntil = new Map<string, number>();
+const generatedLogoVariantCache = new Map<string, { dataUrl: string; aspectRatio: number }>();
+const generatedLogoVariantInFlight = new Map<string, Promise<{ dataUrl: string; aspectRatio: number }>>();
 let mdbListApiKeyCursor = 0;
 const sha1Hex = (value: string) => createHash('sha1').update(value).digest('hex');
 const buildSecretCacheSeed = (name: string, value?: string | null) => {
@@ -332,6 +350,46 @@ const getCacheTtlMsFromCacheControl = (value: string | null | undefined, fallbac
   }
 
   return fallbackMs;
+};
+
+const getGeneratedLogoVariantCacheKey = (
+  title: string,
+  logoFontVariant: LogoFontVariant,
+  primaryColor: string,
+  secondaryColor: string,
+  outlineColor: string
+) =>
+  JSON.stringify({
+    title: title.trim(),
+    logoFontVariant,
+    primaryColor: normalizeHexColor(primaryColor, DEFAULT_LOGO_CUSTOM_PRIMARY),
+    secondaryColor: normalizeHexColor(secondaryColor, DEFAULT_LOGO_CUSTOM_SECONDARY),
+    outlineColor: normalizeHexColor(outlineColor, DEFAULT_LOGO_CUSTOM_OUTLINE),
+  });
+
+const getCachedGeneratedLogoVariant = (cacheKey: string) => {
+  const cached = generatedLogoVariantCache.get(cacheKey);
+  if (!cached) return null;
+
+  // Refresh insertion order for simple LRU behavior.
+  generatedLogoVariantCache.delete(cacheKey);
+  generatedLogoVariantCache.set(cacheKey, cached);
+  return cached;
+};
+
+const setCachedGeneratedLogoVariant = (
+  cacheKey: string,
+  value: { dataUrl: string; aspectRatio: number }
+) => {
+  generatedLogoVariantCache.set(cacheKey, value);
+  if (generatedLogoVariantCache.size <= GENERATED_LOGO_VARIANT_CACHE_MAX_ENTRIES) {
+    return;
+  }
+
+  const oldestKey = generatedLogoVariantCache.keys().next().value;
+  if (oldestKey) {
+    generatedLogoVariantCache.delete(oldestKey);
+  }
 };
 
 
@@ -1350,15 +1408,57 @@ const pickKitsuOriginalTitle = (attributes: any) => {
 const pickPosterTitleFromMedia = (
   media: any,
   mediaType: 'movie' | 'tv' | null,
-  fallbackTitle?: string | null
+  fallbackTitle?: string | null,
+  preferredLang?: string | null,
+  fallbackLang: string = FALLBACK_IMAGE_LANGUAGE,
+  fallbackMedia?: any
 ) => {
+  const pickLocalizedTitleFromTranslations = (source: any, language: string | null | undefined) => {
+    const normalizedLanguage = normalizeTmdbLanguageCode(language);
+    if (!normalizedLanguage) return null;
+
+    const translations = Array.isArray(source?.translations?.translations)
+      ? source.translations.translations
+      : [];
+    const exactMatch = translations.find(
+      (entry: any) => normalizeTmdbLanguageCode(entry?.iso_639_1 && entry?.iso_3166_1
+        ? `${entry.iso_639_1}-${entry.iso_3166_1}`
+        : entry?.iso_639_1) === normalizedLanguage
+    );
+    const baseMatch = !exactMatch
+      ? translations.find(
+        (entry: any) => normalizeTmdbLanguageCode(entry?.iso_639_1) === normalizedLanguage
+      )
+      : null;
+    const selected = exactMatch || baseMatch;
+    if (!selected) return null;
+
+    const data = selected.data || {};
+    const candidate =
+      mediaType === 'movie'
+        ? data.title || data.name || data.original_title || data.original_name
+        : data.name || data.title || data.original_name || data.original_title;
+    if (typeof candidate !== 'string') return null;
+    const normalized = candidate.replace(/\s+/g, ' ').trim();
+    return normalized || null;
+  };
+
   const candidates = [
+    pickLocalizedTitleFromTranslations(media, preferredLang),
     mediaType === 'movie' ? media?.title : mediaType === 'tv' ? media?.name : null,
+    pickLocalizedTitleFromTranslations(fallbackMedia, preferredLang),
+    mediaType === 'movie' ? fallbackMedia?.title : mediaType === 'tv' ? fallbackMedia?.name : null,
+    pickLocalizedTitleFromTranslations(media, fallbackLang),
+    pickLocalizedTitleFromTranslations(fallbackMedia, fallbackLang),
     mediaType === 'movie' ? media?.original_title : mediaType === 'tv' ? media?.original_name : null,
     media?.title,
     media?.name,
+    fallbackMedia?.title,
+    fallbackMedia?.name,
     media?.original_title,
     media?.original_name,
+    fallbackMedia?.original_title,
+    fallbackMedia?.original_name,
     fallbackTitle,
   ];
   for (const candidate of candidates) {
@@ -1372,6 +1472,11 @@ const pickPosterTitleFromMedia = (
 const fetchKitsuFallbackAsset = async (
   kitsuId: string,
   imageType: RenderImageType,
+  logoMode: LogoMode,
+  logoFontVariant: LogoFontVariant,
+  logoPrimary: string,
+  logoSecondary: string,
+  logoOutline: string,
   phases: PhaseDurations
 ) => {
   const normalizedKitsuId = String(kitsuId || '').trim();
@@ -1386,7 +1491,12 @@ const fetchKitsuFallbackAsset = async (
   const originalTitle = pickKitsuOriginalTitle(attributes);
 
   if (imageType === 'logo' && originalTitle) {
-    const generatedLogo = buildGeneratedLogoDataUrl(originalTitle);
+    const generatedLogo =
+      logoMode === 'custom-logo'
+        ? await buildGeneratedLogoVariantDataUrl(originalTitle, logoFontVariant, logoPrimary, logoSecondary, logoOutline)
+        : logoMode === 'ratings-only'
+          ? { dataUrl: buildTransparentLogoDataUrl(), aspectRatio: 2.4 }
+          : buildGeneratedLogoDataUrl(originalTitle);
     return {
       imageUrl: generatedLogo.dataUrl,
       rating,
@@ -2067,6 +2177,9 @@ const isTmdbSourceImageUrl = (value: string) => {
 const buildProviderIconStorageKey = (iconUrl: string, iconCornerRadius = 0) =>
   `icons/${sha1Hex(`${iconUrl}|r:${iconCornerRadius}`)}.png`;
 
+const buildGeneratedLogoVariantStorageKey = (cacheKey: string) =>
+  `customlogos/${sha1Hex(cacheKey)}.svg`;
+
 const readProviderIconFromStorage = async (
   iconUrl: string,
   iconCornerRadius = 0
@@ -2100,6 +2213,40 @@ const writeProviderIconToStorage = async (
   } catch {
     // Ignore icon cache write failures.
   }
+};
+
+const readGeneratedLogoVariantFromStorage = async (cacheKey: string) => {
+  if (!isObjectStorageConfigured()) return null;
+  try {
+    const payload = await getCachedImageFromObjectStorage(buildGeneratedLogoVariantStorageKey(cacheKey));
+    if (!payload) return null;
+    const svg = Buffer.from(payload.body).toString('utf8');
+    return {
+      dataUrl: `data:image/svg+xml,${encodeURIComponent(svg)}`,
+      aspectRatio: LOGO_BASE_HEIGHT > 0 ? Math.max(1, extractSvgWidth(svg)) / LOGO_BASE_HEIGHT : 2.5,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const writeGeneratedLogoVariantToStorage = async (cacheKey: string, svg: string) => {
+  if (!isObjectStorageConfigured()) return;
+  try {
+    await putCachedImageToObjectStorage(buildGeneratedLogoVariantStorageKey(cacheKey), {
+      body: bufferToArrayBuffer(Buffer.from(svg, 'utf8')),
+      contentType: 'image/svg+xml',
+      cacheControl: buildSourceImageFallbackCacheControl(GENERATED_LOGO_VARIANT_CACHE_TTL_MS),
+    });
+  } catch {
+    // Ignore generated logo cache write failures.
+  }
+};
+
+const extractSvgWidth = (svg: string) => {
+  const match = svg.match(/\bwidth="(\d+)"/i);
+  const parsed = match ? Number.parseInt(match[1], 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 800;
 };
 
 const pickTmdbImageSize = (imageType: RenderImageType, outputWidth: number) => {
@@ -2370,6 +2517,388 @@ const buildGeneratedLogoDataUrl = (title: string) => {
     dataUrl: `data:image/svg+xml,${encodeURIComponent(svg)}`,
     aspectRatio,
   };
+};
+
+const buildTransparentLogoDataUrl = () =>
+  `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 8 8"></svg>')}`;
+
+const GENERATED_LOGO_FONT_VARIANTS: Array<{
+  id: LogoFontVariant;
+  fontFamily: string;
+  fill: string;
+  stroke: string;
+  strokeOpacity?: number;
+  weight: number;
+  italic?: boolean;
+  letterSpacingFactor: number;
+  uppercase?: boolean;
+  skewX?: number;
+  topPaddingFactor?: number;
+  bottomPaddingFactor?: number;
+  fillMode?: 'solid' | 'gradient' | 'outline';
+  gradientStops?: Array<{ offset: string; color: string }>;
+  shadow?: { dy: number; stdDeviation: number; color: string; opacity: number };
+}> = [
+    {
+      id: 'spicy-sale',
+      fontFamily: "'Spicy Sale','Rubik Spray Paint','Impact',sans-serif",
+      fill: '#fff7ed',
+      stroke: 'rgba(190,24,93,0.92)',
+      strokeOpacity: 0.92,
+      weight: 400,
+      letterSpacingFactor: 0.012,
+      uppercase: false,
+      skewX: -3,
+      fillMode: 'gradient',
+      gradientStops: [
+        { offset: '0%', color: '#fde68a' },
+        { offset: '55%', color: '#fb7185' },
+        { offset: '100%', color: '#c084fc' },
+      ],
+      shadow: { dy: 1, stdDeviation: 7, color: '#ec4899', opacity: 0.4 },
+    },
+    {
+      id: 'somelist',
+      fontFamily: "'Somelist','Spicy Sale','Impact',sans-serif",
+      fill: '#f0fdf4',
+      stroke: 'rgba(8,145,178,0.84)',
+      strokeOpacity: 0.8,
+      weight: 400,
+      letterSpacingFactor: 0.008,
+      uppercase: false,
+      skewX: -1,
+      fillMode: 'gradient',
+      gradientStops: [
+        { offset: '0%', color: '#bbf7d0' },
+        { offset: '100%', color: '#67e8f9' },
+      ],
+      shadow: { dy: 0, stdDeviation: 6, color: '#22d3ee', opacity: 0.28 },
+    },
+    {
+      id: 'rubik-spray-paint',
+      fontFamily: "'Rubik Spray Paint','Dokdo','Impact',sans-serif",
+      fill: '#fef08a',
+      stroke: 'rgba(120,53,15,0.9)',
+      weight: 400,
+      letterSpacingFactor: 0.01,
+      uppercase: true,
+      fillMode: 'gradient',
+      gradientStops: [
+        { offset: '0%', color: '#fde68a' },
+        { offset: '100%', color: '#f97316' },
+      ],
+      shadow: { dy: 3, stdDeviation: 6, color: '#fb923c', opacity: 0.32 },
+    },
+    {
+      id: 'nabla',
+      fontFamily: "'Nabla','Monoton','Impact',sans-serif",
+      fill: '#ddd6fe',
+      stroke: 'rgba(76,29,149,0.92)',
+      weight: 400,
+      letterSpacingFactor: 0.02,
+      uppercase: true,
+      fillMode: 'gradient',
+      gradientStops: [
+        { offset: '0%', color: '#e9d5ff' },
+        { offset: '100%', color: '#60a5fa' },
+      ],
+      shadow: { dy: 0, stdDeviation: 8, color: '#8b5cf6', opacity: 0.34 },
+    },
+    {
+      id: 'honk',
+      fontFamily: "'Honk','Nabla','Impact',sans-serif",
+      fill: '#ecfccb',
+      stroke: 'rgba(63,98,18,0.9)',
+      weight: 400,
+      letterSpacingFactor: 0.018,
+      uppercase: true,
+      fillMode: 'gradient',
+      gradientStops: [
+        { offset: '0%', color: '#bef264' },
+        { offset: '100%', color: '#22d3ee' },
+      ],
+      shadow: { dy: 0, stdDeviation: 8, color: '#84cc16', opacity: 0.3 },
+    },
+    {
+      id: 'paper-scratch',
+      fontFamily: "'Paper Scratch','Dokdo','Impact',sans-serif",
+      fill: '#fef2f2',
+      stroke: 'rgba(127,29,29,0.92)',
+      weight: 400,
+      letterSpacingFactor: 0.012,
+      uppercase: false,
+      fillMode: 'gradient',
+      gradientStops: [
+        { offset: '0%', color: '#fca5a5' },
+        { offset: '100%', color: '#f97316' },
+      ],
+      shadow: { dy: 1, stdDeviation: 5, color: '#7f1d1d', opacity: 0.34 },
+    },
+    {
+      id: 'sludgeborn',
+      fontFamily: "'Sludgeborn','Paper Scratch','Impact',sans-serif",
+      fill: '#f5f3ff',
+      stroke: 'rgba(88,28,135,0.94)',
+      weight: 400,
+      letterSpacingFactor: 0.014,
+      uppercase: true,
+      fillMode: 'gradient',
+      gradientStops: [
+        { offset: '0%', color: '#c4b5fd' },
+        { offset: '100%', color: '#f472b6' },
+      ],
+      shadow: { dy: 0, stdDeviation: 7, color: '#a855f7', opacity: 0.36 },
+    },
+    {
+      id: 'playgum',
+      fontFamily: "'Playgum','Somelist','Impact',sans-serif",
+      fill: '#ecfeff',
+      stroke: 'rgba(8,145,178,0.88)',
+      weight: 400,
+      letterSpacingFactor: 0.01,
+      uppercase: false,
+      fillMode: 'gradient',
+      gradientStops: [
+        { offset: '0%', color: '#67e8f9' },
+        { offset: '100%', color: '#a78bfa' },
+      ],
+      shadow: { dy: 0, stdDeviation: 6, color: '#22d3ee', opacity: 0.26 },
+    },
+    {
+      id: 'atlasmemo',
+      fontFamily: "'Atlas Memo','Paper Scratch','Impact',sans-serif",
+      fill: '#fdf2f8',
+      stroke: 'rgba(157,23,77,0.88)',
+      weight: 400,
+      letterSpacingFactor: 0.008,
+      uppercase: false,
+      fillMode: 'gradient',
+      gradientStops: [
+        { offset: '0%', color: '#f9a8d4' },
+        { offset: '100%', color: '#67e8f9' },
+      ],
+      shadow: { dy: 0, stdDeviation: 6, color: '#ec4899', opacity: 0.24 },
+    },
+    {
+      id: 'dracutaz',
+      fontFamily: "'Dracutaz','Sludgeborn','Impact',sans-serif",
+      fill: '#f5f3ff',
+      stroke: 'rgba(76,29,149,0.94)',
+      weight: 400,
+      letterSpacingFactor: 0.014,
+      uppercase: true,
+      fillMode: 'gradient',
+      gradientStops: [
+        { offset: '0%', color: '#c4b5fd' },
+        { offset: '100%', color: '#f472b6' },
+      ],
+      shadow: { dy: 0, stdDeviation: 7, color: '#a855f7', opacity: 0.36 },
+    },
+    {
+      id: 'banana-chips',
+      fontFamily: "'Banana Chips','Honk','Impact',sans-serif",
+      fill: '#fffbeb',
+      stroke: 'rgba(133,77,14,0.9)',
+      weight: 400,
+      letterSpacingFactor: 0.014,
+      uppercase: true,
+      skewX: -2,
+      fillMode: 'gradient',
+      gradientStops: [
+        { offset: '0%', color: '#fde68a' },
+        { offset: '100%', color: '#fb7185' },
+      ],
+      shadow: { dy: 1, stdDeviation: 7, color: '#f59e0b', opacity: 0.34 },
+    },
+    {
+      id: 'holy-star',
+      fontFamily: "'Holy Star','Playgum','Impact',sans-serif",
+      fill: '#f8fafc',
+      stroke: 'rgba(8,47,73,0.9)',
+      weight: 400,
+      letterSpacingFactor: 0.022,
+      uppercase: true,
+      fillMode: 'gradient',
+      gradientStops: [
+        { offset: '0%', color: '#67e8f9' },
+        { offset: '100%', color: '#c084fc' },
+      ],
+      shadow: { dy: 0, stdDeviation: 8, color: '#38bdf8', opacity: 0.32 },
+    },
+    {
+      id: 'rocks-serif',
+      fontFamily: "'Rocks Serif','Dracutaz','Impact',sans-serif",
+      fill: '#faf5ff',
+      stroke: 'rgba(88,28,135,0.92)',
+      weight: 400,
+      letterSpacingFactor: 0.012,
+      uppercase: true,
+      fillMode: 'gradient',
+      gradientStops: [
+        { offset: '0%', color: '#d8b4fe' },
+        { offset: '100%', color: '#f472b6' },
+      ],
+      shadow: { dy: 1, stdDeviation: 6, color: '#a855f7', opacity: 0.3 },
+    },
+  ];
+
+const buildGeneratedLogoVariantDataUrl = async (
+  title: string,
+  logoFontVariant: LogoFontVariant,
+  primaryColor: string,
+  secondaryColor: string,
+  outlineColor: string
+) => {
+  const cacheKey = getGeneratedLogoVariantCacheKey(
+    title,
+    logoFontVariant,
+    primaryColor,
+    secondaryColor,
+    outlineColor
+  );
+  const cached = getCachedGeneratedLogoVariant(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const persisted = await readGeneratedLogoVariantFromStorage(cacheKey);
+  if (persisted) {
+    setCachedGeneratedLogoVariant(cacheKey, persisted);
+    return persisted;
+  }
+
+  return withDedupe(generatedLogoVariantInFlight, cacheKey, async () => {
+    const dedupedCached = getCachedGeneratedLogoVariant(cacheKey);
+    if (dedupedCached) {
+      return dedupedCached;
+    }
+
+    const dedupedPersisted = await readGeneratedLogoVariantFromStorage(cacheKey);
+    if (dedupedPersisted) {
+      setCachedGeneratedLogoVariant(cacheKey, dedupedPersisted);
+      return dedupedPersisted;
+    }
+
+    const hexToRgb = (hex: string) => {
+      const normalized = normalizeHexColor(hex, '#ffffff').slice(1);
+      return {
+        r: parseInt(normalized.slice(0, 2), 16),
+        g: parseInt(normalized.slice(2, 4), 16),
+        b: parseInt(normalized.slice(4, 6), 16),
+      };
+    };
+    const mixHexColors = (a: string, b: string, weight = 0.5) => {
+      const clampedWeight = Math.max(0, Math.min(1, weight));
+      const colorA = hexToRgb(a);
+      const colorB = hexToRgb(b);
+      const toHex = (value: number) => Math.round(value).toString(16).padStart(2, '0');
+      return `#${toHex(colorA.r * (1 - clampedWeight) + colorB.r * clampedWeight)}${toHex(colorA.g * (1 - clampedWeight) + colorB.g * clampedWeight)}${toHex(colorA.b * (1 - clampedWeight) + colorB.b * clampedWeight)}`;
+    };
+    const toRgba = (hex: string, alpha: number) => {
+      const { r, g, b } = hexToRgb(hex);
+      return `rgba(${r},${g},${b},${alpha})`;
+    };
+
+    const lines = splitTitleForGeneratedLogo(title);
+    const maxLineLength = Math.max(...lines.map((line) => line.length), 1);
+    const width = Math.max(760, Math.round(maxLineLength * 68 + 280));
+    const height = LOGO_BASE_HEIGHT;
+    const aspectRatio = width / height;
+    const availableLineWidth = Math.max(420, width - 150);
+    const baseFontSize = lines.length === 1 ? 172 : lines.length === 2 ? 136 : lines.length === 3 ? 108 : 86;
+    const compressedFontSize = Math.max(58, Math.floor((width - 160) / Math.max(maxLineLength, 1) * 1.72));
+    const preliminaryFontSize = Math.min(baseFontSize, compressedFontSize);
+    const variant =
+      GENERATED_LOGO_FONT_VARIANTS.find((item) => item.id === logoFontVariant) ||
+      GENERATED_LOGO_FONT_VARIANTS.find((item) => item.id === DEFAULT_LOGO_FONT_VARIANT) ||
+      GENERATED_LOGO_FONT_VARIANTS[0];
+    const resolvedPrimaryColor = normalizeHexColor(primaryColor, DEFAULT_LOGO_CUSTOM_PRIMARY);
+    const resolvedSecondaryColor = normalizeHexColor(secondaryColor, DEFAULT_LOGO_CUSTOM_SECONDARY);
+    const resolvedOutlineColor = normalizeHexColor(outlineColor, DEFAULT_LOGO_CUSTOM_OUTLINE);
+    const resolvedShadowColor =
+      variant.fillMode === 'outline'
+        ? resolvedSecondaryColor
+        : mixHexColors(resolvedPrimaryColor, resolvedSecondaryColor, 0.45);
+    const longestEstimatedLineWidth = Math.max(
+      ...lines.map((line) => estimateGeneratedLogoLineWidth(line, preliminaryFontSize)),
+      1
+    );
+    const widthFitScale = Math.min(1, availableLineWidth / longestEstimatedLineWidth);
+    const fontSize = Math.max(54, Math.floor(preliminaryFontSize * widthFitScale));
+    const lineHeight = Math.round(fontSize * 0.96);
+    const topPadding = Math.round(fontSize * (variant.topPaddingFactor ?? 0.08));
+    const bottomPadding = Math.round(fontSize * (variant.bottomPaddingFactor ?? 0.08));
+    const contentHeight = Math.max(1, height - topPadding - bottomPadding);
+    const totalTextHeight = lineHeight * Math.max(0, lines.length - 1);
+    const startY = Math.round(topPadding + contentHeight / 2 - totalTextHeight / 2 + fontSize * 0.34);
+    const strokeWidth =
+      variant.fillMode === 'outline'
+        ? Math.max(5, Math.round(fontSize * 0.09))
+        : Math.max(4, Math.round(fontSize * 0.07));
+    const letterSpacing = Math.max(1, Math.round(fontSize * variant.letterSpacingFactor));
+    const displayLines = variant.uppercase ? lines.map((line) => line.toUpperCase()) : lines;
+    const baseShadow = variant.shadow || { dy: 8, stdDeviation: 10, color: '#000000', opacity: 0.3 };
+    const shadow = {
+      ...baseShadow,
+      color: resolvedShadowColor,
+    };
+    const tspans = lines
+      .map((_, index) => {
+        const line = displayLines[index] || '';
+        const y = startY + index * lineHeight;
+        const estimatedLineWidth = estimateGeneratedLogoLineWidth(line, fontSize);
+        const textLength =
+          estimatedLineWidth > availableLineWidth
+            ? ` textLength="${availableLineWidth}" lengthAdjust="spacingAndGlyphs"`
+            : '';
+        return `<tspan x="${Math.round(width / 2)}" y="${y}"${textLength}>${escapeXml(line)}</tspan>`;
+      })
+      .join('');
+    const fillId = `logo-fill-${variant.id}`;
+    const fillValue =
+      variant.fillMode === 'gradient'
+        ? `url(#${fillId})`
+        : variant.fillMode === 'outline'
+          ? 'rgba(255,255,255,0.02)'
+          : resolvedPrimaryColor;
+    const defs = [
+      `<filter id="logo-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="${shadow.dy}" stdDeviation="${shadow.stdDeviation}" flood-color="${shadow.color}" flood-opacity="${shadow.opacity}" /></filter>`,
+    ];
+    const customGradientStops =
+      (variant.gradientStops?.length || 0) <= 2
+        ? [
+          { offset: '0%', color: resolvedPrimaryColor },
+          { offset: '100%', color: resolvedSecondaryColor },
+        ]
+        : [
+          { offset: '0%', color: resolvedPrimaryColor },
+          { offset: '50%', color: resolvedSecondaryColor },
+          { offset: '100%', color: resolvedSecondaryColor },
+        ];
+    if (variant.fillMode === 'gradient' && variant.gradientStops?.length) {
+      defs.push(
+        `<linearGradient id="${fillId}" x1="0%" y1="0%" x2="0%" y2="100%">${customGradientStops
+          .map((stop) => `<stop offset="${stop.offset}" stop-color="${stop.color}" />`)
+          .join('')}</linearGradient>`
+      );
+    }
+    const transform = variant.skewX ? ` transform="skewX(${variant.skewX})"` : '';
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+<defs>
+  ${defs.join('\n  ')}
+</defs>
+<g${transform}>
+  <text x="${Math.round(width / 2)}" y="${startY}" text-anchor="middle" font-family="${variant.fontFamily}" font-size="${fontSize}" font-weight="${variant.weight}"${variant.italic ? ' font-style="italic"' : ''} letter-spacing="${letterSpacing}" fill="${fillValue}" stroke="${toRgba(resolvedOutlineColor, variant.strokeOpacity ?? 0.92)}" stroke-width="${strokeWidth}" paint-order="stroke fill" filter="url(#logo-shadow)">${tspans}</text>
+</g>
+</svg>`;
+    const generatedLogo = {
+      dataUrl: `data:image/svg+xml,${encodeURIComponent(svg)}`,
+      aspectRatio,
+    };
+    setCachedGeneratedLogoVariant(cacheKey, generatedLogo);
+    await writeGeneratedLogoVariantToStorage(cacheKey, svg);
+    return generatedLogo;
+  });
 };
 
 const splitTitleForPosterText = (title: string) => {
@@ -4673,11 +5202,13 @@ export async function GET(
     stream: 0,
     render: 0,
   };
-  const respond = (body: string, status: number, headers?: HeadersInit) => {
+  const responseHeadersCacheControl = 'no-store, max-age=0';
+
+  const respond = (body: string | Buffer | ArrayBuffer, status: number, headers?: HeadersInit) => {
     const finalHeaders = new Headers(headers);
     const totalMs = performance.now() - requestStartedAt;
     finalHeaders.set('Server-Timing', buildServerTimingHeader(phases, totalMs));
-    return new Response(body, { status, headers: finalHeaders });
+    return new Response(body as any, { status, headers: finalHeaders });
   };
 
   const { type, id } = await params;
@@ -4705,6 +5236,20 @@ export async function GET(
   const posterRatingsLayout = normalizePosterRatingLayout(request.nextUrl.searchParams.get('posterRatingsLayout'));
   const posterRatingsMaxPerSide = normalizePosterRatingsMaxPerSide(request.nextUrl.searchParams.get('posterRatingsMaxPerSide'));
   const logoRatingsMax = normalizeLogoRatingsMax(request.nextUrl.searchParams.get('logoRatingsMax'));
+  const logoMode = normalizeLogoMode(request.nextUrl.searchParams.get('logoMode'));
+  const logoFontVariant = normalizeLogoFontVariant(request.nextUrl.searchParams.get('logoFontVariant'));
+  const logoPrimary = normalizeHexColor(
+    request.nextUrl.searchParams.get('logoPrimary'),
+    DEFAULT_LOGO_CUSTOM_PRIMARY
+  );
+  const logoSecondary = normalizeHexColor(
+    request.nextUrl.searchParams.get('logoSecondary'),
+    DEFAULT_LOGO_CUSTOM_SECONDARY
+  );
+  const logoOutline = normalizeHexColor(
+    request.nextUrl.searchParams.get('logoOutline'),
+    DEFAULT_LOGO_CUSTOM_OUTLINE
+  );
   const backdropRatingsLayout = normalizeBackdropRatingLayout(request.nextUrl.searchParams.get('backdropRatingsLayout'));
   const thumbnailRatingsLayout = normalizeThumbnailRatingLayout(
     request.nextUrl.searchParams.get('thumbnailRatingsLayout')
@@ -4894,8 +5439,7 @@ export async function GET(
   const streamBadgesCacheKeySeed = shouldApplyStreamBadges
     ? `streambadges:${streamBadgesSeedWindow ?? 0}`
     : 'off';
-  const shouldCacheFinalImage =
-    shouldApplyRatings || shouldApplyStreamBadges || (imageType === 'poster' && posterTextPreference === 'clean');
+  const shouldCacheFinalImage = isObjectStorageConfigured();
   const effectiveRatingPreferences = shouldApplyRatings ? Array.from(new Set<RatingPreference>(ratingPreferences)) : [];
   const selectedRatings = new Set<RatingPreference>(effectiveRatingPreferences);
   const mdblistCacheSeed = buildMdbListCacheSeed(mdblistKey);
@@ -4910,6 +5454,11 @@ export async function GET(
     imageType === 'poster' ? posterRatingsLayout : '-',
     imageType === 'poster' ? String(posterRatingsMaxPerSide ?? 'auto') : '-',
     imageType === 'logo' ? String(logoRatingsMax ?? 'auto') : '-',
+    imageType === 'logo' ? logoMode : DEFAULT_LOGO_MODE,
+    imageType === 'logo' ? logoFontVariant : DEFAULT_LOGO_FONT_VARIANT,
+    imageType === 'logo' ? logoPrimary : DEFAULT_LOGO_CUSTOM_PRIMARY,
+    imageType === 'logo' ? logoSecondary : DEFAULT_LOGO_CUSTOM_SECONDARY,
+    imageType === 'logo' ? logoOutline : DEFAULT_LOGO_CUSTOM_OUTLINE,
     imageType === 'poster' ? qualityBadgesSide : '-',
     imageType === 'poster' && (posterRatingsLayout === 'top' || posterRatingsLayout === 'bottom')
       ? posterQualityBadgesPosition
@@ -5127,7 +5676,7 @@ export async function GET(
         }
 
         if (!tmdbId) {
-          const kitsuFallbackAsset = await fetchKitsuFallbackAsset(mediaId, imageType, phases);
+          const kitsuFallbackAsset = await fetchKitsuFallbackAsset(mediaId, imageType, logoMode, logoFontVariant, logoPrimary, logoSecondary, logoOutline, phases);
           rawFallbackImageUrl = kitsuFallbackAsset?.imageUrl || null;
           rawFallbackKitsuRating = kitsuFallbackAsset?.rating || null;
           rawFallbackTitle = kitsuFallbackAsset?.title || null;
@@ -5157,7 +5706,7 @@ export async function GET(
           }
 
           if (!media || !mediaType) {
-            const kitsuFallbackAsset = await fetchKitsuFallbackAsset(mediaId, imageType, phases);
+            const kitsuFallbackAsset = await fetchKitsuFallbackAsset(mediaId, imageType, logoMode, logoFontVariant, logoPrimary, logoSecondary, logoOutline, phases);
             rawFallbackImageUrl = kitsuFallbackAsset?.imageUrl || null;
             rawFallbackKitsuRating = kitsuFallbackAsset?.rating || null;
             rawFallbackTitle = kitsuFallbackAsset?.title || null;
@@ -5193,7 +5742,7 @@ export async function GET(
             throw new HttpError('TMDB ID not found for anime mapping ID', 404);
           }
 
-          const kitsuFallbackAsset = await fetchKitsuFallbackAsset(kitsuId, imageType, phases);
+          const kitsuFallbackAsset = await fetchKitsuFallbackAsset(kitsuId, imageType, logoMode, logoFontVariant, logoPrimary, logoSecondary, logoOutline, phases);
           rawFallbackImageUrl = kitsuFallbackAsset?.imageUrl || null;
           rawFallbackKitsuRating = kitsuFallbackAsset?.rating || null;
           rawFallbackTitle = kitsuFallbackAsset?.title || null;
@@ -5237,7 +5786,7 @@ export async function GET(
               phases,
             });
             if (kitsuId) {
-              const kitsuFallbackAsset = await fetchKitsuFallbackAsset(kitsuId, imageType, phases);
+              const kitsuFallbackAsset = await fetchKitsuFallbackAsset(kitsuId, imageType, logoMode, logoFontVariant, logoPrimary, logoSecondary, logoOutline, phases);
               rawFallbackImageUrl = kitsuFallbackAsset?.imageUrl || null;
               rawFallbackKitsuRating = kitsuFallbackAsset?.rating || null;
               rawFallbackTitle = kitsuFallbackAsset?.title || null;
@@ -5456,6 +6005,11 @@ export async function GET(
         imageType === 'poster' ? posterRatingsLayout : '-',
         imageType === 'poster' ? String(posterRatingsMaxPerSide ?? 'auto') : '-',
         imageType === 'logo' ? String(logoRatingsMax ?? 'auto') : '-',
+        imageType === 'logo' ? logoMode : DEFAULT_LOGO_MODE,
+        imageType === 'logo' ? logoFontVariant : DEFAULT_LOGO_FONT_VARIANT,
+        imageType === 'logo' ? logoPrimary : DEFAULT_LOGO_CUSTOM_PRIMARY,
+        imageType === 'logo' ? logoSecondary : DEFAULT_LOGO_CUSTOM_SECONDARY,
+        imageType === 'logo' ? logoOutline : DEFAULT_LOGO_CUSTOM_OUTLINE,
         imageType === 'poster' ? qualityBadgesSide : '-',
         imageType === 'poster' && (posterRatingsLayout === 'top' || posterRatingsLayout === 'bottom')
           ? posterQualityBadgesPosition
@@ -5474,6 +6028,7 @@ export async function GET(
       ].join('|');
       const finalCacheHash = sha1Hex(finalImageCacheKey);
       const finalObjectStorageKey = buildObjectStorageImageKey(
+        imageType,
         finalCacheHash,
         outputFormatToExtension(outputFormat)
       );
@@ -5481,17 +6036,17 @@ export async function GET(
         const cachedFinalImage = await getCachedImageFromObjectStorage(finalObjectStorageKey);
         if (cachedFinalImage) {
           objectStorageHit = true;
-          return {
-            body: cachedFinalImage.body,
-            contentType: cachedFinalImage.contentType,
-            cacheControl: cachedFinalImage.cacheControl,
-          };
+          return respond(cachedFinalImage.body, 200, {
+            'Content-Type': cachedFinalImage.contentType,
+            'Cache-Control': responseHeadersCacheControl,
+          });
+
         }
       }
       const detailsBundlePromise = !useRawKitsuFallback
         ? (async () => {
           const buildDetailsUrl = (language: string) =>
-            `https://api.themoviedb.org/3/${mediaType}/${media.id}?api_key=${tmdbKey}&language=${language}&append_to_response=images,external_ids&include_image_language=${encodeURIComponent(includeImageLanguage)}`;
+            `https://api.themoviedb.org/3/${mediaType}/${media.id}?api_key=${tmdbKey}&language=${language}&append_to_response=images,external_ids,translations&include_image_language=${encodeURIComponent(includeImageLanguage)}`;
 
           const [detailsResponse, fallbackDetailsResponse] = await Promise.all([
             fetchJsonCached(
@@ -6205,8 +6760,12 @@ export async function GET(
         outputWidth = getLogoCanvasWidth(rawFallbackLogoAspectRatio);
       }
 
+      let localizedMediaDetails: any = null;
+      let fallbackMediaDetails: any = null;
       if (!useRawKitsuFallback && detailsBundlePromise) {
         const { details, fallbackDetails, bundledImages, tmdbRating: bundledRating } = await detailsBundlePromise;
+        localizedMediaDetails = details;
+        fallbackMediaDetails = fallbackDetails;
         tmdbRating = bundledRating;
         if (episodeDetailsPromise) {
           const episodeDetails = await episodeDetailsPromise;
@@ -6481,6 +7040,33 @@ export async function GET(
         }
       }
 
+      if (imageType === 'logo') {
+        const generatedLogoTitle = pickPosterTitleFromMedia(
+          localizedMediaDetails || media,
+          mediaType,
+          rawFallbackTitle,
+          requestedImageLang,
+          FALLBACK_IMAGE_LANGUAGE,
+          fallbackMediaDetails
+        );
+        if (logoMode === 'ratings-only') {
+          imgUrl = buildTransparentLogoDataUrl();
+          outputWidth = 1100;
+          outputHeight = 1;
+        } else if (logoMode === 'custom-logo' && generatedLogoTitle) {
+          const generatedLogo = await buildGeneratedLogoVariantDataUrl(
+            generatedLogoTitle,
+            logoFontVariant,
+            logoPrimary,
+            logoSecondary,
+            logoOutline
+          );
+          imgUrl = generatedLogo.dataUrl;
+          outputHeight = LOGO_BASE_HEIGHT;
+          outputWidth = Math.max(760, Math.round(outputHeight * generatedLogo.aspectRatio));
+        }
+      }
+
       if (!imgUrl && !imgPath) {
         if (imageType === 'logo') {
           let fallbackImdbId = mappedImdbId || (media as any)?.imdb_id || null;
@@ -6502,7 +7088,14 @@ export async function GET(
       const shouldApplyPosterCleanOverlay =
         imageType === 'poster' && posterTextPreference === 'clean' && selectedPosterIsTextless;
       const posterTitleText = shouldApplyPosterCleanOverlay
-        ? pickPosterTitleFromMedia(media, mediaType, rawFallbackTitle)
+        ? pickPosterTitleFromMedia(
+          localizedMediaDetails || media,
+          mediaType,
+          rawFallbackTitle,
+          requestedImageLang,
+          FALLBACK_IMAGE_LANGUAGE,
+          fallbackMediaDetails
+        )
         : null;
       let posterLogoUrl =
         shouldApplyPosterCleanOverlay && selectedPosterLogoPath
@@ -6523,8 +7116,24 @@ export async function GET(
         imageType === 'thumbnail' &&
         usedThumbnailBackdropFallback &&
         Boolean(thumbnailFallbackEpisodeCode || thumbnailFallbackEpisodeText);
-      if (!shouldRenderBadges && !posterTitleText && !posterLogoUrl && !shouldRenderThumbnailFallbackOverlay) {
-        return getSourceImagePayload(imgUrl);
+      const isGeneratedLogo = imageType === 'logo' && String(imgUrl || '').startsWith('data:image/svg+xml');
+
+      if (
+        !shouldRenderBadges &&
+        !posterTitleText &&
+        !posterLogoUrl &&
+        !shouldRenderThumbnailFallbackOverlay &&
+        !isGeneratedLogo
+      ) {
+        const payload = await getSourceImagePayload(imgUrl);
+        if (shouldCacheFinalImage) {
+          try {
+            await putCachedImageToObjectStorage(finalObjectStorageKey, payload);
+          } catch {
+            // Ignore cache persistence failures
+          }
+        }
+        return respond(payload.body, 200, { 'Content-Type': payload.contentType, 'Cache-Control': responseHeadersCacheControl });
       }
       if (providerRatingsPromise) {
         providerRatings = await providerRatingsPromise;
@@ -6571,14 +7180,23 @@ export async function GET(
         streamBadges.length === 0 &&
         !posterTitleText &&
         !posterLogoUrl &&
-        !shouldRenderThumbnailFallbackOverlay
+        !shouldRenderThumbnailFallbackOverlay &&
+        !isGeneratedLogo
       ) {
-        return getSourceImagePayload(imgUrl);
+        const payload = await getSourceImagePayload(imgUrl);
+        if (shouldCacheFinalImage) {
+          try {
+            await putCachedImageToObjectStorage(finalObjectStorageKey, payload);
+          } catch {
+            // Ignore cache persistence failures
+          }
+        }
+        return respond(payload.body, 200, { 'Content-Type': payload.contentType, 'Cache-Control': responseHeadersCacheControl });
       }
       const usePosterBadgeLayout = type === 'poster';
       const useBackdropBadgeLayout = type === 'backdrop' || type === 'thumbnail';
       const useLogoBadgeLayout = type === 'logo';
-const logoBadgeScale = 1;
+      const logoBadgeScale = 1;
       const usePosterRowLayout =
         usePosterBadgeLayout &&
         (posterRatingsLayout === 'top' ||
@@ -7054,21 +7672,59 @@ const logoBadgeScale = 1;
       const qualityBadges = useLogoBadgeLayout ? [] : streamBadges;
       const badgesForIcons = cappedRatingBadges;
       const logoNaturalWidth = useLogoBadgeLayout ? outputWidth : 0;
-      const logoBadgesPerRow = useLogoBadgeLayout && cappedRatingBadges.length > 0
-        ? Math.max(1, cappedRatingBadges.length)
+      const logoBadgeContainerTargetWidth = useLogoBadgeLayout
+        ? Math.max(0, logoNaturalWidth - 24)
         : 0;
+      const logoBadgeMetrics = {
+        iconSize: badgeIconSize,
+        fontSize: badgeFontSize,
+        paddingX: badgePaddingX,
+        paddingY: badgePaddingY,
+        gap: badgeGap,
+      };
+      let logoBadgesPerRow = 0;
+      if (useLogoBadgeLayout && cappedRatingBadges.length > 0) {
+        logoBadgesPerRow = Math.max(1, cappedRatingBadges.length);
+        if (logoMode === 'ratings-only') {
+          for (let badgesPerRow = cappedRatingBadges.length; badgesPerRow >= 1; badgesPerRow -= 1) {
+            const candidateRows = chunkBy(cappedRatingBadges, badgesPerRow);
+            const widestCandidateRow = candidateRows.reduce(
+              (maxWidth, row) =>
+                Math.max(
+                  maxWidth,
+                  measureBadgeRowWidth(row, logoBadgeMetrics, false, verticalBadgeContent)
+                ),
+              0
+            );
+            logoBadgesPerRow = badgesPerRow;
+            if (widestCandidateRow <= logoBadgeContainerTargetWidth) {
+              break;
+            }
+          }
+        }
+      }
       const logoBadgeRowsData =
         useLogoBadgeLayout && cappedRatingBadges.length > 0 && logoBadgesPerRow > 0
           ? chunkBy(cappedRatingBadges, logoBadgesPerRow)
           : [];
+      const widestLogoBadgeRowWidth = logoBadgeRowsData.reduce(
+        (maxWidth, row) =>
+          Math.max(
+            maxWidth,
+            measureBadgeRowWidth(row, logoBadgeMetrics, false, verticalBadgeContent)
+          ),
+        0
+      );
       const finalOutputWidth = useLogoBadgeLayout && logoBadgeRowWidth > 0
-        ? Math.max(logoNaturalWidth, logoBadgeRowWidth + 72)
+        ? Math.max(logoNaturalWidth, widestLogoBadgeRowWidth + 24)
         : outputWidth;
       const logoImageWidth = useLogoBadgeLayout
         ? logoNaturalWidth
         : 0;
       const logoImageHeight = useLogoBadgeLayout
-        ? outputHeight
+        ? logoMode === 'ratings-only'
+          ? 0
+          : outputHeight
         : 0;
       const logoBadgeRows = logoBadgeRowsData.length;
       const logoBadgeItemHeight = estimateBadgeHeight(
@@ -7082,7 +7738,9 @@ const logoBadgeScale = 1;
       const logoBadgeContainerMaxWidth = Math.max(0, finalOutputWidth - 24);
       const logoBadgeMaxWidth = logoBadgeContainerMaxWidth;
       const logoBadgeTopGap = useLogoBadgeLayout && cappedRatingBadges.length > 0
-        ? Math.max(20, Math.round(badgeGap * 1.15))
+        ? logoMode === 'ratings-only'
+          ? 0
+          : Math.max(20, Math.round(badgeGap * 1.15))
         : 0;
       const logoBadgeBandHeight = useLogoBadgeLayout && cappedRatingBadges.length > 0
         ? logoBadgeRows * logoBadgeItemHeight + Math.max(0, logoBadgeRows - 1) * badgeGap
@@ -7100,20 +7758,17 @@ const logoBadgeScale = 1;
       const finalImageCacheTtlMs =
         renderedRatingCacheTtlCandidates.length > 0
           ? Math.min(...renderedRatingCacheTtlCandidates)
-          : TMDB_CACHE_TTL_MS;
-      const responseCacheControl =
-        imageType === 'thumbnail'
-          ? 'no-store, max-age=0'
-          : `public, s-maxage=${Math.max(60, Math.floor(finalImageCacheTtlMs / 1000))}, stale-while-revalidate=60`;
+          : 7 * 24 * 60 * 60 * 1000;
+      const storageCacheControl = buildPublicImageCacheControl(finalImageCacheTtlMs);
       const renderedPayload = await renderWithSharp(
         {
           imageType,
           outputFormat,
           imgUrl,
           outputWidth: finalOutputWidth,
-          outputHeight: useLogoBadgeLayout ? logoImageHeight : outputHeight,
+          outputHeight: useLogoBadgeLayout ? Math.max(1, logoImageHeight) : outputHeight,
           imageWidth: useLogoBadgeLayout ? logoImageWidth : undefined,
-          imageHeight: useLogoBadgeLayout ? logoImageHeight : undefined,
+          imageHeight: useLogoBadgeLayout ? Math.max(1, logoImageHeight) : undefined,
           finalOutputHeight,
           logoBadgeTopGap,
           logoBadgeBandHeight,
@@ -7152,27 +7807,24 @@ const logoBadgeScale = 1;
           rightBadges: rightRatingBadges,
           backdropColumns,
           backdropRows,
-          cacheControl: responseCacheControl,
+          cacheControl: responseHeadersCacheControl,
         },
         phases
       );
       if (shouldCacheFinalImage) {
         try {
-          await putCachedImageToObjectStorage(finalObjectStorageKey, renderedPayload);
+          await putCachedImageToObjectStorage(finalObjectStorageKey, { body: renderedPayload.body, contentType: renderedPayload.contentType, cacheControl: storageCacheControl });
         } catch {
           // Ignore distributed cache persistence failures.
         }
       }
-      return renderedPayload;
+      return respond(renderedPayload.body, 200, {
+        'Content-Type': renderedPayload.contentType,
+        'Cache-Control': responseHeadersCacheControl,
+      });
     });
 
-    const totalMs = performance.now() - requestStartedAt;
-    const cacheStatus = objectStorageHit ? 'hit' : hadSharedRender ? 'shared' : 'miss';
-    return createImageHttpResponse(
-      renderedImage,
-      buildServerTimingHeader(phases, totalMs),
-      cacheStatus
-    );
+    return renderedImage as Response;
   } catch (e: any) {
     if (e instanceof HttpError) {
       return respond(e.message, e.status, e.headers);

@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.7](https://github.com/realbestia1/erdb/compare/v0.2.6...v0.2.7) - 2026-04-02
+
+- Add custom logo variants and caching ([88ce2c3](https://github.com/realbestia1/erdb/commit/88ce2c3c01295d72d29043f4da204bc002a8de88))
+  Introduce custom logo generation and variant support with SVG output, selectable font variants, and custom primary/secondary/outline colors. Adds in-memory + object-storage caching for generated logo variants, new cache keys/TTL, and storage read/write helpers; integrates custom-logo and ratings-only modes into the rendering pipeline and query params (logoMode, logoFontVariant, logoPrimary/Secondary/Outline). Improve title localization by picking translated titles from TMDB translations, bump final image renderer cache version, and standardize response/cache headers. Also add a docs AI integration prompt and copy button component, expose new logo options in the docs and home view types, and include various small refactors to image rendering, cache keys, and object storage behavior.
+
 ## [0.2.6](https://github.com/realbestia1/erdb/compare/v0.2.5...v0.2.6) - 2026-04-02
 
 - fix: prevent preview image clipping on zoom ([425f863](https://github.com/realbestia1/erdb/commit/425f863d25c1c194ee2e8a2c8cf5858ec5ba6020))

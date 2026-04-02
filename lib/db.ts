@@ -1,8 +1,8 @@
 import Database from 'better-sqlite3';
 import { join } from 'node:path';
 import { mkdirSync } from 'node:fs';
+import { DATA_DIR } from './paths';
 
-const DATA_DIR = join(process.cwd(), 'data');
 const DB_PATH = join(DATA_DIR, 'erdb.db');
 
 const SCHEMA_SQL = `

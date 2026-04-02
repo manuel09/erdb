@@ -1,13 +1,17 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { ArrowLeft, ArrowUpRight, Code2, FileJson, ImageIcon, Layers3, Workflow } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Bot, Code2, FileJson, ImageIcon, Layers3, Workflow } from 'lucide-react';
+import { DocsCopyPromptButton } from '@/components/docs-copy-prompt-button';
+import { ERDB_AI_INTEGRATION_PROMPT } from '@/lib/aiIntegrationPrompt';
 import { RATING_PROVIDER_OPTIONS } from '@/lib/ratingPreferences';
 import { POSTER_RATING_LAYOUT_OPTIONS } from '@/lib/posterRatingLayout';
 import { BACKDROP_RATING_LAYOUT_OPTIONS } from '@/lib/backdropRatingLayout';
 import { THUMBNAIL_RATING_LAYOUT_OPTIONS } from '@/lib/thumbnailRatingLayout';
 import { THUMBNAIL_SIZE_OPTIONS } from '@/lib/thumbnailSize';
 import { RATING_STYLE_OPTIONS } from '@/lib/ratingStyle';
+import { LOGO_FONT_VARIANT_OPTIONS } from '@/lib/logoFontVariant';
+import { LOGO_MODE_OPTIONS } from '@/lib/logoMode';
 
 export const metadata: Metadata = {
   title: 'ERDB API Docs',
@@ -20,6 +24,8 @@ const posterLayouts = POSTER_RATING_LAYOUT_OPTIONS.map((option) => option.id).jo
 const backdropLayouts = BACKDROP_RATING_LAYOUT_OPTIONS.map((option) => option.id).join(', ');
 const thumbnailLayouts = THUMBNAIL_RATING_LAYOUT_OPTIONS.map((option) => option.id).join(', ');
 const thumbnailSizes = THUMBNAIL_SIZE_OPTIONS.map((option) => option.id).join(', ');
+const logoFonts = LOGO_FONT_VARIANT_OPTIONS.map((option) => option.id).join(', ');
+const logoModes = LOGO_MODE_OPTIONS.map((option) => option.id).join(', ');
 
 function Code({ children }: { children: ReactNode }) {
   return <code className="font-mono text-[12px] text-orange-300">{children}</code>;
@@ -140,6 +146,12 @@ export default function DocsPage() {
                 [<Code key="backdropLayout">backdropRatingsLayout</Code>, backdropLayouts, 'center', 'Backdrop-only layout.'],
                 [<Code key="thumbLayout">thumbnailRatingsLayout</Code>, thumbnailLayouts, 'center', 'Thumbnail-only layout.'],
                 [<Code key="thumbSize">thumbnailSize</Code>, thumbnailSizes, 'medium', 'Thumbnails only support tmdb and imdb ratings.'],
+                [<Code key="logoMode">logoMode</Code>, 'logo-ratings, ratings-only, custom-logo', 'logo-ratings', 'Primary mode for logos. custom-logo enables fonts and colors.'],
+                [<Code key="logoFont">logoFontVariant</Code>, logoFonts, 'spicy-sale', 'Only applied when logoMode is custom-logo.'],
+                [<Code key="logoColors">logoPrimary / logoSecondary / logoOutline</Code>, 'Hex colors (#rrggbb)', '#fde68a / #f472b6... ', 'Colors for custom-logo mode.'],
+                [<Code key="logoMax">logoRatingsMax</Code>, '1-20', 'auto', 'Maximum number of rating badges to show below the logo.'],
+                [<Code key="vertical">posterVerticalBadgeContent</Code>, 'standard, stacked', 'standard', 'Content style for vertical poster ratings.'],
+                [<Code key="qualityPosition">posterQualityBadgesPosition</Code>, 'auto, left, right', 'auto', 'Placement of quality badges (HDR, 4K) on posters.'],
               ]}
             />
             <Table
@@ -164,6 +176,28 @@ export default function DocsPage() {
             </div>
             <pre className="overflow-x-auto rounded-3xl border border-white/10 bg-[#0a0f16]/90 p-5 text-[12px] leading-6 text-slate-200"><code>{`GET /poster/tmdb:movie:603.jpg?tmdbKey=YOUR_TMDB_KEY&ratings=tmdb,imdb&posterRatingsLayout=top-bottom&ratingStyle=glass
 GET /thumbnail/tt0944947:1:1.jpg?tmdbKey=YOUR_TMDB_KEY&thumbnailRatings=tmdb,imdb&thumbnailRatingsLayout=center-bottom&thumbnailSize=large`}</code></pre>
+          </Section>
+
+          <Section
+            icon={<Bot className="h-3.5 w-3.5 text-orange-300" />}
+            title="AI Integration Prompt"
+            description="A ready-to-use prompt for wiring ERDB into another addon or media app using the documented config fields and routes."
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-white/10 bg-[#0a0f16]/90 p-5">
+              <div className="max-w-3xl text-sm leading-7 text-slate-300">
+                <p>
+                  This section should be usable as-is: copy the prompt, give it to an AI or developer, and implement the
+                  ERDB renderer from a single <Code>erdbConfig</Code> base64url field.
+                </p>
+                <p>
+                  It includes the newer logo and thumbnail fields such as <Code>logoMode</Code>,
+                  <Code>logoFontVariant</Code>, <Code>logoPrimary</Code>, <Code>logoSecondary</Code>,
+                  <Code>logoOutline</Code>, <Code>thumbnailRatingsLayout</Code>, and <Code>thumbnailSize</Code>.
+                </p>
+              </div>
+              <DocsCopyPromptButton prompt={ERDB_AI_INTEGRATION_PROMPT} />
+            </div>
+            <pre className="overflow-x-auto rounded-3xl border border-white/10 bg-[#0a0f16]/90 p-5 text-[12px] leading-6 text-slate-200"><code>{ERDB_AI_INTEGRATION_PROMPT}</code></pre>
           </Section>
 
           <Section icon={<Layers3 className="h-3.5 w-3.5 text-orange-300" />} title="Addon Proxy" description="Proxy config can live in query parameters for testing or inside a base64url JSON path segment for production.">

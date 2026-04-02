@@ -1,8 +1,8 @@
-import { join } from 'node:path';
-import { mkdirSync, writeFileSync, readFileSync, existsSync, statSync, unlinkSync, readdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, statSync, unlinkSync, readdirSync, rmSync } from 'node:fs';
 import { getCacheTtlMsFromCacheControl } from './imageCacheTtl';
+import { DATA_DIR } from './paths';
 
-const DATA_DIR = join(process.cwd(), 'data');
 const CACHE_DIR = join(DATA_DIR, 'cache', 'images');
 
 type ObjectStorageResult = {
@@ -21,7 +21,15 @@ type GlobalObjectStorageState = typeof globalThis & {
 // Ensure cache directory exists
 mkdirSync(CACHE_DIR, { recursive: true });
 
-const getFilePath = (key: string) => join(CACHE_DIR, key.replace(/\//g, '_'));
+const sanitizePathSegment = (segment: string) => segment.replace(/[^a-zA-Z0-9._-]/g, '_');
+
+const getFilePath = (key: string) => {
+  const normalizedKey = String(key || '')
+    .split('/')
+    .map((segment) => sanitizePathSegment(segment))
+    .filter(Boolean);
+  return join(CACHE_DIR, ...normalizedKey);
+};
 
 const deleteCachedObject = (filePath: string, metadataPath: string) => {
   try {
@@ -54,21 +62,39 @@ const isCachedObjectExpired = (filePath: string, metadataPath: string) => {
 };
 
 export const pruneExpiredObjectStorageImages = () => {
-  try {
-    const entries = readdirSync(CACHE_DIR, { withFileTypes: true });
+  const walk = (dirPath: string) => {
+    const entries = readdirSync(dirPath, { withFileTypes: true });
 
     for (const entry of entries) {
+      const entryPath = join(dirPath, entry.name);
+      if (entry.isDirectory()) {
+        walk(entryPath);
+        try {
+          const remaining = readdirSync(entryPath);
+          if (remaining.length === 0) {
+            rmSync(entryPath, { recursive: true, force: true });
+          }
+        } catch {
+          // Ignore cleanup failures for empty directories.
+        }
+        continue;
+      }
+
       if (!entry.isFile() || entry.name.endsWith('.json')) {
         continue;
       }
 
-      const filePath = join(CACHE_DIR, entry.name);
+      const filePath = entryPath;
       const metadataPath = `${filePath}.json`;
 
       if (!existsSync(metadataPath) || isCachedObjectExpired(filePath, metadataPath)) {
         deleteCachedObject(filePath, metadataPath);
       }
     }
+  };
+
+  try {
+    walk(CACHE_DIR);
   } catch {
     // Ignore background pruning failures.
   }
@@ -88,7 +114,11 @@ export const isObjectStorageConfigured = () => true; // Always "configured" as l
 
 ensureObjectStoragePrunerStarted();
 
-export const buildObjectStorageImageKey = (cacheHash: string, ext = 'png') => `final/${cacheHash}.${ext}`;
+export const buildObjectStorageImageKey = (
+  imageType: 'poster' | 'backdrop' | 'logo' | 'thumbnail',
+  cacheHash: string,
+  ext = 'png'
+) => `final/${imageType}/${cacheHash}.${ext}`;
 export const buildObjectStorageSourceImageKey = (id: string, variant: string) => `source/${id.replace(/[^a-zA-Z0-9]/g, '_')}_${variant}.png`;
 
 export const getCachedImageFromObjectStorage = async (key: string): Promise<ObjectStorageResult | null> => {
@@ -129,7 +159,7 @@ export const putCachedImageToObjectStorage = async (
 
   try {
     // Ensure parent directories exist
-    const dir = join(filePath, '..');
+    const dir = dirname(filePath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }

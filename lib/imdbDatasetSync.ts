@@ -6,6 +6,7 @@ import { pipeline } from 'node:stream/promises';
 import { createGunzip } from 'node:zlib';
 import { ensureDbInitialized, getDb } from './db';
 import { getMetadata, setMetadata } from './metadataCache';
+import { DATA_DIR } from './paths';
 
 type DatasetPaths = {
   ratingsPath: string;
@@ -56,11 +57,11 @@ const resolveDatasetPaths = (): DatasetPaths => {
   const ratingsPath =
     process.env.ERDB_IMDB_RATINGS_DATASET_PATH ||
     process.env.IMDB_RATINGS_DATASET_PATH ||
-    join(process.cwd(), 'data', 'imdb', 'title.ratings.tsv.gz');
+    join(DATA_DIR, 'imdb', 'title.ratings.tsv.gz');
   const episodesPath =
     process.env.ERDB_IMDB_EPISODES_DATASET_PATH ||
     process.env.IMDB_EPISODES_DATASET_PATH ||
-    join(process.cwd(), 'data', 'imdb', 'title.episode.tsv.gz');
+    join(DATA_DIR, 'imdb', 'title.episode.tsv.gz');
   return { ratingsPath, episodesPath };
 };
 

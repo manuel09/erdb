@@ -25,7 +25,7 @@ const ERDB_OPTIONAL_PARAMS = [
 const ERDB_TYPE_OPTIONAL_PARAMS = {
   poster: ['posterStreamBadges', 'posterQualityBadgesStyle', 'posterRatings'],
   backdrop: ['backdropStreamBadges', 'backdropQualityBadgesStyle', 'backdropRatings'],
-  logo: ['logoRatings', 'logoRatingsMax'],
+  logo: ['logoRatings', 'logoRatingsMax', 'logoMode', 'logoFontVariant', 'logoPrimary', 'logoSecondary', 'logoOutline'],
   thumbnail: ['backdropStreamBadges', 'backdropQualityBadgesStyle', 'thumbnailRatings'],
 } as const;
 const ERDB_OPTIONAL_PARAM_KEYS = [
@@ -93,6 +93,11 @@ export type ProxyConfig = {
   thumbnailRatings?: string;
   logoRatings?: string;
   logoRatingsMax?: string;
+  logoMode?: string;
+  logoFontVariant?: string;
+  logoPrimary?: string;
+  logoSecondary?: string;
+  logoOutline?: string;
   lang?: string;
   streamBadges?: string;
   posterStreamBadges?: string;
@@ -120,6 +125,7 @@ export type ProxyConfig = {
   seriesMetadataProvider?: string;
   aiometadataProvider?: string;
   erdbBase?: string;
+  baseUrl?: string;
   posterEnabled?: boolean;
   backdropEnabled?: boolean;
   logoEnabled?: boolean;
@@ -137,6 +143,11 @@ const PROXY_OPTIONAL_STRING_KEYS = [
   'thumbnailRatings',
   'logoRatings',
   'logoRatingsMax',
+  'logoMode',
+  'logoFontVariant',
+  'logoPrimary',
+  'logoSecondary',
+  'logoOutline',
   'simklClientId',
   'lang',
   'streamBadges',
@@ -165,6 +176,7 @@ const PROXY_OPTIONAL_STRING_KEYS = [
   'seriesMetadataProvider',
   'aiometadataProvider',
   'erdbBase',
+  'baseUrl',
  ] as const satisfies readonly (keyof ProxyConfig)[];
 type ProxyOptionalStringKey = (typeof PROXY_OPTIONAL_STRING_KEYS)[number];
 
@@ -334,6 +346,10 @@ export const decodeProxyConfig = (encoded: string): ProxyConfig | null => {
       if (value !== undefined) {
         config[key] = value;
       }
+    }
+    // Alias baseUrl to erdbBase
+    if (!config.erdbBase && (parsed as any).baseUrl) {
+      config.erdbBase = toOptionalStringAllowEmpty((parsed as any).baseUrl);
     }
     const catalogNames = normalizeProxyCatalogNameOverrides((parsed as ProxyConfig).catalogNames);
     if (catalogNames) {
