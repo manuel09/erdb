@@ -3,14 +3,16 @@ FROM node:20-alpine
 WORKDIR /app
 
 # System deps (git for cloning, fonts for rendering)
-RUN apk add --no-cache git fontconfig ttf-dejavu ttf-freefont font-noto
+RUN apk add --no-cache git fontconfig ttf-dejavu ttf-freefont font-noto bash curl
 
 # Fetch the app source
 RUN git clone https://github.com/realbestia1/erdb.git .
 
 # Install deps and build
+ENV ERDB_SKIP_FONT_INSTALL=1
 RUN npm ci
 RUN npm run build
+RUN chmod +x scripts/install-fonts-linux.sh && ./scripts/install-fonts-linux.sh
 
 # Ensure static assets are available when running the standalone server
 RUN mkdir -p /app/.next/standalone/.next \

@@ -9,7 +9,7 @@ export interface FetchOptions extends RequestInit {
  * Useful for flaky external APIs like TMDB in some network environments.
  */
 export async function fetchWithRetry(url: string, options: FetchOptions = {}): Promise<Response> {
-  const { timeout = 8000, retries = 3, backoff = true, ...fetchOptions } = options;
+  const { timeout = 15000, retries = 3, backoff = true, ...fetchOptions } = options;
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -37,14 +37,20 @@ export async function fetchWithRetry(url: string, options: FetchOptions = {}): P
 
       // Identify transient network/timeout errors
       const isTimeout =
-        error.name === 'AbortError' || 
-        error.code === 'UND_ERR_CONNECT_TIMEOUT' || 
-        error.message?.includes('timeout');
+        error.name === 'AbortError' ||
+        error.code === 'UND_ERR_CONNECT_TIMEOUT' ||
+        error.code === 'UND_ERR_HEADERS_TIMEOUT' ||
+        error.code === 'UND_ERR_BODY_TIMEOUT' ||
+        error.message?.toLowerCase().includes('timeout');
       const isNetworkError =
+        error.message === 'fetch failed' ||
         error.code === 'ECONNRESET' ||
         error.code === 'ETIMEDOUT' ||
         error.code === 'ENOTFOUND' ||
-        error.code === 'EAI_AGAIN';
+        error.code === 'EAI_AGAIN' ||
+        error.code === 'ECONNREFUSED' ||
+        error.code === 'EHOSTUNREACH' ||
+        error.code === 'ENETUNREACH';
 
       if (!isTimeout && !isNetworkError) {
         // Log non-network errors immediately but throw them

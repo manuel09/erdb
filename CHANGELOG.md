@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.9](https://github.com/realbestia1/erdb/compare/v0.2.8...v0.2.9) - 2026-04-02
+
+- Improve proxy error handling and fetch retry ([6e0b190](https://github.com/realbestia1/erdb/commit/6e0b190bcec7bd3626eee27ec6796fd89105f487))
+  Wrap proxy GET handler in a try/catch and return a 500 on unexpected errors. Read upstream responses as arrayBuffer and decode with TextDecoder before JSON.parse to avoid re-reading streamed bodies, and reuse the decoded buffer for passthrough/error responses while preserving CORS headers. Increase default fetchWithRetry timeout to 15000ms and expand recognized timeout/network error codes to improve resilience. Bump package version to 0.2.9 and update displayed currentVersion in the UI.
+
+## [0.2.8](https://github.com/realbestia1/erdb/compare/v0.2.7...v0.2.8) - 2026-04-02
+
+- Improve Docker font handling and image response types ([3f2033f](https://github.com/realbestia1/erdb/commit/3f2033f99d1cb7a922747d337360f439ec8031b0))
+  Update Dockerfiles to skip automatic font install by default (ERDB_SKIP_FONT_INSTALL) and add bash/curl to Alpine deps; copy and execute scripts/install-fonts-linux.sh (with chmod) in build/runtime images so fonts are installed reliably. Refactor server image rendering flow in app/[type]/[id]/route.tsx: change in-flight maps to carry RenderedImagePayload, return payload objects from internal branches, and centralize the final respond(...) call to ensure consistent response construction. Also bump app version to 0.2.8 (package.json) and update displayed currentVersion in the home page component.
+
 ## [0.2.7](https://github.com/realbestia1/erdb/compare/v0.2.6...v0.2.7) - 2026-04-02
 
 - Add custom logo variants and caching ([88ce2c3](https://github.com/realbestia1/erdb/commit/88ce2c3c01295d72d29043f4da204bc002a8de88))

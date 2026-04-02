@@ -3,6 +3,7 @@ WORKDIR /app
 
 COPY package*.json ./
 COPY scripts/ ./scripts/
+ENV ERDB_SKIP_FONT_INSTALL=1
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 FROM node:20-alpine AS builder
@@ -19,13 +20,14 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
-RUN apk add --no-cache fontconfig ttf-dejavu ttf-freefont font-noto
+RUN apk add --no-cache fontconfig ttf-dejavu ttf-freefont font-noto bash curl
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
-COPY scripts/start-server.js ./scripts/start-server.js
+COPY scripts/ ./scripts/
+RUN chmod +x scripts/install-fonts-linux.sh && ./scripts/install-fonts-linux.sh
 
 RUN mkdir -p /app/data
 VOLUME ["/app/data"]

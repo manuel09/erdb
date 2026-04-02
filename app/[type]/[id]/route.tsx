@@ -1,4 +1,4 @@
-﻿import { NextRequest } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import {
   ALL_RATING_PREFERENCES,
@@ -280,7 +280,7 @@ class HttpError extends Error {
     this.headers = headers;
   }
 }
-const finalImageInFlight = new Map<string, Promise<Response>>();
+const finalImageInFlight = new Map<string, Promise<RenderedImagePayload>>();
 const sourceImageInFlight = new Map<string, Promise<RenderedImagePayload>>();
 const metadataInFlight = new Map<string, Promise<CachedJsonResponse>>();
 const providerIconInFlight = new Map<string, Promise<string | null>>();
@@ -6036,10 +6036,11 @@ export async function GET(
         const cachedFinalImage = await getCachedImageFromObjectStorage(finalObjectStorageKey);
         if (cachedFinalImage) {
           objectStorageHit = true;
-          return respond(cachedFinalImage.body, 200, {
-            'Content-Type': cachedFinalImage.contentType,
-            'Cache-Control': responseHeadersCacheControl,
-          });
+          return {
+            body: cachedFinalImage.body,
+            contentType: cachedFinalImage.contentType,
+            cacheControl: responseHeadersCacheControl,
+          };
 
         }
       }
@@ -7133,7 +7134,11 @@ export async function GET(
             // Ignore cache persistence failures
           }
         }
-        return respond(payload.body, 200, { 'Content-Type': payload.contentType, 'Cache-Control': responseHeadersCacheControl });
+        return {
+          body: payload.body,
+          contentType: payload.contentType,
+          cacheControl: responseHeadersCacheControl,
+        };
       }
       if (providerRatingsPromise) {
         providerRatings = await providerRatingsPromise;
@@ -7191,7 +7196,11 @@ export async function GET(
             // Ignore cache persistence failures
           }
         }
-        return respond(payload.body, 200, { 'Content-Type': payload.contentType, 'Cache-Control': responseHeadersCacheControl });
+        return {
+          body: payload.body,
+          contentType: payload.contentType,
+          cacheControl: responseHeadersCacheControl,
+        };
       }
       const usePosterBadgeLayout = type === 'poster';
       const useBackdropBadgeLayout = type === 'backdrop' || type === 'thumbnail';
@@ -7811,20 +7820,26 @@ export async function GET(
         },
         phases
       );
+
       if (shouldCacheFinalImage) {
         try {
-          await putCachedImageToObjectStorage(finalObjectStorageKey, { body: renderedPayload.body, contentType: renderedPayload.contentType, cacheControl: storageCacheControl });
+          await putCachedImageToObjectStorage(finalObjectStorageKey, {
+            body: renderedPayload.body,
+            contentType: renderedPayload.contentType,
+            cacheControl: storageCacheControl,
+          });
         } catch {
           // Ignore distributed cache persistence failures.
         }
       }
-      return respond(renderedPayload.body, 200, {
-        'Content-Type': renderedPayload.contentType,
-        'Cache-Control': responseHeadersCacheControl,
-      });
+      return renderedPayload;
     });
 
-    return renderedImage as Response;
+    const finalPayload = renderedImage as RenderedImagePayload;
+    return respond(finalPayload.body, 200, {
+      'Content-Type': finalPayload.contentType,
+      'Cache-Control': responseHeadersCacheControl,
+    });
   } catch (e: any) {
     if (e instanceof HttpError) {
       return respond(e.message, e.status, e.headers);

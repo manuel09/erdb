@@ -704,7 +704,8 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<{ path?: string[] }> }
 ) {
-  const { searchParams } = request.nextUrl;
+  try {
+    const { searchParams } = request.nextUrl;
   const params = await context.params;
   const pathSegments = params?.path || [];
   const hasQueryConfig = searchParams.has('url') || searchParams.has('tmdbKey') || searchParams.has('mdblistKey');
@@ -747,13 +748,15 @@ export async function GET(
       return buildError('Unable to reach the source manifest.', 502);
     }
 
+    const manifestBody = await manifestResponse.arrayBuffer();
+
     if (!manifestResponse.ok) {
       return buildError(`Source manifest returned ${manifestResponse.status}.`, 502);
     }
 
     let manifest: Record<string, unknown>;
     try {
-      manifest = (await manifestResponse.json()) as Record<string, unknown>;
+      manifest = JSON.parse(new TextDecoder().decode(manifestBody)) as Record<string, unknown>;
     } catch (error) {
       return buildError('Source manifest is not valid JSON.', 502);
     }
@@ -820,9 +823,10 @@ export async function GET(
     return buildError('Unable to reach the source addon.', 502);
   }
 
+  const upstreamBody = await upstreamResponse.arrayBuffer();
+
   if (!upstreamResponse.ok) {
-    const errorBody = await upstreamResponse.text();
-    return new NextResponse(errorBody, {
+    return new NextResponse(upstreamBody, {
       status: upstreamResponse.status,
       headers: {
         'content-type': upstreamResponse.headers.get('content-type') || 'text/plain',
@@ -831,14 +835,13 @@ export async function GET(
   }
 
   if (resource !== 'catalog' && resource !== 'meta') {
-    const passthroughBody = await upstreamResponse.arrayBuffer();
     const headers = new Headers(upstreamResponse.headers);
     headers.delete('content-encoding');
     headers.delete('content-length');
     headers.set('Access-Control-Allow-Origin', corsHeaders['Access-Control-Allow-Origin']);
     headers.set('Access-Control-Allow-Methods', corsHeaders['Access-Control-Allow-Methods']);
     headers.set('Access-Control-Allow-Headers', corsHeaders['Access-Control-Allow-Headers']);
-    return new NextResponse(passthroughBody, {
+    return new NextResponse(upstreamBody, {
       status: upstreamResponse.status,
       headers,
     });
@@ -846,16 +849,15 @@ export async function GET(
 
   let payload: Record<string, unknown>;
   try {
-    payload = (await upstreamResponse.json()) as Record<string, unknown>;
+    payload = JSON.parse(new TextDecoder().decode(upstreamBody)) as Record<string, unknown>;
   } catch (error) {
-    const passthroughBody = await upstreamResponse.arrayBuffer();
     const headers = new Headers(upstreamResponse.headers);
     headers.delete('content-encoding');
     headers.delete('content-length');
     headers.set('Access-Control-Allow-Origin', corsHeaders['Access-Control-Allow-Origin']);
     headers.set('Access-Control-Allow-Methods', corsHeaders['Access-Control-Allow-Methods']);
     headers.set('Access-Control-Allow-Headers', corsHeaders['Access-Control-Allow-Headers']);
-    return new NextResponse(passthroughBody, {
+    return new NextResponse(upstreamBody, {
       status: upstreamResponse.status,
       headers,
     });
@@ -883,4 +885,8 @@ export async function GET(
   }
 
   return NextResponse.json(payload, { status: 200, headers: corsHeaders });
+  } catch (error: any) {
+    console.error('Proxy GET error:', error.message || error);
+    return buildError('An unexpected error occurred in the proxy route.', 500);
+  }
 }
