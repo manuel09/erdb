@@ -9,6 +9,8 @@ import {
   parseAddonBaseUrl,
   type ProxyConfig,
 } from '@/lib/addonProxy';
+import { applyProxyCatalogOverrides, unwrapProxyCatalogVariantId } from '@/lib/proxyCatalog';
+import { fetchWithRetry } from '@/lib/request';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -44,7 +46,7 @@ const fetchTmdbJson = async (url: string) => {
 const fetchText = async (url: string) => {
   const cached = textFetchCache.get(url);
   if (cached) return cached;
-  const promise = fetch(url, { cache: 'no-store', redirect: 'follow' })
+  const promise = fetchWithRetry(url, { cache: 'no-store', redirect: 'follow' })
     .then(async (response) => {
       if (!response.ok) return null;
       try {
@@ -68,7 +70,7 @@ const extractTvdbEpisodeIdFromAiredOrder = async (
   if (!Number.isFinite(seasonNumber) || !Number.isFinite(episodeNumber)) return null;
 
   const seriesUrl = `https://thetvdb.com/dereferrer/series/${encodeURIComponent(seriesId)}`;
-  const seriesResponse = await fetch(seriesUrl, { cache: 'no-store', redirect: 'follow' }).catch(() => null);
+  const seriesResponse = await fetchWithRetry(seriesUrl, { cache: 'no-store', redirect: 'follow' }).catch(() => null);
   const seriesPageUrl = seriesResponse?.url;
   if (!seriesPageUrl) return null;
 
@@ -427,7 +429,7 @@ const translateMetaPayload = async (
   }
 
   const nextMeta: Record<string, unknown> = { ...meta };
-  translateTextFields(nextMeta, null, translatedOverview);
+  translateTextFields(nextMeta, translatedTitle, translatedOverview);
 
   if (tmdbRef.type === 'tv' && Array.isArray(nextMeta.videos) && nextMeta.videos.length > 0) {
     const videos = nextMeta.videos as Array<Record<string, unknown>>;
@@ -528,13 +530,17 @@ const isAnimeMeta = (meta: Record<string, unknown>, rawType: string | null, rawI
   return genres.some((genre) => typeof genre === 'string' && genre.trim().toLowerCase() === 'anime');
 };
 
-const applyConfiguredEpisodeProvider = (
+const applyConfiguredSeriesProvider = (
   normalized: string,
+  normalizedType: 'movie' | 'tv' | null,
   provider: string | undefined
 ) => {
+  if (normalizedType !== 'tv') return normalized;
   if (!provider) return normalized;
   if (provider === 'custom') return normalized;
-  if (provider === 'realimdb' && /^tt\d+$/i.test(normalized)) return `realimdb:${normalized}`;
+  if ((provider === 'realimdb' || provider === 'imdb') && /^tt\d+$/i.test(normalized)) {
+    return `realimdb:${normalized}`;
+  }
   return normalized;
 };
 
@@ -545,15 +551,24 @@ const normalizeProxyErdbId = (
   meta?: Record<string, unknown>,
   requestedType?: string | null
 ) => {
-  const normalized = normalizeErdbId(rawId, rawType);
+  const normalizedType = normalizeStremioType(rawType) || normalizeStremioType(requestedType);
+  const normalized = normalizeErdbId(rawId, normalizedType || rawType || requestedType);
   if (!normalized) return null;
-  const normalizedType = normalizeStremioType(rawType);
   if (isAiometadataManifestUrl(config.url)) {
     if (normalizedType === 'movie') {
       return normalized;
     }
     const provider = config.aiometadataProvider;
-    return applyConfiguredEpisodeProvider(normalized, provider);
+    return applyConfiguredSeriesProvider(normalized, normalizedType, provider);
+  }
+
+  const configuredSeriesId = applyConfiguredSeriesProvider(
+    normalized,
+    normalizedType,
+    config.seriesMetadataProvider
+  );
+  if (configuredSeriesId !== normalized) {
+    return configuredSeriesId;
   }
   if (!isCinemetaManifestUrl(config.url)) return normalized;
 
@@ -753,6 +768,12 @@ export async function GET(
       id: proxyId,
       name: `ERDB Proxy - ${originalName}`,
       description: `${originalDescription} (proxied via ERDB)`,
+      catalogs: applyProxyCatalogOverrides(manifest.catalogs, {
+        names: config.catalogNames,
+        hidden: config.hiddenCatalogs,
+        searchDisabled: config.searchDisabledCatalogs,
+        discoverOnly: config.discoverOnlyCatalogs,
+      }),
     };
 
     return NextResponse.json(proxyManifest, { status: 200, headers: corsHeaders });
@@ -771,9 +792,18 @@ export async function GET(
       ? (resourceSegments[1] || null)
       : null;
   const forwardUrl = new URL(originBase);
+  const normalizedResourceSegments =
+    resource === 'catalog' && resourceSegments[2]
+      ? [
+          resourceSegments[0],
+          resourceSegments[1],
+          unwrapProxyCatalogVariantId(resourceSegments[2]),
+          ...resourceSegments.slice(3),
+        ]
+      : resourceSegments;
   // Preserve Stremio "extra" path segments like `search=...` and `skip=...`.
   // Encoding each segment would turn `=` into `%3D`, breaking upstream parsing.
-  forwardUrl.pathname = `${forwardUrl.pathname.replace(/\/$/, '')}/${resourceSegments.join('/')}`;
+  forwardUrl.pathname = `${forwardUrl.pathname.replace(/\/$/, '')}/${normalizedResourceSegments.join('/')}`;
 
   const forwardParams = new URLSearchParams();
   for (const [key, value] of searchParams.entries()) {

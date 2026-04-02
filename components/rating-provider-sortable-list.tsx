@@ -204,7 +204,7 @@ export function RatingProviderSortableList({
     >
       <SortableContext items={itemIds} strategy={rectSortingStrategy}>
         <ul
-          className={`grid gap-x-3 gap-y-1.5 max-h-[min(22rem,55vh)] overflow-y-auto pr-0.5 [touch-action:pan-y] ${
+          className={`grid gap-x-3 gap-y-1.5 pr-0.5 [touch-action:pan-y] md:max-h-[min(22rem,55vh)] md:overflow-y-auto ${
             shouldUseSingleColumn ? 'grid-cols-1' : 'grid-cols-2'
           }`}
           style={listStyle}

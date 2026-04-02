@@ -21,6 +21,31 @@ const resolveWorkerCount = () => {
   return parsed;
 };
 
+const copyDirIfPresent = (sourceDir, targetDir) => {
+  if (!fs.existsSync(sourceDir)) {
+    return;
+  }
+
+  fs.mkdirSync(path.dirname(targetDir), { recursive: true });
+  fs.cpSync(sourceDir, targetDir, { recursive: true, force: true });
+};
+
+const prepareLocalStandaloneAssets = (entrypoint) => {
+  const standaloneDir = path.dirname(entrypoint);
+  const projectRoot = path.resolve(__dirname, '..');
+
+  // When we run the standalone server directly from `.next/standalone`,
+  // Next expects `public` and `.next/static` to live under that directory too.
+  copyDirIfPresent(
+    path.join(projectRoot, '.next', 'static'),
+    path.join(standaloneDir, '.next', 'static'),
+  );
+  copyDirIfPresent(
+    path.join(projectRoot, 'public'),
+    path.join(standaloneDir, 'public'),
+  );
+};
+
 const workerCount = resolveWorkerCount();
 const candidateEntrypoints = [
   path.resolve(__dirname, '..', '.next', 'standalone', 'server.js'),
@@ -32,6 +57,10 @@ if (!serverEntrypoint) {
   console.error('Unable to find the Next.js standalone server entrypoint.');
   console.error(`Checked: ${candidateEntrypoints.join(', ')}`);
   process.exit(1);
+}
+
+if (serverEntrypoint.includes(`${path.sep}.next${path.sep}standalone${path.sep}`)) {
+  prepareLocalStandaloneAssets(serverEntrypoint);
 }
 
 if (workerCount === 1) {

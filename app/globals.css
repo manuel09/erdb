@@ -1,12 +1,77 @@
 @import "tailwindcss";
 
+@layer base {
+  :root {
+    --scrollbar-size: 9px;
+    --scrollbar-track: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.016));
+    --scrollbar-thumb: linear-gradient(180deg, rgba(251, 146, 60, 0.6), rgba(45, 212, 191, 0.42));
+    --scrollbar-thumb-hover: linear-gradient(180deg, rgba(253, 186, 116, 0.82), rgba(56, 189, 248, 0.6));
+    --scrollbar-border: rgba(5, 8, 13, 0.86);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(251, 146, 60, 0.52) rgba(255, 255, 255, 0.04);
+  }
+
+  *::-webkit-scrollbar {
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    border: 2px solid var(--scrollbar-border);
+    border-radius: 999px;
+    background-clip: padding-box;
+    background-image: var(--scrollbar-thumb);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-image: var(--scrollbar-thumb-hover);
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+
 @layer utilities {
   .scrollbar-hidden {
-    scrollbar-width: none;
+    scrollbar-width: none !important;
+  }
+
+  .premium-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(253, 186, 116, 0.58) rgba(255, 255, 255, 0.03);
   }
 
   .scrollbar-hidden::-webkit-scrollbar {
     width: 0;
     height: 0;
+  }
+
+  .premium-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .premium-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .premium-scrollbar::-webkit-scrollbar-thumb {
+    border: 1px solid rgba(7, 10, 16, 0.72);
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(253, 186, 116, 0.72), rgba(56, 189, 248, 0.52));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
+
+  .premium-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(255, 213, 79, 0.86), rgba(45, 212, 191, 0.68));
   }
 }
