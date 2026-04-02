@@ -2,6 +2,28 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.12](https://github.com/realbestia1/erdb/compare/v0.2.11...v0.2.12) - 2026-04-02
+
+- Bump version to 0.2.12 and normalize path split ([65e7701](https://github.com/realbestia1/erdb/commit/65e77012f9ea256c6bdc5b1d51c77c1c831f8479))
+  Update package.json version to 0.2.12 and update the HomePage currentVersion string accordingly. Improve getFilePath by splitting keys on both forward and backslashes (/ and \) before sanitizing segments to handle Windows and mixed-path separators correctly.
+
+## [0.2.11](https://github.com/realbestia1/erdb/compare/v0.2.10...v0.2.11) - 2026-04-02
+
+- Add thumbnail rating style and bump version ([8581d4f](https://github.com/realbestia1/erdb/commit/8581d4f2613cb0518cc0c88a82895372d8c4aba8))
+  Introduce thumbnailRatingStyle handling in HomePage: include it in the preview-type rating selection logic, add it to the exported state list, and persist it to the config. Also update the in-component currentVersion and bump the package version to 0.2.11.
+
+## [0.2.10](https://github.com/realbestia1/erdb/compare/v0.2.9...v0.2.10) - 2026-04-02
+
+- Add thumbnailRatingStyle support ([42c6ae4](https://github.com/realbestia1/erdb/commit/42c6ae4a811b5caf4b60bd16f8e903f48ab31f1f))
+  Introduce per-type thumbnail rating style handling so thumbnails can use an independent ratingStyle. Changes include:
+
+  - app/[type]/[id]/route.tsx: parse a global rating style param and per-type overrides (poster, backdrop, thumbnail, logo) and choose the appropriate style based on imageType.
+  - components/home-page.tsx: add thumbnailRatingStyle state, wire it into aiometadata pattern building, config serialization, payload handling, preview selection, and UI handlers; update currentVersion to 0.2.10.
+  - lib/aiIntegrationPrompt.ts: document new poster/backdrop/thumbnail/logo ratingStyle params and update URL build logic to consider thumbnailRatingStyle.
+  - package.json: bump package version to 0.2.10.
+
+  These changes allow explicit control over thumbnail rating visuals without affecting backdrop or poster styles.
+
 ## [0.2.9](https://github.com/realbestia1/erdb/compare/v0.2.8...v0.2.9) - 2026-04-02
 
 - Improve proxy error handling and fetch retry ([6e0b190](https://github.com/realbestia1/erdb/commit/6e0b190bcec7bd3626eee27ec6796fd89105f487))

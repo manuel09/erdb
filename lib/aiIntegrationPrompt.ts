@@ -29,6 +29,10 @@ thumbnailRatings| Providers for thumbnails only. (Supports tmdb, imdb only) | cf
 logoRatings | Providers for logos only. | cfg.ratings
 lang | TMDB language code (e.g. en, it, es-ES) | en
 ratingStyle | glass, square, plain | glass
+posterRatingStyle | Optional. (glass, square, plain) | glass
+backdropRatingStyle | Optional. (glass, square, plain) | glass
+thumbnailRatingStyle | Optional. (glass, square, plain) | glass
+logoRatingStyle | Optional. (glass, square, plain) | glass
 imageText | original (default), clean, alternative | original
 streamBadges | auto, on, off | auto
 posterRatingsLayout| top, bottom, left, right, top-bottom, left-right | top-bottom
@@ -49,7 +53,7 @@ Note: For a full list of parameters (layouts, offsets, colors, fonts), refer to 
    - Append .jpg to the {id} in the path.
 
 ### --- URL BUILD LOGIC ---
-const typeRatingStyle = type === 'poster' ? cfg.posterRatingStyle : type === 'backdrop' ? cfg.backdropRatingStyle : cfg.logoRatingStyle;
+const typeRatingStyle = type === 'poster' ? cfg.posterRatingStyle : type === 'backdrop' ? cfg.backdropRatingStyle : type === 'thumbnail' ? cfg.thumbnailRatingStyle : cfg.logoRatingStyle;
 const typeImageText = type === 'backdrop' ? cfg.backdropImageText : cfg.posterImageText;
 
 const url = new URL(\`\${cfg.erdbBase}/\${type}/\${id}.jpg\`);

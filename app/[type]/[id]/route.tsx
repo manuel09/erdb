@@ -5313,13 +5313,30 @@ export async function GET(
       : imageType === 'backdrop'
         ? backdropQualityBadgesStyle
         : globalQualityBadgesStyle;
-  const ratingStyleParam =
+  const globalRatingStyleParam =
     request.nextUrl.searchParams.get('ratingStyle') || request.nextUrl.searchParams.get('style');
-  const ratingStyle = ratingStyleParam
-    ? normalizeRatingStyle(ratingStyleParam)
-    : type === 'logo'
-      ? 'plain'
-      : DEFAULT_RATING_STYLE;
+  const posterRatingStyle = normalizeRatingStyle(
+    request.nextUrl.searchParams.get('posterRatingStyle') || globalRatingStyleParam
+  );
+  const backdropRatingStyle = normalizeRatingStyle(
+    request.nextUrl.searchParams.get('backdropRatingStyle') || globalRatingStyleParam
+  );
+  const thumbnailRatingStyle = normalizeRatingStyle(
+    request.nextUrl.searchParams.get('thumbnailRatingStyle') || globalRatingStyleParam
+  );
+  const logoRatingStyle = normalizeRatingStyle(
+    request.nextUrl.searchParams.get('logoRatingStyle') || globalRatingStyleParam
+  );
+  const ratingStyle =
+    imageType === 'poster'
+      ? posterRatingStyle
+      : imageType === 'backdrop'
+        ? backdropRatingStyle
+        : imageType === 'thumbnail'
+          ? thumbnailRatingStyle
+          : imageType === 'logo'
+            ? logoRatingStyle
+            : normalizeRatingStyle(globalRatingStyleParam);
   const mdblistKey = request.nextUrl.searchParams.get('mdblistKey') || request.nextUrl.searchParams.get('mdblist_key');
   const tmdbKey = request.nextUrl.searchParams.get('tmdbKey') || request.nextUrl.searchParams.get('tmdb_key');
   const simklClientId =

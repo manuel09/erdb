@@ -349,6 +349,7 @@ const buildAiometadataPattern = (options: {
   backdropQualityBadgesStyle: RatingStyle;
   posterRatingStyle: RatingStyle;
   backdropRatingStyle: RatingStyle;
+  thumbnailRatingStyle: RatingStyle;
   logoRatingStyle: RatingStyle;
   posterImageText: 'original' | 'clean' | 'alternative';
   backdropImageText: 'original' | 'clean' | 'alternative';
@@ -389,6 +390,7 @@ const buildAiometadataPattern = (options: {
     backdropQualityBadgesStyle,
     posterRatingStyle,
     backdropRatingStyle,
+    thumbnailRatingStyle,
     logoRatingStyle,
     posterImageText,
     backdropImageText,
@@ -455,7 +457,7 @@ const buildAiometadataPattern = (options: {
     }
   } else if (imageType === 'thumbnail') {
     params.push(['thumbnailRatings', thumbnailRatings]);
-    params.push(['ratingStyle', backdropRatingStyle]);
+    params.push(['ratingStyle', thumbnailRatingStyle]);
     params.push(['thumbnailRatingsLayout', thumbnailRatingsLayout]);
     params.push(['thumbnailSize', thumbnailSize]);
     if (thumbnailRatingsLayout.endsWith('-vertical') && thumbnailVerticalBadgeContent !== 'standard') {
@@ -559,8 +561,9 @@ const buildAiometadataPatternBlock = (options: {
     }
     pushIfString('posterVerticalBadgeContent');
   } else if (options.imageType === 'backdrop' || options.imageType === 'thumbnail') {
-    if (typeof config.backdropRatingStyle === 'string' && config.backdropRatingStyle !== '') {
-      params.push(['ratingStyle', config.backdropRatingStyle]);
+    const typeRatingStyle = options.imageType === 'thumbnail' ? config.thumbnailRatingStyle : config.backdropRatingStyle;
+    if (typeof typeRatingStyle === 'string' && typeRatingStyle !== '') {
+      params.push(['ratingStyle', typeRatingStyle]);
     }
     if (options.imageType !== 'thumbnail' && typeof config.backdropImageText === 'string' && config.backdropImageText !== '') {
       params.push(['imageText', config.backdropImageText]);
@@ -671,6 +674,7 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
   const [thumbnailSize, setThumbnailSize] = useState<ThumbnailSize>(DEFAULT_THUMBNAIL_SIZE);
   const [posterRatingStyle, setPosterRatingStyle] = useState<RatingStyle>(DEFAULT_RATING_STYLE);
   const [backdropRatingStyle, setBackdropRatingStyle] = useState<RatingStyle>(DEFAULT_RATING_STYLE);
+  const [thumbnailRatingStyle, setThumbnailRatingStyle] = useState<RatingStyle>(DEFAULT_RATING_STYLE);
   const [logoRatingStyle, setLogoRatingStyle] = useState<RatingStyle>('plain');
   const [posterRatingsMaxPerSide, setPosterRatingsMaxPerSide] = useState<number | null>(DEFAULT_POSTER_RATINGS_MAX_PER_SIDE);
   const [logoRatingsMax, setLogoRatingsMax] = useState<number | null>(DEFAULT_LOGO_RATINGS_MAX);
@@ -708,7 +712,7 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
   const [showProxyUrl, setShowProxyUrl] = useState(false);
   const [aiometadataCopiedType, setAiometadataCopiedType] = useState<AiometadataPatternType | null>(null);
   const [aiometadataEpisodeProvider, setAiometadataEpisodeProvider] = useState<AiometadataEpisodeProvider>('realimdb');
-  const [currentVersion, setCurrentVersion] = useState('0.2.9');
+  const [currentVersion, setCurrentVersion] = useState('0.2.12');
   const [githubPackageVersion, setGithubPackageVersion] = useState<string | null>(null);
   const [repoUrl, setRepoUrl] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<'idle' | 'with' | 'without'>('idle');
@@ -1036,9 +1040,11 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
     const ratingStyleForType =
       previewType === 'poster'
         ? posterRatingStyle
-        : previewType === 'backdrop' || previewType === 'thumbnail'
+        : previewType === 'backdrop'
           ? backdropRatingStyle
-          : logoRatingStyle;
+          : previewType === 'thumbnail'
+            ? thumbnailRatingStyle
+            : logoRatingStyle;
     const imageTextForType =
       previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : posterImageText;
     const streamBadgesForType =
@@ -1178,6 +1184,7 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
     posterRatingStyle,
     backdropRatingStyle,
     logoRatingStyle,
+    thumbnailRatingStyle,
     baseUrl,
     mdblistKey,
     simklClientId,
@@ -1244,6 +1251,9 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
     }
     if (backdropRatingStyle) {
       config.backdropRatingStyle = backdropRatingStyle;
+    }
+    if (thumbnailRatingStyle) {
+      config.thumbnailRatingStyle = thumbnailRatingStyle;
     }
     if (logoRatingStyle) {
       config.logoRatingStyle = logoRatingStyle;
@@ -1335,6 +1345,7 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
     backdropVerticalBadgeContent,
     thumbnailVerticalBadgeContent,
     thumbnailSize,
+    thumbnailRatingStyle,
   ]);
 
   const proxyUrl = useMemo(() => {
@@ -1399,9 +1410,22 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
     if (backdropQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
       config.backdropQualityBadgesStyle = backdropQualityBadgesStyle;
     }
+    if (posterRatingStyle) {
+      config.posterRatingStyle = posterRatingStyle;
+    }
+    if (backdropRatingStyle) {
+      config.backdropRatingStyle = backdropRatingStyle;
+    }
+    if (thumbnailRatingStyle) {
+      config.thumbnailRatingStyle = thumbnailRatingStyle;
+    }
+    if (logoRatingStyle) {
+      config.logoRatingStyle = logoRatingStyle;
+    }
 
     config.posterRatingStyle = posterRatingStyle;
     config.backdropRatingStyle = backdropRatingStyle;
+    config.thumbnailRatingStyle = thumbnailRatingStyle;
     config.logoRatingStyle = logoRatingStyle;
     config.logoMode = logoMode;
     config.logoFontVariant = logoFontVariant;
@@ -1518,6 +1542,7 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
     sanitizedProxySearchDisabledCatalogs,
     sanitizedProxyDiscoverOnlyCatalogs,
     baseUrl,
+    thumbnailRatingStyle,
   ]);
 
   const aiometadataPatterns = useMemo(() => {
@@ -1775,6 +1800,9 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
     }
     if (typeof payload.backdropRatingStyle === 'string' && isRatingStyle(payload.backdropRatingStyle)) {
       setBackdropRatingStyle(payload.backdropRatingStyle);
+    }
+    if (typeof payload.thumbnailRatingStyle === 'string' && isRatingStyle(payload.thumbnailRatingStyle)) {
+      setThumbnailRatingStyle(payload.thumbnailRatingStyle);
     }
     if (typeof payload.logoRatingStyle === 'string' && isRatingStyle(payload.logoRatingStyle)) {
       setLogoRatingStyle(payload.logoRatingStyle);
@@ -2137,9 +2165,11 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
   const activeRatingStyle =
     previewType === 'poster'
       ? posterRatingStyle
-      : previewType === 'backdrop' || previewType === 'thumbnail'
+      : previewType === 'backdrop'
         ? backdropRatingStyle
-        : logoRatingStyle;
+        : previewType === 'thumbnail'
+          ? thumbnailRatingStyle
+          : logoRatingStyle;
   const activeImageText =
     previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : posterImageText;
   const styleLabel =
@@ -2182,8 +2212,12 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
       setPosterRatingStyle(value);
       return;
     }
-    if (previewType === 'backdrop' || previewType === 'thumbnail') {
+    if (previewType === 'backdrop') {
       setBackdropRatingStyle(value);
+      return;
+    }
+    if (previewType === 'thumbnail') {
+      setThumbnailRatingStyle(value);
       return;
     }
     setLogoRatingStyle(value);

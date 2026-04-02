@@ -25,7 +25,7 @@ const sanitizePathSegment = (segment: string) => segment.replace(/[^a-zA-Z0-9._-
 
 const getFilePath = (key: string) => {
   const normalizedKey = String(key || '')
-    .split('/')
+    .split(/[/\\]/)
     .map((segment) => sanitizePathSegment(segment))
     .filter(Boolean);
   return join(CACHE_DIR, ...normalizedKey);
