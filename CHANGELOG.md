@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.5](https://github.com/realbestia1/erdb/compare/v0.3.4...v0.3.5) - 2026-04-03
+
+- Add backdrop ratings size support and bump to v0.3.5 ([f8eb982](https://github.com/realbestia1/erdb/commit/f8eb9824915fdb235cef15f41a7ef2935da1f26b))
+  - add a new backdropRatingsSize option with Standard and Large modes
+  - expose the new control in the workspace/configurator UI for backdrop previews
+  - persist backdropRatingsSize through config export/import and token-backed config flows
+  - forward backdropRatingsSize through the proxy and token-aware image generation pipeline
+  - apply the new size option in the backdrop renderer without affecting thumbnail sizing behavior
+  - fix final image cache key generation so changing backdropRatingsSize invalidates cached renders correctly
+  - bump package/app version to 0.3.5
+
 ## [0.3.4](https://github.com/realbestia1/erdb/compare/v0.3.3...v0.3.4) - 2026-04-03
 
 - Bump version to 0.3.4; fix thumbnail badge ([fe2e2a4](https://github.com/realbestia1/erdb/commit/fe2e2a448223a26f3345a273706a7d5178c8e049))

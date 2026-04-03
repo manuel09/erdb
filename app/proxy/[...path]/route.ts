@@ -70,6 +70,7 @@ const buildProxyConfigFromToken = (
   mapStr('backdropImageText', 'backdropImageText');
   mapStr('posterRatingsLayout', 'posterRatingsLayout');
   mapStr('backdropRatingsLayout', 'backdropRatingsLayout');
+  mapStr('backdropRatingsSize', 'backdropRatingsSize');
   mapStr('thumbnailRatingsLayout', 'thumbnailRatingsLayout');
   mapStr('posterVerticalBadgeContent', 'posterVerticalBadgeContent');
   mapStr('backdropVerticalBadgeContent', 'backdropVerticalBadgeContent');

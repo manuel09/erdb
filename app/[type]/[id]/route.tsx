@@ -24,6 +24,10 @@ import {
   type ThumbnailSize,
 } from '@/lib/thumbnailSize';
 import {
+  normalizeBackdropRatingsSize,
+  type BackdropRatingsSize,
+} from '@/lib/backdropRatingsSize';
+import {
   DEFAULT_POSTER_RATINGS_MAX_PER_SIDE,
   DEFAULT_POSTER_RATING_LAYOUT,
   getPosterRatingLayoutMaxBadges,
@@ -2104,6 +2108,7 @@ type FastRenderInput = {
   posterRatingsLayout: PosterRatingLayout;
   posterRatingsMaxPerSide: number | null;
   backdropRatingsLayout: BackdropRatingLayout | ThumbnailRatingLayout;
+  backdropRatingsSize: BackdropRatingsSize;
   thumbnailRatingsLayout: ThumbnailRatingLayout;
   thumbnailSize: ThumbnailSize;
   verticalBadgeContent: 'standard' | 'stacked';
@@ -5321,6 +5326,9 @@ export async function GET(
           : 'standard';
           
   const thumbnailSize = normalizeThumbnailSize(tokenConfig.thumbnailSize || request.nextUrl.searchParams.get('thumbnailSize'));
+  const backdropRatingsSize = normalizeBackdropRatingsSize(
+    tokenConfig.backdropRatingsSize || request.nextUrl.searchParams.get('backdropRatingsSize')
+  );
   
   const globalStreamBadgesSetting = normalizeStreamBadgesSetting(tokenConfig.streamBadges || request.nextUrl.searchParams.get('streamBadges'));
   const posterStreamBadgesSetting = normalizeStreamBadgesSetting(
@@ -5542,6 +5550,7 @@ export async function GET(
       : '-',
     imageType !== 'logo' ? qualityBadgesStyle : '-',
     imageType === 'backdrop' ? backdropRatingsLayout : imageType === 'thumbnail' ? thumbnailRatingsLayout : '-',
+    imageType === 'backdrop' ? backdropRatingsSize : '-',
     imageType === 'thumbnail' ? thumbnailSize : '-',
     imageType === 'thumbnail' ? aiometadataEpisodeProvider || '-' : '-',
     ratingStyle,
@@ -6092,6 +6101,7 @@ export async function GET(
           : '-',
         imageType !== 'logo' ? qualityBadgesStyle : '-',
         imageType === 'backdrop' ? backdropRatingsLayout : imageType === 'thumbnail' ? thumbnailRatingsLayout : '-',
+        imageType === 'backdrop' ? backdropRatingsSize : '-',
         imageType === 'thumbnail' ? thumbnailSize : '-',
         imageType === 'thumbnail' ? aiometadataEpisodeProvider || '-' : '-',
         verticalBadgeContent,
@@ -7402,6 +7412,19 @@ export async function GET(
               gap: 6,
             };
           }
+        } else if (backdropRatingsSize === 'large') {
+          badgeIconSize = 44;
+          badgeFontSize = 32;
+          badgePaddingY = 10;
+          badgePaddingX = 16;
+          badgeGap = 10;
+          backdropMinMetrics = {
+            iconSize: 25,
+            fontSize: 18,
+            paddingX: 9,
+            paddingY: 6,
+            gap: 6,
+          };
         }
       } else if (usePosterBadgeLayout) {
         if (usePosterRowLayoutLarge) {
@@ -7882,6 +7905,7 @@ export async function GET(
           posterRatingsLayout,
           posterRatingsMaxPerSide,
           backdropRatingsLayout: activeBackdropLikeLayout,
+          backdropRatingsSize,
           thumbnailRatingsLayout,
           thumbnailSize,
           verticalBadgeContent,

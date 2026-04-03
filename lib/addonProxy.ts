@@ -15,6 +15,7 @@ const ERDB_OPTIONAL_PARAMS = [
   'posterRatingsLayout',
   'posterRatingsMaxPerSide',
   'backdropRatingsLayout',
+  'backdropRatingsSize',
   'thumbnailRatingsLayout',
   'posterVerticalBadgeContent',
   'backdropVerticalBadgeContent',
@@ -119,6 +120,7 @@ export type ProxyConfig = {
   posterRatingsLayout?: string;
   posterRatingsMaxPerSide?: string;
   backdropRatingsLayout?: string;
+  backdropRatingsSize?: string;
   thumbnailRatingsLayout?: string;
   posterVerticalBadgeContent?: string;
   backdropVerticalBadgeContent?: string;
@@ -170,6 +172,7 @@ const PROXY_OPTIONAL_STRING_KEYS = [
   'posterRatingsLayout',
   'posterRatingsMaxPerSide',
   'backdropRatingsLayout',
+  'backdropRatingsSize',
   'thumbnailRatingsLayout',
   'posterVerticalBadgeContent',
   'backdropVerticalBadgeContent',

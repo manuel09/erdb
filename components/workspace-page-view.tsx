@@ -53,6 +53,10 @@ import {
   type ThumbnailSize,
 } from '@/lib/thumbnailSize';
 import {
+  BACKDROP_RATINGS_SIZE_OPTIONS,
+  type BackdropRatingsSize,
+} from '@/lib/backdropRatingsSize';
+import {
   POSTER_RATING_LAYOUT_OPTIONS,
   isVerticalPosterRatingLayout,
   type PosterRatingLayout,
@@ -120,6 +124,7 @@ type HomePageViewState = {
   logoCustomSecondary: string;
   logoCustomOutline: string;
   backdropRatingsLayout: BackdropRatingLayout;
+  backdropRatingsSize: BackdropRatingsSize;
   thumbnailRatingsLayout: ThumbnailRatingLayout;
   posterVerticalBadgeContent: VerticalBadgeContent;
   backdropVerticalBadgeContent: VerticalBadgeContent;
@@ -183,6 +188,7 @@ type HomePageViewActions = {
   setLogoCustomSecondary: Dispatch<SetStateAction<string>>;
   setLogoCustomOutline: Dispatch<SetStateAction<string>>;
   setBackdropRatingsLayout: Dispatch<SetStateAction<BackdropRatingLayout>>;
+  setBackdropRatingsSize: Dispatch<SetStateAction<BackdropRatingsSize>>;
   setThumbnailRatingsLayout: Dispatch<SetStateAction<ThumbnailRatingLayout>>;
   setPosterVerticalBadgeContent: Dispatch<SetStateAction<VerticalBadgeContent>>;
   setBackdropVerticalBadgeContent: Dispatch<SetStateAction<VerticalBadgeContent>>;
@@ -320,6 +326,7 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
     logoCustomSecondary,
     logoCustomOutline,
     backdropRatingsLayout,
+    backdropRatingsSize,
     thumbnailRatingsLayout,
     posterVerticalBadgeContent,
     backdropVerticalBadgeContent,
@@ -375,6 +382,7 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
     setLogoCustomSecondary,
     setLogoCustomOutline,
     setBackdropRatingsLayout,
+    setBackdropRatingsSize,
     setThumbnailRatingsLayout,
     setPosterVerticalBadgeContent,
     setBackdropVerticalBadgeContent,
@@ -873,6 +881,14 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
                         {BACKDROP_RATING_LAYOUT_OPTIONS.map(opt => (
                           <button key={opt.id} onClick={() => setBackdropRatingsLayout(opt.id as BackdropRatingLayout)} className={`rounded-lg border px-2 py-1.5 text-[11px] font-bold transition-all ${backdropRatingsLayout === opt.id ? 'border-orange-400/20 bg-orange-500/10 text-white' : 'border-white/10 bg-[#0a0a0a] text-slate-400 hover:text-white'}`}>{opt.label}</button>
                         ))}
+                      </div>
+                      <div className="pt-1">
+                        <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Backdrop Ratings Size</div>
+                        <div className="flex flex-wrap gap-1">
+                          {BACKDROP_RATINGS_SIZE_OPTIONS.map(opt => (
+                            <button key={opt.id} onClick={() => setBackdropRatingsSize(opt.id as BackdropRatingsSize)} className={`rounded-lg border px-2 py-1.5 text-[11px] font-bold transition-all ${backdropRatingsSize === opt.id ? 'border-orange-400/20 bg-orange-500/10 text-white' : 'border-white/10 bg-[#0a0a0a] text-slate-400 hover:text-white'}`}>{opt.label}</button>
+                          ))}
+                        </div>
                       </div>
                       {shouldShowVerticalBadgeContent && (
                         <div className="pt-1 space-y-2">

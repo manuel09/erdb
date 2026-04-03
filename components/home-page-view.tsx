@@ -10,6 +10,7 @@ import type { RatingProviderRow } from '@/lib/ratingRows';
 import type { BackdropRatingLayout } from '@/lib/backdropRatingLayout';
 import type { ThumbnailRatingLayout } from '@/lib/thumbnailRatingLayout';
 import type { ThumbnailSize } from '@/lib/thumbnailSize';
+import type { BackdropRatingsSize } from '@/lib/backdropRatingsSize';
 import type { PosterRatingLayout } from '@/lib/posterRatingLayout';
 import type { RatingStyle } from '@/lib/ratingStyle';
 import type { LogoMode } from '@/lib/logoMode';
@@ -59,6 +60,7 @@ type HomePageViewState = {
   logoCustomSecondary: string;
   logoCustomOutline: string;
   backdropRatingsLayout: BackdropRatingLayout;
+  backdropRatingsSize: BackdropRatingsSize;
   thumbnailRatingsLayout: ThumbnailRatingLayout;
   posterVerticalBadgeContent: VerticalBadgeContent;
   backdropVerticalBadgeContent: VerticalBadgeContent;
@@ -122,6 +124,7 @@ type HomePageViewActions = {
   setLogoCustomSecondary: Dispatch<SetStateAction<string>>;
   setLogoCustomOutline: Dispatch<SetStateAction<string>>;
   setBackdropRatingsLayout: Dispatch<SetStateAction<BackdropRatingLayout>>;
+  setBackdropRatingsSize: Dispatch<SetStateAction<BackdropRatingsSize>>;
   setThumbnailRatingsLayout: Dispatch<SetStateAction<ThumbnailRatingLayout>>;
   setPosterVerticalBadgeContent: Dispatch<SetStateAction<VerticalBadgeContent>>;
   setBackdropVerticalBadgeContent: Dispatch<SetStateAction<VerticalBadgeContent>>;
