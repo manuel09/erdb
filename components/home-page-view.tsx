@@ -34,7 +34,7 @@ type HomePageViewState = {
   lang: string;
   posterLang: string;
   posterAnimeLang: string;
-  posterAnimeImageText: 'original' | 'clean' | 'alternative';
+  posterAnimeImageText: 'default' | 'clean' | 'alternative';
   supportedLanguages: SupportedLanguage[];
   tmdbKey: string;
   mdblistKey: string;
@@ -94,7 +94,7 @@ type HomePageViewDerived = {
   textLabel: string;
   providersLabel: string;
   activeRatingStyle: RatingStyle;
-  activeImageText: 'original' | 'clean' | 'alternative';
+  activeImageText: 'default' | 'clean' | 'alternative';
   ratingProviderRows: RatingProviderRow[];
   shouldShowQualityBadgesPosition: boolean;
   shouldShowQualityBadgesSide: boolean;
@@ -117,7 +117,7 @@ type HomePageViewActions = {
   setLang: Dispatch<SetStateAction<string>>;
   setPosterLang: Dispatch<SetStateAction<string>>;
   setPosterAnimeLang: Dispatch<SetStateAction<string>>;
-  setPosterAnimeImageText: Dispatch<SetStateAction<'original' | 'clean' | 'alternative'>>;
+  setPosterAnimeImageText: Dispatch<SetStateAction<'default' | 'clean' | 'alternative'>>;
   setTmdbKey: Dispatch<SetStateAction<string>>;
   setMdblistKey: Dispatch<SetStateAction<string>>;
   setSimklClientId: Dispatch<SetStateAction<string>>;
@@ -142,7 +142,7 @@ type HomePageViewActions = {
   setPosterQualityBadgesPosition: Dispatch<SetStateAction<PosterQualityBadgesPosition>>;
   setQualityBadgesSide: Dispatch<SetStateAction<QualityBadgesSide>>;
   setRatingStyleForType: (value: RatingStyle) => void;
-  setImageTextForType: (value: 'original' | 'clean' | 'alternative') => void;
+  setImageTextForType: (value: 'default' | 'clean' | 'alternative') => void;
   setActiveStreamBadges: Dispatch<SetStateAction<StreamBadgesSetting>>;
   setActiveQualityBadgesStyle: Dispatch<SetStateAction<RatingStyle>>;
   toggleRatingPreference: (rating: RatingPreference) => void;

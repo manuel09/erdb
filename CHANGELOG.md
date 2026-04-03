@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.11](https://github.com/realbestia1/erdb/compare/v0.3.10...v0.3.11) - 2026-04-03
+
+- build error fix ([e56d637](https://github.com/realbestia1/erdb/commit/e56d6373eb0de46eb389c864aa1db41523b76cec))
+
+## [0.3.10](https://github.com/realbestia1/erdb/compare/v0.3.9...v0.3.10) - 2026-04-03
+
+- fix(poster): rename original to default and fix localized alternative poster selection txt ([ba39b41](https://github.com/realbestia1/erdb/commit/ba39b414dade7fb628128d9f84dc9e371c1c8fad))
+  - rename poster text mode `original` to `default` across UI and server-side poster selection
+  - preserve backward compatibility by normalizing legacy `original` query/config values to `default`
+  - make `default` resolve to the default poster for the selected poster language
+  - make `alternative` exclude the current default poster and prefer a different poster in the same selected language
+  - update configurator labels and inline docs from `original` to `default`
+  - bump project version from `0.3.9` to `0.3.10`
+
 ## [0.3.9](https://github.com/realbestia1/erdb/compare/v0.3.8...v0.3.9) - 2026-04-03
 
 - fix(poster): resolve clean poster logo/title fallback for regional locales ([50321e2](https://github.com/realbestia1/erdb/commit/50321e2cc8b418322174d5f16520bca232079537))

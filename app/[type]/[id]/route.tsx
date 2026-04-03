@@ -74,7 +74,7 @@ import { getTokenConfig } from '@/lib/tokens';
 
 export const runtime = 'nodejs';
 
-type PosterTextPreference = 'original' | 'clean' | 'alternative';
+type PosterTextPreference = 'default' | 'clean' | 'alternative';
 type RenderImageType = 'poster' | 'backdrop' | 'logo' | 'thumbnail';
 type AnimeMappingProvider = 'mal' | 'anilist' | 'imdb' | 'tmdb' | 'anidb';
 type AiometadataEpisodeProvider = 'tvdb' | 'realimdb';
@@ -2033,8 +2033,12 @@ const pickPosterByPreference = (
     ? posters.find((poster: any) => poster.file_path === canonicalOriginalPath)
     : null;
   const fallbackOriginal = originalPoster || (canonicalOriginalPath ? { file_path: canonicalOriginalPath } : posters[0]);
+  const defaultPoster =
+    pickByLanguageWithFallback(posters, preferredLang, fallbackLang) ||
+    fallbackOriginal;
+  const defaultPosterPath = defaultPoster?.file_path || canonicalOriginalPath;
   const alternativePosters = posters.filter(
-    (poster: any) => poster.file_path !== canonicalOriginalPath
+    (poster: any) => poster.file_path !== defaultPosterPath
   );
 
   if (preference === 'clean') {
@@ -2045,12 +2049,13 @@ const pickPosterByPreference = (
     );
   }
 
-  if (preference === 'original') {
-    return fallbackOriginal;
+  if (preference === 'default') {
+    return defaultPoster;
   }
 
   return (
-    pickByLanguageWithFallback(alternativePosters, preferredLang, fallbackLang) ||
+    pickByLanguageWithFallback(alternativePosters, preferredLang, '') ||
+    pickByLanguageWithFallback(alternativePosters, fallbackLang, '') ||
     alternativePosters[0] ||
     fallbackOriginal
   );
@@ -2087,7 +2092,7 @@ const pickBackdropByPreference = (
     );
   }
 
-  if (preference === 'original') {
+  if (preference === 'default') {
     return fallbackOriginal;
   }
 
@@ -5296,7 +5301,7 @@ export async function GET(
   
   const imageText = type === 'backdrop' || type === 'thumbnail'
     ? (backdropImageTextParam || 'clean')
-    : (imageTextParam || 'original');
+    : (imageTextParam || 'default');
 
   const posterRatingsLayout = normalizePosterRatingLayout(tokenConfig.posterRatingsLayout || request.nextUrl.searchParams.get('posterRatingsLayout'));
   const posterRatingsMaxPerSide = normalizePosterRatingsMaxPerSide(tokenConfig.posterRatingsMaxPerSide ?? request.nextUrl.searchParams.get('posterRatingsMaxPerSide'));
@@ -5525,15 +5530,21 @@ export async function GET(
   const aiometadataEpisodeProvider = normalizeAiometadataEpisodeProvider(
     request.nextUrl.searchParams.get('aiometadataProvider')
   );
+  const normalizedPosterImageText =
+    imageText === 'original' ? 'default' : imageText;
+  const normalizedPosterAnimeImageText =
+    posterAnimeImageTextParam === 'original' ? 'default' : posterAnimeImageTextParam;
   const posterTextPreference: PosterTextPreference =
-    imageText === 'clean' || imageText === 'alternative' || imageText === 'original'
-      ? (imageText as PosterTextPreference)
-      : 'original';
+    normalizedPosterImageText === 'clean' ||
+    normalizedPosterImageText === 'alternative' ||
+    normalizedPosterImageText === 'default'
+      ? normalizedPosterImageText
+      : 'default';
   const posterAnimeTextPreference: PosterTextPreference =
-    posterAnimeImageTextParam === 'clean' ||
-    posterAnimeImageTextParam === 'alternative' ||
-    posterAnimeImageTextParam === 'original'
-      ? (posterAnimeImageTextParam as PosterTextPreference)
+    normalizedPosterAnimeImageText === 'clean' ||
+    normalizedPosterAnimeImageText === 'alternative' ||
+    normalizedPosterAnimeImageText === 'default'
+      ? normalizedPosterAnimeImageText
       : 'clean';
   const ratingsForType =
     imageType === 'poster'

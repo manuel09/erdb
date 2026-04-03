@@ -155,8 +155,8 @@ const isQualityBadgesSide = (value: unknown): value is QualityBadgesSide =>
   value === 'left' || value === 'right';
 const isPosterQualityBadgesPosition = (value: unknown): value is PosterQualityBadgesPosition =>
   value === 'auto' || value === 'left' || value === 'right';
-const isImageText = (value: unknown): value is 'original' | 'clean' | 'alternative' =>
-  value === 'original' || value === 'clean' || value === 'alternative';
+const isImageText = (value: unknown): value is 'default' | 'clean' | 'alternative' =>
+  value === 'default' || value === 'original' || value === 'clean' || value === 'alternative';
 const isRatingStyle = (value: unknown): value is RatingStyle =>
   RATING_STYLE_OPTIONS.some((option) => option.id === value);
 const isPosterRatingLayout = (value: unknown): value is PosterRatingLayout =>
@@ -340,7 +340,7 @@ const buildAiometadataPattern = (options: {
   lang: string;
   posterLang: string;
   posterAnimeLang: string;
-  posterAnimeImageText: 'original' | 'clean' | 'alternative';
+  posterAnimeImageText: 'default' | 'clean' | 'alternative';
   posterRatings: string;
   backdropRatings: string;
   thumbnailRatings: string;
@@ -363,8 +363,8 @@ const buildAiometadataPattern = (options: {
   backdropRatingStyle: RatingStyle;
   thumbnailRatingStyle: RatingStyle;
   logoRatingStyle: RatingStyle;
-  posterImageText: 'original' | 'clean' | 'alternative';
-  backdropImageText: 'original' | 'clean' | 'alternative';
+  posterImageText: 'default' | 'clean' | 'alternative';
+  backdropImageText: 'default' | 'clean' | 'alternative';
   posterRatingsLayout: PosterRatingLayout;
   posterRatingsMaxPerSide: number | null;
   backdropRatingsLayout: BackdropRatingLayout;
@@ -693,9 +693,9 @@ export default function HomePage({
   const [lang, setLang] = useState('en');
   const [posterLang, setPosterLang] = useState('');
   const [posterAnimeLang, setPosterAnimeLang] = useState('');
-  const [posterImageText, setPosterImageText] = useState<'original' | 'clean' | 'alternative'>('clean');
-  const [posterAnimeImageText, setPosterAnimeImageText] = useState<'original' | 'clean' | 'alternative'>('clean');
-  const [backdropImageText, setBackdropImageText] = useState<'original' | 'clean' | 'alternative'>('clean');
+  const [posterImageText, setPosterImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
+  const [posterAnimeImageText, setPosterAnimeImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
+  const [backdropImageText, setBackdropImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
   const [posterRatingRows, setPosterRatingRows] = useState<RatingProviderRow[]>(buildDefaultRatingRows);
   const [backdropRatingRows, setBackdropRatingRows] = useState<RatingProviderRow[]>(buildDefaultRatingRows);
   const [thumbnailRatingRows, setThumbnailRatingRows] = useState<RatingProviderRow[]>(
@@ -766,7 +766,7 @@ export default function HomePage({
   const [showProxyUrl, setShowProxyUrl] = useState(false);
   const [aiometadataCopiedType, setAiometadataCopiedType] = useState<AiometadataPatternType | null>(null);
   const [aiometadataEpisodeProvider, setAiometadataEpisodeProvider] = useState<AiometadataEpisodeProvider>('realimdb');
-  const [currentVersion, setCurrentVersion] = useState('0.3.9');
+  const [currentVersion, setCurrentVersion] = useState('0.3.11');
   const [githubPackageVersion, setGithubPackageVersion] = useState<string | null>(null);
   const [repoUrl, setRepoUrl] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<'idle' | 'with' | 'without'>('idle');
@@ -2655,7 +2655,7 @@ export default function HomePage({
     setLogoRatingStyle(value);
   };
 
-  const setImageTextForType = (value: 'original' | 'clean' | 'alternative') => {
+  const setImageTextForType = (value: 'default' | 'clean' | 'alternative') => {
     if (previewType === 'backdrop' || previewType === 'thumbnail') {
       setBackdropImageText(value);
       return;

@@ -98,7 +98,7 @@ type HomePageViewState = {
   lang: string;
   posterLang: string;
   posterAnimeLang: string;
-  posterAnimeImageText: 'original' | 'clean' | 'alternative';
+  posterAnimeImageText: 'default' | 'clean' | 'alternative';
   supportedLanguages: SupportedLanguage[];
   tmdbKey: string;
   mdblistKey: string;
@@ -158,7 +158,7 @@ type HomePageViewDerived = {
   textLabel: string;
   providersLabel: string;
   activeRatingStyle: RatingStyle;
-  activeImageText: 'original' | 'clean' | 'alternative';
+  activeImageText: 'default' | 'clean' | 'alternative';
   ratingProviderRows: RatingProviderRow[];
   shouldShowQualityBadgesPosition: boolean;
   shouldShowQualityBadgesSide: boolean;
@@ -181,7 +181,7 @@ type HomePageViewActions = {
   setLang: Dispatch<SetStateAction<string>>;
   setPosterLang: Dispatch<SetStateAction<string>>;
   setPosterAnimeLang: Dispatch<SetStateAction<string>>;
-  setPosterAnimeImageText: Dispatch<SetStateAction<'original' | 'clean' | 'alternative'>>;
+  setPosterAnimeImageText: Dispatch<SetStateAction<'default' | 'clean' | 'alternative'>>;
   setTmdbKey: Dispatch<SetStateAction<string>>;
   setMdblistKey: Dispatch<SetStateAction<string>>;
   setSimklClientId: Dispatch<SetStateAction<string>>;
@@ -206,7 +206,7 @@ type HomePageViewActions = {
   setPosterQualityBadgesPosition: Dispatch<SetStateAction<PosterQualityBadgesPosition>>;
   setQualityBadgesSide: Dispatch<SetStateAction<QualityBadgesSide>>;
   setRatingStyleForType: (value: RatingStyle) => void;
-  setImageTextForType: (value: 'original' | 'clean' | 'alternative') => void;
+  setImageTextForType: (value: 'default' | 'clean' | 'alternative') => void;
   setActiveStreamBadges: Dispatch<SetStateAction<StreamBadgesSetting>>;
   setActiveQualityBadgesStyle: Dispatch<SetStateAction<RatingStyle>>;
   toggleRatingPreference: (rating: RatingPreference) => void;
@@ -875,7 +875,7 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
                         <div>
                           <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">{textLabel}</span>
                           <div className={SEGMENT_CLASS}>
-                            {(['original', 'clean', 'alternative'] as const).map(option => (
+                            {(['default', 'clean', 'alternative'] as const).map(option => (
                               <button key={option} onClick={() => setImageTextForType(option)} className={`px-2 py-1 rounded text-xs font-bold transition-all ${activeImageText === option ? 'border border-orange-400/20 bg-orange-500/10 text-white' : 'border border-transparent text-slate-400 hover:text-white'}`}>{option.charAt(0).toUpperCase() + option.slice(1)}</button>
                             ))}
                           </div>
@@ -883,7 +883,7 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
                             <div className="mt-3">
                               <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">Poster Text Anime</span>
                               <div className={SEGMENT_CLASS}>
-                                {(['original', 'clean', 'alternative'] as const).map(option => (
+                                {(['default', 'clean', 'alternative'] as const).map(option => (
                                   <button key={option} onClick={() => setPosterAnimeImageText(option)} className={`px-2 py-1 rounded text-xs font-bold transition-all ${posterAnimeImageText === option ? 'border border-orange-400/20 bg-orange-500/10 text-white' : 'border border-transparent text-slate-400 hover:text-white'}`}>{option.charAt(0).toUpperCase() + option.slice(1)}</button>
                                 ))}
                               </div>
@@ -1639,8 +1639,8 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
                           </tr>
                           <tr>
                             <td className="px-5 py-2 font-mono text-orange-400 text-xs">imageText</td>
-                            <td className="px-5 py-2 text-slate-400 text-xs">original, clean, alternative</td>
-                            <td className="px-5 py-2 text-slate-500 text-xs">original (poster), clean (backdrop)</td>
+                            <td className="px-5 py-2 text-slate-400 text-xs">default, clean, alternative</td>
+                            <td className="px-5 py-2 text-slate-500 text-xs">default (poster), clean (backdrop)</td>
                           </tr>
                           <tr>
                             <td className="px-5 py-2 font-mono text-orange-400 text-xs">posterRatingsLayout</td>
@@ -1715,7 +1715,7 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
                             </td>
                             <td className="px-5 py-2 text-slate-400 text-xs">
                               <div className="space-y-1">
-                                <div>original, clean, alternative</div>
+                                <div>default, clean, alternative</div>
                                 <div>top, bottom, left, right, top-bottom, left-right</div>
                                 <div>1-20 (auto if omitted)</div>
                                 <div>standard, stacked (when using left/right vertical poster layouts)</div>
@@ -1733,7 +1733,7 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
                             </td>
                             <td className="px-5 py-2 text-slate-400 text-xs">
                               <div className="space-y-1">
-                                <div>original, clean, alternative</div>
+                                <div>default, clean, alternative</div>
                                 <div>center, right-vertical</div>
                                 <div>standard, stacked (when using right-vertical)</div>
                               </div>
