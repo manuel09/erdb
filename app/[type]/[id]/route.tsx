@@ -1999,8 +1999,8 @@ const pickPosterByPreference = (
   if (!Array.isArray(posters) || posters.length === 0) return null;
 
   const canonicalOriginalPath =
-    pickByLanguageWithFallback(posters, preferredLang, fallbackLang, originalPosterPath)?.file_path ||
     originalPosterPath ||
+    pickByLanguageWithFallback(posters, preferredLang, fallbackLang)?.file_path ||
     posters[0]?.file_path ||
     null;
   const originalPoster = canonicalOriginalPath
@@ -5235,6 +5235,10 @@ export async function GET(
   const tokenUpdatedAt = tokenData?.updatedAt || 0;
 
   const lang = tokenConfig.lang || request.nextUrl.searchParams.get('lang') || FALLBACK_IMAGE_LANGUAGE;
+  const posterLang =
+    tokenConfig.posterLang || request.nextUrl.searchParams.get('posterLang') || null;
+  const posterAnimeLang =
+    tokenConfig.posterAnimeLang || request.nextUrl.searchParams.get('posterAnimeLang') || null;
   const globalRatings = tokenConfig.ratings || request.nextUrl.searchParams.get('ratings');
 
   const getRatings = (configKey: string, queryKey: string) => {
@@ -5256,6 +5260,9 @@ export async function GET(
     tokenConfig.posterImageText ||
     request.nextUrl.searchParams.get('imageText') ||
     request.nextUrl.searchParams.get('posterText');
+  const posterAnimeImageTextParam =
+    tokenConfig.posterAnimeImageText ||
+    request.nextUrl.searchParams.get('posterAnimeImageText');
   const backdropImageTextParam =
     tokenConfig.backdropImageText ||
     request.nextUrl.searchParams.get('backdropText') ||
@@ -5478,8 +5485,17 @@ export async function GET(
     episode = parts.length > 2 ? parts[2] : null;
   }
 
-  const requestedImageLang = normalizeTmdbLanguageCode(lang) || FALLBACK_IMAGE_LANGUAGE;
-  const includeImageLanguage = buildIncludeImageLanguage(requestedImageLang, FALLBACK_IMAGE_LANGUAGE);
+  const activeImageLang =
+    imageType === 'poster'
+      ? String(posterLang || '').trim().toLowerCase() === 'original'
+        ? lang
+        : posterLang || lang
+      : lang;
+  const requestedImageLang = normalizeTmdbLanguageCode(activeImageLang) || FALLBACK_IMAGE_LANGUAGE;
+  const includeImageLanguage =
+    imageType === 'poster'
+      ? ''
+      : buildIncludeImageLanguage(requestedImageLang, FALLBACK_IMAGE_LANGUAGE);
   const aiometadataEpisodeProvider = normalizeAiometadataEpisodeProvider(
     request.nextUrl.searchParams.get('aiometadataProvider')
   );
@@ -5487,6 +5503,12 @@ export async function GET(
     imageText === 'clean' || imageText === 'alternative' || imageText === 'original'
       ? (imageText as PosterTextPreference)
       : 'original';
+  const posterAnimeTextPreference: PosterTextPreference =
+    posterAnimeImageTextParam === 'clean' ||
+    posterAnimeImageTextParam === 'alternative' ||
+    posterAnimeImageTextParam === 'original'
+      ? (posterAnimeImageTextParam as PosterTextPreference)
+      : 'clean';
   const ratingsForType =
     imageType === 'poster'
       ? posterRatings
@@ -5535,9 +5557,14 @@ export async function GET(
     outputFormat,
     cleanId,
     requestedImageLang,
-    posterTextPreference,
+    imageType === 'poster'
+      ? `${posterTextPreference}:${posterAnimeTextPreference}`
+      : posterTextPreference,
     imageType === 'poster' ? posterRatingsLayout : '-',
     imageType === 'poster' ? String(posterRatingsMaxPerSide ?? 'auto') : '-',
+    imageType === 'poster' ? String(posterLang || '-') : '-',
+    imageType === 'poster' ? String(posterAnimeLang || '-') : '-',
+    imageType === 'poster' ? String(posterAnimeImageTextParam || '-') : '-',
     imageType === 'logo' ? String(logoRatingsMax ?? 'auto') : '-',
     imageType === 'logo' ? logoMode : DEFAULT_LOGO_MODE,
     imageType === 'logo' ? logoFontVariant : DEFAULT_LOGO_FONT_VARIANT,
@@ -5965,6 +5992,23 @@ export async function GET(
         allowAnimeOnlyRatings = hasConfirmedAnimeMapping && mediaLooksAnimated;
       }
       const isAnimeContent = hasNativeAnimeInput || hasConfirmedAnimeMapping || mediaLooksAnimated;
+      const effectivePosterTextPreference =
+        type === 'poster' && isAnimeContent ? posterAnimeTextPreference : posterTextPreference;
+      const activePosterLanguageSetting =
+        imageType === 'poster'
+          ? isAnimeContent && posterAnimeLang
+            ? posterAnimeLang
+            : posterLang
+          : null;
+      const isEffectiveOriginalPosterLang =
+        imageType === 'poster' &&
+        String(activePosterLanguageSetting || '').trim().toLowerCase() === 'original';
+      const effectivePosterRequestedImageLang =
+        normalizeTmdbLanguageCode(
+          isEffectiveOriginalPosterLang ? lang : activePosterLanguageSetting || lang
+        ) || FALLBACK_IMAGE_LANGUAGE;
+      const effectivePosterFallbackImageLang =
+        normalizeTmdbLanguageCode(lang) || FALLBACK_IMAGE_LANGUAGE;
 
       let imgPath = '';
       let imgUrl = rawFallbackImageUrl;
@@ -5981,6 +6025,10 @@ export async function GET(
       let selectedLogoAspectRatio: number | null = null;
       let selectedPosterLogoPath: string | null = null;
       let selectedPosterIsTextless = false;
+      const shouldUsePosterOriginalLanguageForLogo =
+        imageType === 'poster' &&
+        isEffectiveOriginalPosterLang &&
+        effectivePosterTextPreference === 'clean';
       const requestedExternalRatings = new Set([...selectedRatings]);
       const needsAnimeOnlyRatings = [...requestedExternalRatings].some((provider) =>
         ANIME_ONLY_RATING_PROVIDER_SET.has(provider)
@@ -6086,9 +6134,14 @@ export async function GET(
         outputFormat,
         cleanId,
         requestedImageLang,
-        posterTextPreference,
+        imageType === 'poster'
+          ? `${posterTextPreference}:${posterAnimeTextPreference}`
+          : posterTextPreference,
         imageType === 'poster' ? posterRatingsLayout : '-',
         imageType === 'poster' ? String(posterRatingsMaxPerSide ?? 'auto') : '-',
+        imageType === 'poster' ? String(posterLang || '-') : '-',
+        imageType === 'poster' ? String(posterAnimeLang || '-') : '-',
+        imageType === 'poster' ? String(posterAnimeImageTextParam || '-') : '-',
         imageType === 'logo' ? String(logoRatingsMax ?? 'auto') : '-',
         imageType === 'logo' ? logoMode : DEFAULT_LOGO_MODE,
         imageType === 'logo' ? logoFontVariant : DEFAULT_LOGO_FONT_VARIANT,
@@ -6132,8 +6185,16 @@ export async function GET(
       }
       const detailsBundlePromise = !useRawKitsuFallback
         ? (async () => {
-          const buildDetailsUrl = (language: string) =>
-            `https://api.themoviedb.org/3/${mediaType}/${media.id}?api_key=${tmdbKey}&language=${language}&append_to_response=images,external_ids,translations&include_image_language=${encodeURIComponent(includeImageLanguage)}`;
+          const buildDetailsUrl = (language: string) => {
+            const url = new URL(`https://api.themoviedb.org/3/${mediaType}/${media.id}`);
+            url.searchParams.set('api_key', tmdbKey);
+            url.searchParams.set('language', language);
+            url.searchParams.set('append_to_response', 'images,external_ids,translations');
+            if (includeImageLanguage) {
+              url.searchParams.set('include_image_language', includeImageLanguage);
+            }
+            return url.toString();
+          };
 
           const [detailsResponse, fallbackDetailsResponse] = await Promise.all([
             fetchJsonCached(
@@ -6871,23 +6932,49 @@ export async function GET(
           let posterCollection = input.posters || [];
           const backdropCollection = input.backdrops || [];
           const logoCollection = input.logos || [];
-          const preferredPosterPath = details?.poster_path || media?.poster_path || null;
+          const mediaOriginalLanguage =
+            typeof media?.original_language === 'string' && media.original_language.trim().length > 0
+              ? media.original_language.trim()
+              : null;
+          const resolvedPosterRequestedImageLang =
+            isEffectiveOriginalPosterLang && mediaOriginalLanguage
+              ? normalizeTmdbLanguageCode(mediaOriginalLanguage) || effectivePosterRequestedImageLang
+              : effectivePosterRequestedImageLang;
+          const preferredPosterPath = isEffectiveOriginalPosterLang
+            ? null
+            : media?.poster_path || details?.poster_path || null;
+          const preferredLogoLanguage =
+            shouldUsePosterOriginalLanguageForLogo && mediaOriginalLanguage
+              ? mediaOriginalLanguage
+              : imageType === 'poster'
+                ? resolvedPosterRequestedImageLang
+                : requestedImageLang;
           const preferredBackdropPath = details?.backdrop_path || media?.backdrop_path || null;
           const selectedLogo = pickByLanguageWithFallback(
             logoCollection,
-            requestedImageLang,
+            preferredLogoLanguage,
             FALLBACK_IMAGE_LANGUAGE
           );
           const logoPath = selectedLogo?.file_path || null;
 
-          const localizedPosterPath =
-            pickByLanguageWithFallback(
-              posterCollection,
-              requestedImageLang,
-              FALLBACK_IMAGE_LANGUAGE,
-              preferredPosterPath
-            )?.file_path || preferredPosterPath;
+          const localizedPosterPath = isEffectiveOriginalPosterLang
+            ? null
+            : (
+                pickByLanguageWithFallback(
+                  posterCollection,
+                  resolvedPosterRequestedImageLang,
+                  effectivePosterFallbackImageLang
+                )?.file_path || preferredPosterPath
+              );
           let originalPosterPath =
+            (isEffectiveOriginalPosterLang
+              ? pickByLanguageWithFallback(
+                  posterCollection,
+                  mediaOriginalLanguage,
+                  ''
+                )?.file_path ||
+                posterCollection.find((poster: any) => !poster?.iso_639_1)?.file_path
+              : media?.poster_path) ||
             localizedPosterPath ||
             posterCollection[0]?.file_path;
           const localizedBackdropPath =
@@ -6912,8 +6999,8 @@ export async function GET(
 
             const [seasonDetailsResponse, seasonImagesResponse] = await Promise.all([
               fetchJsonCached(
-                `tmdb:season_details:${media.id}:${season}:${requestedImageLang}`,
-                `https://api.themoviedb.org/3/tv/${media.id}/season/${season}?api_key=${tmdbKey}&language=${requestedImageLang}`,
+                `tmdb:season_details:${media.id}:${season}:${resolvedPosterRequestedImageLang}`,
+                `https://api.themoviedb.org/3/tv/${media.id}/season/${season}?api_key=${tmdbKey}&language=${resolvedPosterRequestedImageLang}`,
                 TMDB_CACHE_TTL_MS,
                 phases,
                 'tmdb'
@@ -6935,7 +7022,7 @@ export async function GET(
               }
             }
 
-            if (!seasonPosterPath && requestedImageLang !== FALLBACK_IMAGE_LANGUAGE) {
+            if (!seasonPosterPath && resolvedPosterRequestedImageLang !== FALLBACK_IMAGE_LANGUAGE) {
               const seasonFallbackDetailsResponse = await fetchJsonCached(
                 `tmdb:season_details:${media.id}:${season}:${FALLBACK_IMAGE_LANGUAGE}`,
                 `https://api.themoviedb.org/3/tv/${media.id}/season/${season}?api_key=${tmdbKey}&language=${FALLBACK_IMAGE_LANGUAGE}`,
@@ -6959,22 +7046,27 @@ export async function GET(
             }
 
             originalPosterPath =
-              seasonPosterPath ||
-              pickByLanguageWithFallback(
-                posterCollection,
-                requestedImageLang,
-                FALLBACK_IMAGE_LANGUAGE,
-                seasonPosterPath
-              )?.file_path ||
+              (isEffectiveOriginalPosterLang
+                ? pickByLanguageWithFallback(
+                    posterCollection,
+                    mediaOriginalLanguage,
+                    ''
+                  )?.file_path || seasonPosterPath
+                : seasonPosterPath ||
+                  pickByLanguageWithFallback(
+                    posterCollection,
+                    resolvedPosterRequestedImageLang,
+                    effectivePosterFallbackImageLang
+                  )?.file_path) ||
               originalPosterPath;
           }
 
           if (type === 'poster') {
             const selectedPoster = pickPosterByPreference(
               posterCollection,
-              posterTextPreference,
-              requestedImageLang,
-              FALLBACK_IMAGE_LANGUAGE,
+              effectivePosterTextPreference,
+              resolvedPosterRequestedImageLang,
+              effectivePosterFallbackImageLang,
               originalPosterPath
             );
             const selectedPosterIsTextless = isTextlessPosterSelection(posterCollection, selectedPoster);
@@ -7058,7 +7150,7 @@ export async function GET(
           posters: initialImages.posters || [],
           backdrops: initialImages.backdrops || [],
           logos: initialImages.logos || [],
-          seasonIncludeImageLanguage: includeImageLanguage
+          seasonIncludeImageLanguage: includeImageLanguage || undefined
         });
 
         imgPath = initialSelection.imgPath;
@@ -7070,7 +7162,7 @@ export async function GET(
         selectedPosterIsTextless = initialSelection.posterIsTextless;
         if (
           imageType === 'poster' &&
-          posterTextPreference === 'clean' &&
+          effectivePosterTextPreference === 'clean' &&
           selectedPosterIsTextless &&
           !selectedPosterLogoPath
         ) {
@@ -7083,9 +7175,19 @@ export async function GET(
           );
           if (logoFallbackImagesResponse.ok) {
             const logoFallbackImages = logoFallbackImagesResponse.data || {};
+            const posterLogoOriginalLanguage =
+              typeof media?.original_language === 'string' && media.original_language.trim().length > 0
+                ? media.original_language.trim()
+                : null;
+            const resolvedPosterLogoLanguage =
+              isEffectiveOriginalPosterLang && posterLogoOriginalLanguage
+                ? normalizeTmdbLanguageCode(posterLogoOriginalLanguage) || effectivePosterRequestedImageLang
+                : effectivePosterRequestedImageLang;
             const logoFallback = pickByLanguageWithFallback(
               logoFallbackImages.logos || [],
-              requestedImageLang,
+              shouldUsePosterOriginalLanguageForLogo && posterLogoOriginalLanguage
+                ? posterLogoOriginalLanguage
+                : resolvedPosterLogoLanguage,
               FALLBACK_IMAGE_LANGUAGE
             );
             if (logoFallback?.file_path) {
@@ -7173,13 +7275,17 @@ export async function GET(
         imgUrl = buildTmdbImageUrl(imageType, imgPath, outputWidth);
       }
       const shouldApplyPosterCleanOverlay =
-        imageType === 'poster' && posterTextPreference === 'clean' && selectedPosterIsTextless;
+        imageType === 'poster' && effectivePosterTextPreference === 'clean' && selectedPosterIsTextless;
       const posterTitleText = shouldApplyPosterCleanOverlay
         ? pickPosterTitleFromMedia(
           localizedMediaDetails || media,
           mediaType,
           rawFallbackTitle,
-          requestedImageLang,
+          isEffectiveOriginalPosterLang &&
+            typeof media?.original_language === 'string' &&
+            media.original_language.trim().length > 0
+            ? normalizeTmdbLanguageCode(media.original_language.trim()) || effectivePosterRequestedImageLang
+            : effectivePosterRequestedImageLang,
           FALLBACK_IMAGE_LANGUAGE,
           fallbackMediaDetails
         )

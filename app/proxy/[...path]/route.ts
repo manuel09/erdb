@@ -35,6 +35,8 @@ const buildProxyConfigFromToken = (
   else if (typeof t.erdbBase === 'string') config.erdbBase = t.erdbBase; // fallback
   if (typeof t.simklClientId === 'string') config.simklClientId = t.simklClientId;
   if (typeof t.lang === 'string') config.lang = t.lang;
+  if (typeof t.posterLang === 'string') config.posterLang = t.posterLang;
+  if (typeof t.posterAnimeLang === 'string') config.posterAnimeLang = t.posterAnimeLang;
 
   if (Array.isArray(t.posterRatingPreferences)) {
     const pQ = stringifyRatingPreferencesAllowEmpty(t.posterRatingPreferences);
@@ -67,6 +69,7 @@ const buildProxyConfigFromToken = (
   mapStr('logoCustomSecondary', 'logoSecondary');
   mapStr('logoCustomOutline', 'logoOutline');
   mapStr('posterImageText', 'posterImageText');
+  mapStr('posterAnimeImageText', 'posterAnimeImageText');
   mapStr('backdropImageText', 'backdropImageText');
   mapStr('posterRatingsLayout', 'posterRatingsLayout');
   mapStr('backdropRatingsLayout', 'backdropRatingsLayout');

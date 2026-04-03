@@ -8,6 +8,9 @@ import {
 const ERDB_OPTIONAL_PARAMS = [
   'ratings',
   'lang',
+  'posterLang',
+  'posterAnimeLang',
+  'posterAnimeImageText',
   'streamBadges',
   'qualityBadgesSide',
   'posterQualityBadgesPosition',
@@ -102,6 +105,8 @@ export type ProxyConfig = {
   logoSecondary?: string;
   logoOutline?: string;
   lang?: string;
+  posterLang?: string;
+  posterAnimeLang?: string;
   streamBadges?: string;
   posterStreamBadges?: string;
   backdropStreamBadges?: string;
@@ -116,6 +121,7 @@ export type ProxyConfig = {
   backdropRatingStyle?: string;
   logoRatingStyle?: string;
   posterImageText?: string;
+  posterAnimeImageText?: string;
   backdropImageText?: string;
   posterRatingsLayout?: string;
   posterRatingsMaxPerSide?: string;
@@ -154,6 +160,8 @@ const PROXY_OPTIONAL_STRING_KEYS = [
   'logoOutline',
   'simklClientId',
   'lang',
+  'posterLang',
+  'posterAnimeLang',
   'streamBadges',
   'posterStreamBadges',
   'backdropStreamBadges',
@@ -168,6 +176,7 @@ const PROXY_OPTIONAL_STRING_KEYS = [
   'backdropRatingStyle',
   'logoRatingStyle',
   'posterImageText',
+  'posterAnimeImageText',
   'backdropImageText',
   'posterRatingsLayout',
   'posterRatingsMaxPerSide',

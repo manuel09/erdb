@@ -84,6 +84,8 @@ fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 db.pragma('synchronous = NORMAL');
+db.pragma('wal_autocheckpoint = 1000');
+db.pragma('journal_size_limit = 67108864');
 db.pragma('foreign_keys = ON');
 
 db.exec(`
@@ -231,6 +233,7 @@ const run = async () => {
   if (!args.skipEpisodes) {
     await importEpisodes();
   }
+  db.pragma('wal_checkpoint(TRUNCATE)');
   console.log('IMDb import completed.');
 };
 

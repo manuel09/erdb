@@ -32,6 +32,9 @@ type HomePageViewState = {
   previewType: PreviewType;
   mediaId: string;
   lang: string;
+  posterLang: string;
+  posterAnimeLang: string;
+  posterAnimeImageText: 'original' | 'clean' | 'alternative';
   supportedLanguages: SupportedLanguage[];
   tmdbKey: string;
   mdblistKey: string;
@@ -112,6 +115,9 @@ type HomePageViewActions = {
   setPreviewType: Dispatch<SetStateAction<PreviewType>>;
   setMediaId: Dispatch<SetStateAction<string>>;
   setLang: Dispatch<SetStateAction<string>>;
+  setPosterLang: Dispatch<SetStateAction<string>>;
+  setPosterAnimeLang: Dispatch<SetStateAction<string>>;
+  setPosterAnimeImageText: Dispatch<SetStateAction<'original' | 'clean' | 'alternative'>>;
   setTmdbKey: Dispatch<SetStateAction<string>>;
   setMdblistKey: Dispatch<SetStateAction<string>>;
   setSimklClientId: Dispatch<SetStateAction<string>>;

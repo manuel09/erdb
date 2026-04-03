@@ -338,6 +338,9 @@ const buildAiometadataPattern = (options: {
   mdblistKey: string;
   simklClientId: string;
   lang: string;
+  posterLang: string;
+  posterAnimeLang: string;
+  posterAnimeImageText: 'original' | 'clean' | 'alternative';
   posterRatings: string;
   backdropRatings: string;
   thumbnailRatings: string;
@@ -381,6 +384,9 @@ const buildAiometadataPattern = (options: {
     mdblistKey,
     simklClientId,
     lang,
+    posterLang,
+    posterAnimeLang,
+    posterAnimeImageText,
     posterRatings,
     backdropRatings,
     thumbnailRatings,
@@ -439,6 +445,13 @@ const buildAiometadataPattern = (options: {
   }
 
   if (imageType === 'poster') {
+    if (posterLang) {
+      params.push(['posterLang', posterLang]);
+    }
+    if (posterAnimeLang) {
+      params.push(['posterAnimeLang', posterAnimeLang]);
+    }
+    params.push(['posterAnimeImageText', posterAnimeImageText]);
     params.push(['posterRatings', posterRatings]);
     if (posterStreamBadges !== 'auto') {
       params.push(['posterStreamBadges', posterStreamBadges]);
@@ -678,7 +691,10 @@ export default function HomePage({
   const [previewType, setPreviewType] = useState<PreviewType>('poster');
   const [mediaId, setMediaId] = useState(DEFAULT_SERIES_ID);
   const [lang, setLang] = useState('en');
+  const [posterLang, setPosterLang] = useState('');
+  const [posterAnimeLang, setPosterAnimeLang] = useState('');
   const [posterImageText, setPosterImageText] = useState<'original' | 'clean' | 'alternative'>('clean');
+  const [posterAnimeImageText, setPosterAnimeImageText] = useState<'original' | 'clean' | 'alternative'>('clean');
   const [backdropImageText, setBackdropImageText] = useState<'original' | 'clean' | 'alternative'>('clean');
   const [posterRatingRows, setPosterRatingRows] = useState<RatingProviderRow[]>(buildDefaultRatingRows);
   const [backdropRatingRows, setBackdropRatingRows] = useState<RatingProviderRow[]>(buildDefaultRatingRows);
@@ -750,7 +766,7 @@ export default function HomePage({
   const [showProxyUrl, setShowProxyUrl] = useState(false);
   const [aiometadataCopiedType, setAiometadataCopiedType] = useState<AiometadataPatternType | null>(null);
   const [aiometadataEpisodeProvider, setAiometadataEpisodeProvider] = useState<AiometadataEpisodeProvider>('realimdb');
-  const [currentVersion, setCurrentVersion] = useState('0.3.5');
+  const [currentVersion, setCurrentVersion] = useState('0.3.7');
   const [githubPackageVersion, setGithubPackageVersion] = useState<string | null>(null);
   const [repoUrl, setRepoUrl] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<'idle' | 'with' | 'without'>('idle');
@@ -791,6 +807,26 @@ export default function HomePage({
       normalizedLang
     );
   }, [hasTmdbKey, lang, supportedLanguages]);
+  const effectivePosterLang = useMemo(() => {
+    if (posterLang === 'original') {
+      return 'original';
+    }
+    const normalizedPosterLang = normalizeTmdbLanguageCode(posterLang) || posterLang;
+    if (!normalizedPosterLang) {
+      return effectiveLang;
+    }
+    return normalizedPosterLang;
+  }, [effectiveLang, hasTmdbKey, posterLang, supportedLanguages]);
+  const effectivePosterAnimeLang = useMemo(() => {
+    if (!posterAnimeLang) {
+      return effectivePosterLang;
+    }
+    if (posterAnimeLang === 'original') {
+      return 'original';
+    }
+    const normalizedPosterAnimeLang = normalizeTmdbLanguageCode(posterAnimeLang) || posterAnimeLang;
+    return normalizedPosterAnimeLang || effectivePosterLang;
+  }, [effectivePosterLang, posterAnimeLang]);
   const sanitizedProxyCatalogNames = useMemo(
     () => normalizeProxyCatalogNameOverrides(proxyCatalogNames) || {},
     [proxyCatalogNames]
@@ -1111,6 +1147,13 @@ export default function HomePage({
       lang: effectiveLang,
     });
     if (previewType === 'poster') {
+      if (posterLang) {
+        query.set('posterLang', effectivePosterLang);
+      }
+      if (posterAnimeLang) {
+        query.set('posterAnimeLang', effectivePosterAnimeLang);
+      }
+      query.set('posterAnimeImageText', posterAnimeImageText);
       query.set('posterRatings', ratingsQuery);
     } else if (previewType === 'backdrop') {
       query.set('backdropRatings', ratingsQuery);
@@ -1209,7 +1252,12 @@ export default function HomePage({
     previewType,
     mediaId,
     effectiveLang,
+    effectivePosterLang,
+    effectivePosterAnimeLang,
+    posterLang,
+    posterAnimeLang,
     posterImageText,
+    posterAnimeImageText,
     backdropImageText,
     posterRatingPreferences,
     backdropRatingPreferences,
@@ -1284,6 +1332,15 @@ export default function HomePage({
     }
     if (effectiveLang) {
       config.lang = effectiveLang;
+    }
+    if (posterAnimeImageText) {
+      config.posterAnimeImageText = posterAnimeImageText;
+    }
+    if (posterLang) {
+      config.posterLang = effectivePosterLang;
+    }
+    if (posterAnimeLang) {
+      config.posterAnimeLang = effectivePosterAnimeLang;
     }
     if (posterStreamBadges !== 'auto') {
       config.posterStreamBadges = posterStreamBadges;
@@ -1386,6 +1443,8 @@ export default function HomePage({
     posterQualityBadgesStyle,
     backdropQualityBadgesStyle,
     effectiveLang,
+    effectivePosterLang,
+    posterLang,
     posterRatingStyle,
     backdropRatingStyle,
     logoRatingStyle,
@@ -1395,6 +1454,7 @@ export default function HomePage({
     logoCustomSecondary,
     logoCustomOutline,
     posterImageText,
+    posterAnimeImageText,
     backdropImageText,
     posterRatingsLayout,
     posterRatingsMaxPerSide,
@@ -1493,6 +1553,13 @@ export default function HomePage({
     if (effectiveLang) {
       config.lang = effectiveLang;
     }
+    if (posterLang) {
+      config.posterLang = effectivePosterLang;
+    }
+    if (posterAnimeLang) {
+      config.posterAnimeLang = effectivePosterAnimeLang;
+    }
+    config.posterAnimeImageText = posterAnimeImageText;
     if (posterStreamBadges !== 'auto') {
       config.posterStreamBadges = posterStreamBadges;
     }
@@ -1610,6 +1677,8 @@ export default function HomePage({
     thumbnailRatingPreferences,
     logoRatingPreferences,
     effectiveLang,
+    effectivePosterLang,
+    posterLang,
     posterStreamBadges,
     backdropStreamBadges,
     shouldShowPosterQualityBadgesSide,
@@ -1800,7 +1869,10 @@ export default function HomePage({
       previewType,
       mediaId,
       lang: effectiveLang,
+      posterLang,
+      posterAnimeLang,
       posterImageText,
+      posterAnimeImageText,
       backdropImageText,
       posterRatingPreferences,
       backdropRatingPreferences,
@@ -1814,6 +1886,7 @@ export default function HomePage({
       backdropQualityBadgesStyle,
       posterRatingStyle,
       backdropRatingStyle,
+      thumbnailRatingStyle,
       logoRatingStyle,
       logoMode,
       logoFontVariant,
@@ -1873,11 +1946,20 @@ export default function HomePage({
     if (typeof payload.lang === 'string') {
       setLang(normalizeTmdbLanguageCode(payload.lang) || payload.lang);
     }
+    if (typeof payload.posterLang === 'string') {
+      setPosterLang(normalizeTmdbLanguageCode(payload.posterLang) || payload.posterLang);
+    }
+    if (typeof payload.posterAnimeLang === 'string') {
+      setPosterAnimeLang(normalizeTmdbLanguageCode(payload.posterAnimeLang) || payload.posterAnimeLang);
+    }
     if (typeof payload.previewType === 'string' && isPreviewType(payload.previewType)) {
       setPreviewType(payload.previewType);
     }
     if (typeof payload.posterImageText === 'string' && isImageText(payload.posterImageText)) {
       setPosterImageText(payload.posterImageText);
+    }
+    if (typeof payload.posterAnimeImageText === 'string' && isImageText(payload.posterAnimeImageText)) {
+      setPosterAnimeImageText(payload.posterAnimeImageText);
     }
     if (typeof payload.backdropImageText === 'string' && isImageText(payload.backdropImageText)) {
       setBackdropImageText(payload.backdropImageText);
@@ -2147,7 +2229,9 @@ export default function HomePage({
       previewType,
       mediaId,
       lang: effectiveLang,
+      posterLang,
       posterImageText,
+      posterAnimeImageText,
       backdropImageText,
       posterRatingPreferences,
       backdropRatingPreferences,
@@ -2161,6 +2245,7 @@ export default function HomePage({
       backdropQualityBadgesStyle,
       posterRatingStyle,
       backdropRatingStyle,
+      thumbnailRatingStyle,
       logoRatingStyle,
       logoMode,
       logoFontVariant,
@@ -2193,7 +2278,10 @@ export default function HomePage({
     previewType,
     mediaId,
     effectiveLang,
+    posterLang,
+    posterAnimeLang,
     posterImageText,
+    posterAnimeImageText,
     backdropImageText,
     posterRatingPreferences,
     backdropRatingPreferences,
@@ -2277,7 +2365,10 @@ export default function HomePage({
     () => ({
       version: EXPORT_CONFIG_VERSION,
       lang: effectiveLang,
+      posterLang,
+      posterAnimeLang,
       posterImageText,
+      posterAnimeImageText,
       backdropImageText,
       posterRatingPreferences,
       backdropRatingPreferences,
@@ -2291,6 +2382,7 @@ export default function HomePage({
       backdropQualityBadgesStyle,
       posterRatingStyle,
       backdropRatingStyle,
+      thumbnailRatingStyle,
       logoRatingStyle,
       logoMode,
       logoFontVariant,
@@ -2323,7 +2415,10 @@ export default function HomePage({
     }),
     [
       effectiveLang,
+      posterLang,
+      posterAnimeLang,
       posterImageText,
+      posterAnimeImageText,
       backdropImageText,
       posterRatingPreferences,
       backdropRatingPreferences,
@@ -2337,6 +2432,7 @@ export default function HomePage({
       backdropQualityBadgesStyle,
       posterRatingStyle,
       backdropRatingStyle,
+      thumbnailRatingStyle,
       logoRatingStyle,
       logoMode,
       logoFontVariant,
@@ -2373,7 +2469,10 @@ export default function HomePage({
     () => ({
       version: EXPORT_CONFIG_VERSION,
       lang: effectiveLang,
+      posterLang,
+      posterAnimeLang,
       posterImageText,
+      posterAnimeImageText,
       backdropImageText,
       posterRatingPreferences,
       backdropRatingPreferences,
@@ -2387,6 +2486,7 @@ export default function HomePage({
       backdropQualityBadgesStyle,
       posterRatingStyle,
       backdropRatingStyle,
+      thumbnailRatingStyle,
       logoRatingStyle,
       logoMode,
       logoFontVariant,
@@ -2409,7 +2509,10 @@ export default function HomePage({
     }),
     [
       effectiveLang,
+      posterLang,
+      posterAnimeLang,
       posterImageText,
+      posterAnimeImageText,
       backdropImageText,
       posterRatingPreferences,
       backdropRatingPreferences,
@@ -2423,6 +2526,7 @@ export default function HomePage({
       backdropQualityBadgesStyle,
       posterRatingStyle,
       backdropRatingStyle,
+      thumbnailRatingStyle,
       logoRatingStyle,
       logoMode,
       logoFontVariant,
@@ -2577,6 +2681,9 @@ export default function HomePage({
       previewType,
       mediaId,
       lang: effectiveLang,
+      posterLang,
+      posterAnimeLang,
+      posterAnimeImageText,
       supportedLanguages,
       tmdbKey,
       mdblistKey,
@@ -2655,6 +2762,9 @@ export default function HomePage({
       setPreviewType: handleSetPreviewType,
       setMediaId,
       setLang,
+      setPosterLang,
+      setPosterAnimeLang,
+      setPosterAnimeImageText,
       setTmdbKey,
       setMdblistKey,
       setSimklClientId,

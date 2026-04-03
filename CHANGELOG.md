@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.7](https://github.com/realbestia1/erdb/compare/v0.3.6...v0.3.7) - 2026-04-03
+
+- Improve SQLite WAL management in v0.3.7 ([8c1ca2c](https://github.com/realbestia1/erdb/commit/8c1ca2c82b474622248d605a2c7f358b406b7369))
+  - improve SQLite WAL handling for erdb.db by enabling synchronous NORMAL, wal_autocheckpoint, and journal_size_limit
+  - run wal_checkpoint(TRUNCATE) after IMDb import jobs to prevent erdb.db-wal from growing indefinitely after large write operations
+  - reduce the risk of oversized WAL files during heavy cache writes and dataset imports
+
+## [0.3.6](https://github.com/realbestia1/erdb/compare/v0.3.5...v0.3.6) - 2026-04-03
+
+- Improve poster language handling and bump to v0.3.6 ([bdef6dd](https://github.com/realbestia1/erdb/commit/bdef6ddcc0fb025532783d8a98fd50d3dbc1991a))
+  - add a separate Poster Language Anime option in the same poster language box
+  - wire posterAnimeLang through preview, config import/export, token config, proxy forwarding, and server-side rendering
+  - fix poster original/native language selection so it no longer falls back to localized poster_path when global language is set
+  - improve anime poster handling so Poster Text Anime and Poster Language Anime are resolved independently from the standard poster settings
+  - rename the poster language Original label to Native Language in the configurator UI
+  - fix token persistence for Thumbnail Ratings Style
+  - change MDBList badge accent/border color from orange to white
+  - bump package/app version to 0.3.6
+
 ## [0.3.5](https://github.com/realbestia1/erdb/compare/v0.3.4...v0.3.5) - 2026-04-03
 
 - Add backdrop ratings size support and bump to v0.3.5 ([f8eb982](https://github.com/realbestia1/erdb/commit/f8eb9824915fdb235cef15f41a7ef2935da1f26b))

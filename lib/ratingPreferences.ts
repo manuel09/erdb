@@ -35,7 +35,7 @@ export const RATING_PROVIDER_OPTIONS = [
     id: 'mdblist',
     label: 'MDBList',
     iconUrl: 'https://www.google.com/s2/favicons?domain=mdblist.com&sz=64',
-    accentColor: '#f97316',
+    accentColor: '#ffffff',
     iconScale: 1.08,
   },
   {

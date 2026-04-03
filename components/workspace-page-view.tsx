@@ -96,6 +96,9 @@ type HomePageViewState = {
   previewType: PreviewType;
   mediaId: string;
   lang: string;
+  posterLang: string;
+  posterAnimeLang: string;
+  posterAnimeImageText: 'original' | 'clean' | 'alternative';
   supportedLanguages: SupportedLanguage[];
   tmdbKey: string;
   mdblistKey: string;
@@ -176,6 +179,9 @@ type HomePageViewActions = {
   setPreviewType: Dispatch<SetStateAction<PreviewType>>;
   setMediaId: Dispatch<SetStateAction<string>>;
   setLang: Dispatch<SetStateAction<string>>;
+  setPosterLang: Dispatch<SetStateAction<string>>;
+  setPosterAnimeLang: Dispatch<SetStateAction<string>>;
+  setPosterAnimeImageText: Dispatch<SetStateAction<'original' | 'clean' | 'alternative'>>;
   setTmdbKey: Dispatch<SetStateAction<string>>;
   setMdblistKey: Dispatch<SetStateAction<string>>;
   setSimklClientId: Dispatch<SetStateAction<string>>;
@@ -298,6 +304,9 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
     previewType,
     mediaId,
     lang,
+    posterLang,
+    posterAnimeLang,
+    posterAnimeImageText,
     supportedLanguages,
     tmdbKey,
     mdblistKey,
@@ -370,6 +379,9 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
     setPreviewType,
     setMediaId,
     setLang,
+    setPosterLang,
+    setPosterAnimeLang,
+    setPosterAnimeImageText,
     setTmdbKey,
     setMdblistKey,
     setSimklClientId,
@@ -816,6 +828,39 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
                     </div>
                   </div>
 
+                  {previewType === 'poster' && tmdbKey && (
+                    <div className={`${INNER_PANEL_CLASS} p-3 space-y-3`}>
+                      <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Poster Language</div>
+                      <div className="relative max-w-[220px]">
+                        <select value={posterLang} onChange={(e) => setPosterLang(e.target.value)} className={`h-8 w-full appearance-none pr-7 ${INPUT_COMPACT_CLASS}`}>
+                          <option value="" className="bg-[#0a0a0a]">Global ({lang})</option>
+                          <option value="original" className="bg-[#0a0a0a]">Native Language</option>
+                          {supportedLanguages.map((language) => (
+                            <option key={language.code} value={language.code} className="bg-[#0a0a0a]">
+                              {language.flag} {language.label}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronRight className="absolute right-2 top-2.5 w-3 h-3 rotate-90 stroke-2 text-slate-500 pointer-events-none" />
+                      </div>
+                      <div>
+                        <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Poster Language Anime</div>
+                        <div className="relative max-w-[220px]">
+                          <select value={posterAnimeLang} onChange={(e) => setPosterAnimeLang(e.target.value)} className={`h-8 w-full appearance-none pr-7 ${INPUT_COMPACT_CLASS}`}>
+                            <option value="" className="bg-[#0a0a0a]">Global ({lang})</option>
+                            <option value="original" className="bg-[#0a0a0a]">Native Language</option>
+                            {supportedLanguages.map((language) => (
+                              <option key={language.code} value={language.code} className="bg-[#0a0a0a]">
+                                {language.flag} {language.label}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronRight className="absolute right-2 top-2.5 w-3 h-3 rotate-90 stroke-2 text-slate-500 pointer-events-none" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className={`${INNER_PANEL_CLASS} p-3 space-y-3`}>
                     <div className="flex flex-wrap gap-3 items-center">
                       <div>
@@ -834,6 +879,16 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
                               <button key={option} onClick={() => setImageTextForType(option)} className={`px-2 py-1 rounded text-xs font-bold transition-all ${activeImageText === option ? 'border border-orange-400/20 bg-orange-500/10 text-white' : 'border border-transparent text-slate-400 hover:text-white'}`}>{option.charAt(0).toUpperCase() + option.slice(1)}</button>
                             ))}
                           </div>
+                          {previewType === 'poster' && (
+                            <div className="mt-3">
+                              <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">Poster Text Anime</span>
+                              <div className={SEGMENT_CLASS}>
+                                {(['original', 'clean', 'alternative'] as const).map(option => (
+                                  <button key={option} onClick={() => setPosterAnimeImageText(option)} className={`px-2 py-1 rounded text-xs font-bold transition-all ${posterAnimeImageText === option ? 'border border-orange-400/20 bg-orange-500/10 text-white' : 'border border-transparent text-slate-400 hover:text-white'}`}>{option.charAt(0).toUpperCase() + option.slice(1)}</button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
