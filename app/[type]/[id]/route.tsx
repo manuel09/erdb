@@ -9,6 +9,7 @@ import {
 } from '@/lib/ratingPreferences';
 import {
   DEFAULT_BACKDROP_RATING_LAYOUT,
+  isVerticalBackdropRatingLayout,
   normalizeBackdropRatingLayout,
   type BackdropRatingLayout,
 } from '@/lib/backdropRatingLayout';
@@ -27,6 +28,7 @@ import {
   DEFAULT_POSTER_RATING_LAYOUT,
   getPosterRatingLayoutMaxBadges,
   getPosterRatingLayoutLimit,
+  isVerticalPosterRatingLayout,
   normalizePosterRatingLayout,
   normalizePosterRatingsMaxPerSide,
   type PosterRatingLayout,
@@ -64,6 +66,7 @@ import {
 import { getMetadata, setMetadata } from '@/lib/metadataCache';
 import { fetchWithRetry } from '@/lib/request';
 import { buildPublicImageCacheControl } from '@/lib/imageCacheTtl';
+import { getTokenConfig } from '@/lib/tokens';
 
 export const runtime = 'nodejs';
 
@@ -5220,113 +5223,168 @@ export async function GET(
   const outputFormat = pickOutputFormat(imageType, request.headers.get('accept'));
   const cleanId = id.replace('.jpg', '');
 
-  // Extract configuration from query parameters
-  const lang = request.nextUrl.searchParams.get('lang') || FALLBACK_IMAGE_LANGUAGE;
-  const globalRatings = request.nextUrl.searchParams.get('ratings');
-  const posterRatings = request.nextUrl.searchParams.get('posterRatings') ?? globalRatings;
-  const backdropRatings = request.nextUrl.searchParams.get('backdropRatings') ?? globalRatings;
+  // Extract configuration from token or query parameters
+  const token = request.nextUrl.searchParams.get('token') || request.headers.get('x-erdb-token');
+  const tokenData = token ? getTokenConfig(token) : null;
+  const tokenConfig = (tokenData?.config || {}) as any;
+  const tokenUpdatedAt = tokenData?.updatedAt || 0;
+
+  const lang = tokenConfig.lang || request.nextUrl.searchParams.get('lang') || FALLBACK_IMAGE_LANGUAGE;
+  const globalRatings = tokenConfig.ratings || request.nextUrl.searchParams.get('ratings');
+
+  const getRatings = (configKey: string, queryKey: string) => {
+    const fromConfig = tokenConfig[configKey];
+    if (Array.isArray(fromConfig)) return fromConfig.join(',');
+    if (typeof fromConfig === 'string') return fromConfig;
+    return request.nextUrl.searchParams.get(queryKey);
+  };
+
+  const posterRatings = getRatings('posterRatingPreferences', 'posterRatings') ?? globalRatings;
+  const backdropRatings = getRatings('backdropRatingPreferences', 'backdropRatings') ?? globalRatings;
   const thumbnailRatings =
-    request.nextUrl.searchParams.get('thumbnailRatings') ??
-    request.nextUrl.searchParams.get('backdropRatings') ??
+    getRatings('thumbnailRatingPreferences', 'thumbnailRatings') ??
+    getRatings('backdropRatingPreferences', 'backdropRatings') ??
     globalRatings;
-  const logoRatings = request.nextUrl.searchParams.get('logoRatings') ?? globalRatings;
+  const logoRatings = getRatings('logoRatingPreferences', 'logoRatings') ?? globalRatings;
+
   const imageTextParam =
-    request.nextUrl.searchParams.get('imageText') || request.nextUrl.searchParams.get('posterText');
-  const imageText = imageTextParam || (type === 'backdrop' ? 'clean' : 'original');
-  const posterRatingsLayout = normalizePosterRatingLayout(request.nextUrl.searchParams.get('posterRatingsLayout'));
-  const posterRatingsMaxPerSide = normalizePosterRatingsMaxPerSide(request.nextUrl.searchParams.get('posterRatingsMaxPerSide'));
-  const logoRatingsMax = normalizeLogoRatingsMax(request.nextUrl.searchParams.get('logoRatingsMax'));
-  const logoMode = normalizeLogoMode(request.nextUrl.searchParams.get('logoMode'));
-  const logoFontVariant = normalizeLogoFontVariant(request.nextUrl.searchParams.get('logoFontVariant'));
+    tokenConfig.posterImageText ||
+    request.nextUrl.searchParams.get('imageText') ||
+    request.nextUrl.searchParams.get('posterText');
+  const backdropImageTextParam =
+    tokenConfig.backdropImageText ||
+    request.nextUrl.searchParams.get('backdropText') ||
+    request.nextUrl.searchParams.get('imageText');
+  
+  const imageText = type === 'backdrop' || type === 'thumbnail'
+    ? (backdropImageTextParam || 'clean')
+    : (imageTextParam || 'original');
+
+  const posterRatingsLayout = normalizePosterRatingLayout(tokenConfig.posterRatingsLayout || request.nextUrl.searchParams.get('posterRatingsLayout'));
+  const posterRatingsMaxPerSide = normalizePosterRatingsMaxPerSide(tokenConfig.posterRatingsMaxPerSide ?? request.nextUrl.searchParams.get('posterRatingsMaxPerSide'));
+  const logoRatingsMax = normalizeLogoRatingsMax(tokenConfig.logoRatingsMax ?? request.nextUrl.searchParams.get('logoRatingsMax'));
+  const logoMode = normalizeLogoMode(tokenConfig.logoMode || request.nextUrl.searchParams.get('logoMode'));
+  const logoFontVariant = normalizeLogoFontVariant(tokenConfig.logoFontVariant || request.nextUrl.searchParams.get('logoFontVariant'));
+  
   const logoPrimary = normalizeHexColor(
-    request.nextUrl.searchParams.get('logoPrimary'),
+    tokenConfig.logoCustomPrimary || request.nextUrl.searchParams.get('logoPrimary'),
     DEFAULT_LOGO_CUSTOM_PRIMARY
   );
   const logoSecondary = normalizeHexColor(
-    request.nextUrl.searchParams.get('logoSecondary'),
+    tokenConfig.logoCustomSecondary || request.nextUrl.searchParams.get('logoSecondary'),
     DEFAULT_LOGO_CUSTOM_SECONDARY
   );
   const logoOutline = normalizeHexColor(
-    request.nextUrl.searchParams.get('logoOutline'),
+    tokenConfig.logoCustomOutline || request.nextUrl.searchParams.get('logoOutline'),
     DEFAULT_LOGO_CUSTOM_OUTLINE
   );
-  const backdropRatingsLayout = normalizeBackdropRatingLayout(request.nextUrl.searchParams.get('backdropRatingsLayout'));
+  
+  const backdropRatingsLayout = normalizeBackdropRatingLayout(tokenConfig.backdropRatingsLayout || request.nextUrl.searchParams.get('backdropRatingsLayout'));
   const thumbnailRatingsLayout = normalizeThumbnailRatingLayout(
-    request.nextUrl.searchParams.get('thumbnailRatingsLayout')
+    tokenConfig.thumbnailRatingsLayout || request.nextUrl.searchParams.get('thumbnailRatingsLayout')
   );
+  
   const posterVerticalBadgeContent = normalizeVerticalBadgeContent(
+    tokenConfig.posterVerticalBadgeContent ||
+    tokenConfig.verticalBadgeContent ||
     request.nextUrl.searchParams.get('posterVerticalBadgeContent') ||
     request.nextUrl.searchParams.get('verticalBadgeContent')
   );
   const backdropVerticalBadgeContent = normalizeVerticalBadgeContent(
+    tokenConfig.backdropVerticalBadgeContent ||
+    tokenConfig.verticalBadgeContent ||
     request.nextUrl.searchParams.get('backdropVerticalBadgeContent') ||
     request.nextUrl.searchParams.get('verticalBadgeContent')
   );
   const thumbnailVerticalBadgeContent = normalizeVerticalBadgeContent(
+    tokenConfig.thumbnailVerticalBadgeContent ||
+    tokenConfig.backdropVerticalBadgeContent ||
+    tokenConfig.verticalBadgeContent ||
     request.nextUrl.searchParams.get('thumbnailVerticalBadgeContent') ||
     request.nextUrl.searchParams.get('backdropVerticalBadgeContent') ||
     request.nextUrl.searchParams.get('verticalBadgeContent')
   );
+  
   const verticalBadgeContent =
     imageType === 'poster'
-      ? posterVerticalBadgeContent
+      ? isVerticalPosterRatingLayout(posterRatingsLayout)
+        ? posterVerticalBadgeContent
+        : 'standard'
       : imageType === 'thumbnail'
-        ? thumbnailVerticalBadgeContent
+        ? isVerticalThumbnailRatingLayout(thumbnailRatingsLayout)
+          ? thumbnailVerticalBadgeContent
+          : 'standard'
         : imageType === 'backdrop'
-          ? backdropVerticalBadgeContent
+          ? isVerticalBackdropRatingLayout(backdropRatingsLayout)
+            ? backdropVerticalBadgeContent
+            : 'standard'
           : 'standard';
-  const thumbnailSize = normalizeThumbnailSize(request.nextUrl.searchParams.get('thumbnailSize'));
-  const globalStreamBadgesSetting = normalizeStreamBadgesSetting(request.nextUrl.searchParams.get('streamBadges'));
+          
+  const thumbnailSize = normalizeThumbnailSize(tokenConfig.thumbnailSize || request.nextUrl.searchParams.get('thumbnailSize'));
+  
+  const globalStreamBadgesSetting = normalizeStreamBadgesSetting(tokenConfig.streamBadges || request.nextUrl.searchParams.get('streamBadges'));
   const posterStreamBadgesSetting = normalizeStreamBadgesSetting(
-    request.nextUrl.searchParams.get('posterStreamBadges') || request.nextUrl.searchParams.get('streamBadges')
+    tokenConfig.posterStreamBadges || tokenConfig.streamBadges || request.nextUrl.searchParams.get('posterStreamBadges') || request.nextUrl.searchParams.get('streamBadges')
   );
   const backdropStreamBadgesSetting = normalizeStreamBadgesSetting(
-    request.nextUrl.searchParams.get('backdropStreamBadges') || request.nextUrl.searchParams.get('streamBadges')
+    tokenConfig.backdropStreamBadges || tokenConfig.streamBadges || request.nextUrl.searchParams.get('backdropStreamBadges') || request.nextUrl.searchParams.get('streamBadges')
   );
+  
   const streamBadgesSetting =
     imageType === 'poster'
       ? posterStreamBadgesSetting
       : imageType === 'backdrop'
         ? backdropStreamBadgesSetting
         : globalStreamBadgesSetting;
+        
   const qualityBadgesSide = normalizeQualityBadgesSide(
+    tokenConfig.qualityBadgesSide ||
     request.nextUrl.searchParams.get('qualityBadgesSide') ||
     request.nextUrl.searchParams.get('qualityBadgesPosition')
   );
   const posterQualityBadgesPosition = normalizePosterQualityBadgesPosition(
-    request.nextUrl.searchParams.get('posterQualityBadgesPosition')
+    tokenConfig.posterQualityBadgesPosition || request.nextUrl.searchParams.get('posterQualityBadgesPosition')
   );
+  
   const globalQualityBadgesStyle = normalizeQualityBadgesStyle(
-    request.nextUrl.searchParams.get('qualityBadgesStyle')
+    tokenConfig.qualityBadgesStyle || request.nextUrl.searchParams.get('qualityBadgesStyle')
   );
   const posterQualityBadgesStyle = normalizeQualityBadgesStyle(
+    tokenConfig.posterQualityBadgesStyle ||
+    tokenConfig.qualityBadgesStyle ||
     request.nextUrl.searchParams.get('posterQualityBadgesStyle') ||
     request.nextUrl.searchParams.get('qualityBadgesStyle')
   );
   const backdropQualityBadgesStyle = normalizeQualityBadgesStyle(
+    tokenConfig.backdropQualityBadgesStyle ||
+    tokenConfig.qualityBadgesStyle ||
     request.nextUrl.searchParams.get('backdropQualityBadgesStyle') ||
     request.nextUrl.searchParams.get('qualityBadgesStyle')
   );
+  
   const qualityBadgesStyle =
     imageType === 'poster'
       ? posterQualityBadgesStyle
       : imageType === 'backdrop'
         ? backdropQualityBadgesStyle
         : globalQualityBadgesStyle;
+        
   const globalRatingStyleParam =
-    request.nextUrl.searchParams.get('ratingStyle') || request.nextUrl.searchParams.get('style');
+    tokenConfig.ratingStyle || request.nextUrl.searchParams.get('ratingStyle') || request.nextUrl.searchParams.get('style');
+    
   const posterRatingStyle = normalizeRatingStyle(
-    request.nextUrl.searchParams.get('posterRatingStyle') || globalRatingStyleParam
+    tokenConfig.posterRatingStyle || globalRatingStyleParam || request.nextUrl.searchParams.get('posterRatingStyle')
   );
   const backdropRatingStyle = normalizeRatingStyle(
-    request.nextUrl.searchParams.get('backdropRatingStyle') || globalRatingStyleParam
+    tokenConfig.backdropRatingStyle || globalRatingStyleParam || request.nextUrl.searchParams.get('backdropRatingStyle')
   );
   const thumbnailRatingStyle = normalizeRatingStyle(
-    request.nextUrl.searchParams.get('thumbnailRatingStyle') || globalRatingStyleParam
+    tokenConfig.thumbnailRatingStyle || globalRatingStyleParam || request.nextUrl.searchParams.get('thumbnailRatingStyle')
   );
   const logoRatingStyle = normalizeRatingStyle(
-    request.nextUrl.searchParams.get('logoRatingStyle') || globalRatingStyleParam
+    tokenConfig.logoRatingStyle || globalRatingStyleParam || request.nextUrl.searchParams.get('logoRatingStyle')
   );
+  
   const ratingStyle =
     imageType === 'poster'
       ? posterRatingStyle
@@ -5337,9 +5395,11 @@ export async function GET(
           : imageType === 'logo'
             ? logoRatingStyle
             : normalizeRatingStyle(globalRatingStyleParam);
-  const mdblistKey = request.nextUrl.searchParams.get('mdblistKey') || request.nextUrl.searchParams.get('mdblist_key');
-  const tmdbKey = request.nextUrl.searchParams.get('tmdbKey') || request.nextUrl.searchParams.get('tmdb_key');
+            
+  const mdblistKey = tokenConfig.mdblistKey || request.nextUrl.searchParams.get('mdblistKey') || request.nextUrl.searchParams.get('mdblist_key');
+  const tmdbKey = tokenConfig.tmdbKey || request.nextUrl.searchParams.get('tmdbKey') || request.nextUrl.searchParams.get('tmdb_key');
   const simklClientId =
+    tokenConfig.simklClientId ||
     request.nextUrl.searchParams.get('simklClientId') ||
     request.nextUrl.searchParams.get('simkl_client_id') ||
     SIMKL_CLIENT_ID;
@@ -5488,8 +5548,7 @@ export async function GET(
     effectiveRatingPreferences.join(',') || 'none',
     mdblistCacheSeed,
     simklCacheSeed,
-    streamBadgesCacheKeySeed,
-    'v1', // Static version since we no longer have tokenConfigVersion
+    tokenUpdatedAt.toString(),
   ].join('|');
   const objectStorageEnabled = isObjectStorageConfigured();
 

@@ -11,6 +11,7 @@ import {
   useSyncExternalStore,
   type ChangeEvent,
   type Dispatch,
+  type MouseEvent as ReactMouseEvent,
   type SetStateAction,
 } from 'react';
 import {
@@ -130,6 +131,7 @@ const POSTER_QUALITY_BADGE_POSITION_OPTIONS: Array<{
 const TMDB_KEY_STORAGE_KEY = 'erdb_tmdb_key';
 const MDBLIST_KEY_STORAGE_KEY = 'erdb_mdblist_key';
 const SIMKL_CLIENT_ID_STORAGE_KEY = 'erdb_simkl_client_id';
+const ERDB_TOKEN_STORAGE_KEY = 'erdb_active_token';
 const PREVIEW_CONFIG_STORAGE_KEY = 'erdb_preview_config';
 const EXPORT_CONFIG_VERSION = 1;
 const TMDB_LANGUAGE_DOC_EXAMPLES = 'TMDB language code (en, es-ES, es-MX, pt-PT, pt-BR, etc.)';
@@ -323,6 +325,7 @@ const EMPTY_ENABLED_RATING_QUERY_KEYS = new Set([
 
 const buildAiometadataPattern = (options: {
   baseUrl: string;
+  activeToken: string | null;
   imageType: 'poster' | 'backdrop' | 'logo' | 'thumbnail';
   idPlaceholder: string;
   tmdbKey: string;
@@ -364,6 +367,7 @@ const buildAiometadataPattern = (options: {
 }) => {
   const {
     baseUrl,
+    activeToken,
     imageType,
     idPlaceholder,
     tmdbKey,
@@ -404,7 +408,15 @@ const buildAiometadataPattern = (options: {
     thumbnailSize,
   } = options;
 
-  if (!baseUrl || !tmdbKey || !mdblistKey) {
+  if (!baseUrl) {
+    return '';
+  }
+
+  if (activeToken) {
+    return `${baseUrl}/${activeToken}/${imageType}/${idPlaceholder}.jpg`;
+  }
+
+  if (!tmdbKey || !mdblistKey) {
     return '';
   }
 
@@ -488,11 +500,20 @@ const buildAiometadataPattern = (options: {
 
 const buildAiometadataPatternBlock = (options: {
   baseUrl: string;
+  activeToken: string | null;
   imageType: 'poster' | 'backdrop' | 'logo' | 'thumbnail';
   configString: string;
   idPattern?: string;
 }) => {
-  if (!options.baseUrl || !options.configString) {
+  if (!options.baseUrl) {
+    return '';
+  }
+
+  if (options.activeToken) {
+    return `${options.baseUrl}/${options.activeToken}/${options.imageType}/${options.idPattern || '{imdb_id}'}.jpg`;
+  }
+
+  if (!options.configString) {
     return '';
   }
 
@@ -635,7 +656,15 @@ const downloadJsonFile = (payload: Record<string, unknown>, filename: string) =>
 
 const maskSensitiveText = (value: string) => value.replace(/[^\s]/g, '*');
 
-export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) {
+export default function HomePage({
+  mode = 'landing',
+  initialToken = null,
+  initialConfig = null,
+}: {
+  mode?: HomePageMode;
+  initialToken?: string | null;
+  initialConfig?: Record<string, unknown> | null;
+}) {
   const [previewType, setPreviewType] = useState<PreviewType>('poster');
   const [mediaId, setMediaId] = useState(DEFAULT_SERIES_ID);
   const [lang, setLang] = useState('en');
@@ -707,17 +736,18 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
   const [proxyCatalogsStatus, setProxyCatalogsStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [proxyCatalogsError, setProxyCatalogsError] = useState('');
   const [proxyCopied, setProxyCopied] = useState(false);
-  const [configCopied, setConfigCopied] = useState(false);
-  const [showConfigString, setShowConfigString] = useState(false);
   const [showProxyUrl, setShowProxyUrl] = useState(false);
   const [aiometadataCopiedType, setAiometadataCopiedType] = useState<AiometadataPatternType | null>(null);
   const [aiometadataEpisodeProvider, setAiometadataEpisodeProvider] = useState<AiometadataEpisodeProvider>('realimdb');
-  const [currentVersion, setCurrentVersion] = useState('0.2.12');
+  const [currentVersion, setCurrentVersion] = useState('0.3.4');
   const [githubPackageVersion, setGithubPackageVersion] = useState<string | null>(null);
   const [repoUrl, setRepoUrl] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<'idle' | 'with' | 'without'>('idle');
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [importMessage, setImportMessage] = useState('');
+
+  const [activeToken, setActiveToken] = useState<string | null>(initialToken);
+  const [configSaveStatus, setConfigSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const navRef = useRef<HTMLElement | null>(null);
   const baseUrl = normalizeBaseUrl(useClientOrigin());
   const hasTmdbKey = tmdbKey.length > 10;
@@ -799,7 +829,8 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
     const storedTmdbKey = safeLocalStorageGet(TMDB_KEY_STORAGE_KEY);
     const storedMdblistKey = safeLocalStorageGet(MDBLIST_KEY_STORAGE_KEY);
     const storedSimklClientId = safeLocalStorageGet(SIMKL_CLIENT_ID_STORAGE_KEY);
-    if (!storedTmdbKey && !storedMdblistKey && !storedSimklClientId) {
+    const storedToken = safeLocalStorageGet(ERDB_TOKEN_STORAGE_KEY);
+    if (!storedTmdbKey && !storedMdblistKey && !storedSimklClientId && !storedToken) {
       return;
     }
     const frameId = window.requestAnimationFrame(() => {
@@ -812,9 +843,20 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
       if (storedSimklClientId) {
         setSimklClientId(storedSimklClientId);
       }
+      if (!initialToken && storedToken) {
+        setActiveToken(storedToken);
+      }
     });
     return () => window.cancelAnimationFrame(frameId);
-  }, []);
+  }, [initialToken]);
+
+  useEffect(() => {
+    if (activeToken) {
+      safeLocalStorageSet(ERDB_TOKEN_STORAGE_KEY, activeToken);
+    } else {
+      safeLocalStorageRemove(ERDB_TOKEN_STORAGE_KEY);
+    }
+  }, [activeToken]);
 
   useEffect(() => {
     if (tmdbKey) {
@@ -877,7 +919,7 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
   }, []);
 
   const handleAnchorClick = useCallback(
-    (event: React.MouseEvent<HTMLAnchorElement>) => {
+    (event: ReactMouseEvent<HTMLAnchorElement>) => {
       const href = event.currentTarget.getAttribute('href');
       if (!href || !href.startsWith('#')) return;
       event.preventDefault();
@@ -1353,14 +1395,54 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
       return '';
     }
     const manifestUrl = normalizeManifestUrl(proxyManifestUrl);
+    if (!manifestUrl || isBareHttpUrl(manifestUrl)) {
+      return '';
+    }
+
+    const isAiometadataManifest = manifestUrl.toLowerCase().includes('aiometadata');
+    const isCinemetaManifest = isCinemetaManifestUrl(manifestUrl);
+
+    if (activeToken) {
+      const tokenProxyConfig: Record<string, unknown> = {
+        url: manifestUrl,
+        erdbBase: baseUrl,
+        posterEnabled: proxyEnabledTypes.poster,
+        backdropEnabled: proxyEnabledTypes.backdrop,
+        logoEnabled: proxyEnabledTypes.logo,
+        thumbnailEnabled: proxyEnabledTypes.thumbnail,
+      };
+
+      if (proxyTranslateMeta) {
+        tokenProxyConfig.translateMeta = true;
+      }
+      if (Object.keys(sanitizedProxyCatalogNames).length > 0) {
+        tokenProxyConfig.catalogNames = sanitizedProxyCatalogNames;
+      }
+      if (sanitizedProxyHiddenCatalogs.length > 0) {
+        tokenProxyConfig.hiddenCatalogs = sanitizedProxyHiddenCatalogs;
+      }
+      if (sanitizedProxySearchDisabledCatalogs.length > 0) {
+        tokenProxyConfig.searchDisabledCatalogs = sanitizedProxySearchDisabledCatalogs;
+      }
+      if (Object.keys(sanitizedProxyDiscoverOnlyCatalogs).length > 0) {
+        tokenProxyConfig.discoverOnlyCatalogs = sanitizedProxyDiscoverOnlyCatalogs;
+      }
+      if (isAiometadataManifest) {
+        tokenProxyConfig.aiometadataProvider = proxyAiometadataProvider;
+      } else if (!isCinemetaManifest && proxySeriesMetadataProvider === 'imdb') {
+        tokenProxyConfig.seriesMetadataProvider = proxySeriesMetadataProvider;
+      }
+
+      const encodedProxyConfig = encodeBase64Url(JSON.stringify(tokenProxyConfig));
+      return `${baseUrl}/proxy/${activeToken}/${encodedProxyConfig}/manifest.json`;
+    }
+
     const tmdb = tmdbKey.trim();
     const mdb = mdblistKey.trim();
     const simkl = simklClientId.trim();
-    if (!manifestUrl || isBareHttpUrl(manifestUrl) || !tmdb || !mdb) {
+    if (!tmdb || !mdb) {
       return '';
     }
-    const isAiometadataManifest = manifestUrl.toLowerCase().includes('aiometadata');
-    const isCinemetaManifest = isCinemetaManifestUrl(manifestUrl);
 
     const config: Record<string, unknown> = {
       url: manifestUrl,
@@ -1543,11 +1625,13 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
     sanitizedProxyDiscoverOnlyCatalogs,
     baseUrl,
     thumbnailRatingStyle,
+    activeToken,
   ]);
 
   const aiometadataPatterns = useMemo(() => {
     const episodePattern = buildAiometadataPatternBlock({
       baseUrl,
+      activeToken,
       imageType: 'thumbnail',
       configString,
       idPattern: buildEpisodeThumbnailIdPattern(aiometadataEpisodeProvider),
@@ -1556,18 +1640,21 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
     return {
       poster: buildAiometadataPatternBlock({
         baseUrl,
+        activeToken,
         imageType: 'poster',
         configString,
         idPattern: '{imdb_id}',
       }),
       background: buildAiometadataPatternBlock({
         baseUrl,
+        activeToken,
         imageType: 'backdrop',
         configString,
         idPattern: '{imdb_id}',
       }),
       logo: buildAiometadataPatternBlock({
         baseUrl,
+        activeToken,
         imageType: 'logo',
         configString,
         idPattern: '{imdb_id}',
@@ -1576,6 +1663,7 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
     };
   }, [
     baseUrl,
+    activeToken,
     configString,
     aiometadataEpisodeProvider,
   ]);
@@ -1667,13 +1755,6 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
     }));
   };
 
-  const handleCopyConfig = useCallback(() => {
-    if (!configString) return;
-    navigator.clipboard.writeText(configString);
-    setConfigCopied(true);
-    setTimeout(() => setConfigCopied(false), 2000);
-  }, [configString]);
-
   const handleCopyProxy = useCallback(() => {
     if (!proxyUrl) return;
     navigator.clipboard.writeText(proxyUrl);
@@ -1749,7 +1830,11 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
     setTimeout(() => setExportStatus('idle'), 2000);
   };
 
-  function applyImportedConfig(payload: Record<string, unknown>) {
+  function applyImportedConfig(
+    payload: Record<string, unknown>,
+    options: { includeProxy?: boolean } = {}
+  ) {
+    const { includeProxy = true } = options;
     if (typeof payload.tmdbKey === 'string') {
       setTmdbKey(payload.tmdbKey);
     }
@@ -1913,88 +1998,90 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
       setLogoRatingRows(enabledOrderedToRows(logoRatings));
     }
 
-    const importedProxyManifestUrl =
-      typeof payload.proxyManifestUrl === 'string'
-        ? payload.proxyManifestUrl
-        : typeof payload.url === 'string'
-          ? payload.url
-          : null;
-    if (importedProxyManifestUrl) {
-      const nextProxyManifestUrl = normalizeManifestUrl(importedProxyManifestUrl, true);
-      setProxyManifestUrl(nextProxyManifestUrl);
-      setProxyCatalogs([]);
-      setProxyCatalogNames({});
-      setProxyHiddenCatalogs([]);
-      setProxySearchDisabledCatalogs([]);
-      setProxyDiscoverOnlyCatalogs({});
-      setProxyCatalogsStatus('idle');
-      setProxyCatalogsError('');
-    }
-    const importedSeriesMetadataProvider =
-      payload.proxySeriesMetadataProvider ?? payload.seriesMetadataProvider;
-    if (isProxySeriesMetadataProvider(importedSeriesMetadataProvider)) {
-      setProxySeriesMetadataProvider(importedSeriesMetadataProvider);
-    }
-    const importedAiometadataProvider =
-      payload.proxyAiometadataProvider ?? payload.aiometadataProvider;
-    if (isProxyEpisodeProvider(importedAiometadataProvider)) {
-      setProxyAiometadataProvider(importedAiometadataProvider);
-    }
-    if (payload.proxyEnabledTypes && typeof payload.proxyEnabledTypes === 'object') {
-      const enabled = payload.proxyEnabledTypes as Record<string, unknown>;
-      setProxyEnabledTypes((current) => ({
-        poster: typeof enabled.poster === 'boolean' ? enabled.poster : current.poster,
-        backdrop: typeof enabled.backdrop === 'boolean' ? enabled.backdrop : current.backdrop,
-        logo: typeof enabled.logo === 'boolean' ? enabled.logo : current.logo,
-        thumbnail: typeof enabled.thumbnail === 'boolean' ? enabled.thumbnail : current.thumbnail,
-      }));
-    } else if (
-      typeof payload.posterEnabled === 'boolean' ||
-      typeof payload.backdropEnabled === 'boolean' ||
-      typeof payload.logoEnabled === 'boolean' ||
-      typeof payload.thumbnailEnabled === 'boolean'
-    ) {
-      setProxyEnabledTypes((current) => ({
-        poster: typeof payload.posterEnabled === 'boolean' ? payload.posterEnabled : current.poster,
-        backdrop: typeof payload.backdropEnabled === 'boolean' ? payload.backdropEnabled : current.backdrop,
-        logo: typeof payload.logoEnabled === 'boolean' ? payload.logoEnabled : current.logo,
-        thumbnail: typeof payload.thumbnailEnabled === 'boolean' ? payload.thumbnailEnabled : current.thumbnail,
-      }));
-    }
-    if (typeof payload.translateMeta === 'boolean') {
-      setProxyTranslateMeta(payload.translateMeta);
-    }
-    const importedProxyCatalogNames =
-      normalizeProxyCatalogNameOverrides(payload.proxyCatalogNames) ||
-      normalizeProxyCatalogNameOverrides(payload.catalogNames);
-    if (importedProxyCatalogNames) {
-      setProxyCatalogNames(importedProxyCatalogNames);
-    } else if ('proxyCatalogNames' in payload || 'catalogNames' in payload) {
-      setProxyCatalogNames({});
-    }
-    const importedHiddenCatalogs =
-      normalizeProxyCatalogKeyList(payload.proxyHiddenCatalogs) ||
-      normalizeProxyCatalogKeyList(payload.hiddenCatalogs);
-    if (importedHiddenCatalogs) {
-      setProxyHiddenCatalogs(importedHiddenCatalogs);
-    } else if ('proxyHiddenCatalogs' in payload || 'hiddenCatalogs' in payload) {
-      setProxyHiddenCatalogs([]);
-    }
-    const importedSearchDisabledCatalogs =
-      normalizeProxyCatalogKeyList(payload.proxySearchDisabledCatalogs) ||
-      normalizeProxyCatalogKeyList(payload.searchDisabledCatalogs);
-    if (importedSearchDisabledCatalogs) {
-      setProxySearchDisabledCatalogs(importedSearchDisabledCatalogs);
-    } else if ('proxySearchDisabledCatalogs' in payload || 'searchDisabledCatalogs' in payload) {
-      setProxySearchDisabledCatalogs([]);
-    }
-    const importedDiscoverOnlyCatalogs =
-      normalizeProxyCatalogBooleanOverrides(payload.proxyDiscoverOnlyCatalogs) ||
-      normalizeProxyCatalogBooleanOverrides(payload.discoverOnlyCatalogs);
-    if (importedDiscoverOnlyCatalogs) {
-      setProxyDiscoverOnlyCatalogs(importedDiscoverOnlyCatalogs);
-    } else if ('proxyDiscoverOnlyCatalogs' in payload || 'discoverOnlyCatalogs' in payload) {
-      setProxyDiscoverOnlyCatalogs({});
+    if (includeProxy) {
+      const importedProxyManifestUrl =
+        typeof payload.proxyManifestUrl === 'string'
+          ? payload.proxyManifestUrl
+          : typeof payload.url === 'string'
+            ? payload.url
+            : null;
+      if (importedProxyManifestUrl) {
+        const nextProxyManifestUrl = normalizeManifestUrl(importedProxyManifestUrl, true);
+        setProxyManifestUrl(nextProxyManifestUrl);
+        setProxyCatalogs([]);
+        setProxyCatalogNames({});
+        setProxyHiddenCatalogs([]);
+        setProxySearchDisabledCatalogs([]);
+        setProxyDiscoverOnlyCatalogs({});
+        setProxyCatalogsStatus('idle');
+        setProxyCatalogsError('');
+      }
+      const importedSeriesMetadataProvider =
+        payload.proxySeriesMetadataProvider ?? payload.seriesMetadataProvider;
+      if (isProxySeriesMetadataProvider(importedSeriesMetadataProvider)) {
+        setProxySeriesMetadataProvider(importedSeriesMetadataProvider);
+      }
+      const importedAiometadataProvider =
+        payload.proxyAiometadataProvider ?? payload.aiometadataProvider;
+      if (isProxyEpisodeProvider(importedAiometadataProvider)) {
+        setProxyAiometadataProvider(importedAiometadataProvider);
+      }
+      if (payload.proxyEnabledTypes && typeof payload.proxyEnabledTypes === 'object') {
+        const enabled = payload.proxyEnabledTypes as Record<string, unknown>;
+        setProxyEnabledTypes((current) => ({
+          poster: typeof enabled.poster === 'boolean' ? enabled.poster : current.poster,
+          backdrop: typeof enabled.backdrop === 'boolean' ? enabled.backdrop : current.backdrop,
+          logo: typeof enabled.logo === 'boolean' ? enabled.logo : current.logo,
+          thumbnail: typeof enabled.thumbnail === 'boolean' ? enabled.thumbnail : current.thumbnail,
+        }));
+      } else if (
+        typeof payload.posterEnabled === 'boolean' ||
+        typeof payload.backdropEnabled === 'boolean' ||
+        typeof payload.logoEnabled === 'boolean' ||
+        typeof payload.thumbnailEnabled === 'boolean'
+      ) {
+        setProxyEnabledTypes((current) => ({
+          poster: typeof payload.posterEnabled === 'boolean' ? payload.posterEnabled : current.poster,
+          backdrop: typeof payload.backdropEnabled === 'boolean' ? payload.backdropEnabled : current.backdrop,
+          logo: typeof payload.logoEnabled === 'boolean' ? payload.logoEnabled : current.logo,
+          thumbnail: typeof payload.thumbnailEnabled === 'boolean' ? payload.thumbnailEnabled : current.thumbnail,
+        }));
+      }
+      if (typeof payload.translateMeta === 'boolean') {
+        setProxyTranslateMeta(payload.translateMeta);
+      }
+      const importedProxyCatalogNames =
+        normalizeProxyCatalogNameOverrides(payload.proxyCatalogNames) ||
+        normalizeProxyCatalogNameOverrides(payload.catalogNames);
+      if (importedProxyCatalogNames) {
+        setProxyCatalogNames(importedProxyCatalogNames);
+      } else if ('proxyCatalogNames' in payload || 'catalogNames' in payload) {
+        setProxyCatalogNames({});
+      }
+      const importedHiddenCatalogs =
+        normalizeProxyCatalogKeyList(payload.proxyHiddenCatalogs) ||
+        normalizeProxyCatalogKeyList(payload.hiddenCatalogs);
+      if (importedHiddenCatalogs) {
+        setProxyHiddenCatalogs(importedHiddenCatalogs);
+      } else if ('proxyHiddenCatalogs' in payload || 'hiddenCatalogs' in payload) {
+        setProxyHiddenCatalogs([]);
+      }
+      const importedSearchDisabledCatalogs =
+        normalizeProxyCatalogKeyList(payload.proxySearchDisabledCatalogs) ||
+        normalizeProxyCatalogKeyList(payload.searchDisabledCatalogs);
+      if (importedSearchDisabledCatalogs) {
+        setProxySearchDisabledCatalogs(importedSearchDisabledCatalogs);
+      } else if ('proxySearchDisabledCatalogs' in payload || 'searchDisabledCatalogs' in payload) {
+        setProxySearchDisabledCatalogs([]);
+      }
+      const importedDiscoverOnlyCatalogs =
+        normalizeProxyCatalogBooleanOverrides(payload.proxyDiscoverOnlyCatalogs) ||
+        normalizeProxyCatalogBooleanOverrides(payload.discoverOnlyCatalogs);
+      if (importedDiscoverOnlyCatalogs) {
+        setProxyDiscoverOnlyCatalogs(importedDiscoverOnlyCatalogs);
+      } else if ('proxyDiscoverOnlyCatalogs' in payload || 'discoverOnlyCatalogs' in payload) {
+        setProxyDiscoverOnlyCatalogs({});
+      }
     }
 
     setImportStatus('success');
@@ -2017,6 +2104,16 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
     });
     return () => window.cancelAnimationFrame(frameId);
   }, []);
+
+  useEffect(() => {
+    if (!initialConfig) {
+      return;
+    }
+    const frameId = window.requestAnimationFrame(() => {
+      applyImportedConfig(initialConfig, { includeProxy: false });
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [initialConfig]);
 
   useEffect(() => {
     const payload: Record<string, unknown> = {
@@ -2148,19 +2245,218 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
     applyImportedConfig(payload);
   };
 
-  const canGenerateConfig = Boolean(configString);
+  const currentConfigPayload = useMemo(
+    () => ({
+      version: EXPORT_CONFIG_VERSION,
+      lang: effectiveLang,
+      posterImageText,
+      backdropImageText,
+      posterRatingPreferences,
+      backdropRatingPreferences,
+      thumbnailRatingPreferences,
+      logoRatingPreferences,
+      posterStreamBadges,
+      backdropStreamBadges,
+      qualityBadgesSide,
+      posterQualityBadgesPosition,
+      posterQualityBadgesStyle,
+      backdropQualityBadgesStyle,
+      posterRatingStyle,
+      backdropRatingStyle,
+      logoRatingStyle,
+      logoMode,
+      logoFontVariant,
+      logoCustomPrimary,
+      logoCustomSecondary,
+      logoCustomOutline,
+      posterRatingsLayout,
+      posterRatingsMaxPerSide,
+      logoRatingsMax,
+      backdropRatingsLayout,
+      thumbnailRatingsLayout,
+      posterVerticalBadgeContent,
+      backdropVerticalBadgeContent,
+      thumbnailVerticalBadgeContent,
+      thumbnailSize,
+      aiometadataEpisodeProvider,
+      proxySeriesMetadataProvider,
+      proxyAiometadataProvider,
+      proxyManifestUrl,
+      proxyEnabledTypes,
+      translateMeta: proxyTranslateMeta,
+      proxyCatalogNames: sanitizedProxyCatalogNames,
+      proxyHiddenCatalogs: sanitizedProxyHiddenCatalogs,
+      proxySearchDisabledCatalogs: sanitizedProxySearchDisabledCatalogs,
+      proxyDiscoverOnlyCatalogs: sanitizedProxyDiscoverOnlyCatalogs,
+      tmdbKey,
+      mdblistKey,
+      simklClientId,
+    }),
+    [
+      effectiveLang,
+      posterImageText,
+      backdropImageText,
+      posterRatingPreferences,
+      backdropRatingPreferences,
+      thumbnailRatingPreferences,
+      logoRatingPreferences,
+      posterStreamBadges,
+      backdropStreamBadges,
+      qualityBadgesSide,
+      posterQualityBadgesPosition,
+      posterQualityBadgesStyle,
+      backdropQualityBadgesStyle,
+      posterRatingStyle,
+      backdropRatingStyle,
+      logoRatingStyle,
+      logoMode,
+      logoFontVariant,
+      logoCustomPrimary,
+      logoCustomSecondary,
+      logoCustomOutline,
+      posterRatingsLayout,
+      posterRatingsMaxPerSide,
+      logoRatingsMax,
+      backdropRatingsLayout,
+      thumbnailRatingsLayout,
+      posterVerticalBadgeContent,
+      backdropVerticalBadgeContent,
+      thumbnailVerticalBadgeContent,
+      thumbnailSize,
+      aiometadataEpisodeProvider,
+      proxySeriesMetadataProvider,
+      proxyAiometadataProvider,
+      proxyManifestUrl,
+      proxyEnabledTypes,
+      proxyTranslateMeta,
+      sanitizedProxyCatalogNames,
+      sanitizedProxyHiddenCatalogs,
+      sanitizedProxySearchDisabledCatalogs,
+      sanitizedProxyDiscoverOnlyCatalogs,
+      tmdbKey,
+      mdblistKey,
+      simklClientId,
+    ]
+  );
+
+  const persistedTokenConfigPayload = useMemo(
+    () => ({
+      version: EXPORT_CONFIG_VERSION,
+      lang: effectiveLang,
+      posterImageText,
+      backdropImageText,
+      posterRatingPreferences,
+      backdropRatingPreferences,
+      thumbnailRatingPreferences,
+      logoRatingPreferences,
+      posterStreamBadges,
+      backdropStreamBadges,
+      qualityBadgesSide,
+      posterQualityBadgesPosition,
+      posterQualityBadgesStyle,
+      backdropQualityBadgesStyle,
+      posterRatingStyle,
+      backdropRatingStyle,
+      logoRatingStyle,
+      logoMode,
+      logoFontVariant,
+      logoCustomPrimary,
+      logoCustomSecondary,
+      logoCustomOutline,
+      posterRatingsLayout,
+      posterRatingsMaxPerSide,
+      logoRatingsMax,
+      backdropRatingsLayout,
+      thumbnailRatingsLayout,
+      posterVerticalBadgeContent,
+      backdropVerticalBadgeContent,
+      thumbnailVerticalBadgeContent,
+      thumbnailSize,
+      tmdbKey,
+      mdblistKey,
+      simklClientId,
+    }),
+    [
+      effectiveLang,
+      posterImageText,
+      backdropImageText,
+      posterRatingPreferences,
+      backdropRatingPreferences,
+      thumbnailRatingPreferences,
+      logoRatingPreferences,
+      posterStreamBadges,
+      backdropStreamBadges,
+      qualityBadgesSide,
+      posterQualityBadgesPosition,
+      posterQualityBadgesStyle,
+      backdropQualityBadgesStyle,
+      posterRatingStyle,
+      backdropRatingStyle,
+      logoRatingStyle,
+      logoMode,
+      logoFontVariant,
+      logoCustomPrimary,
+      logoCustomSecondary,
+      logoCustomOutline,
+      posterRatingsLayout,
+      posterRatingsMaxPerSide,
+      logoRatingsMax,
+      backdropRatingsLayout,
+      thumbnailRatingsLayout,
+      posterVerticalBadgeContent,
+      backdropVerticalBadgeContent,
+      thumbnailVerticalBadgeContent,
+      thumbnailSize,
+      tmdbKey,
+      mdblistKey,
+      simklClientId,
+    ]
+  );
+
+  const handleTokenDisconnect = () => {
+    setActiveToken(null);
+    void fetch('/api/workspace-auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'logout' }),
+    }).finally(() => {
+      if (typeof window !== 'undefined') {
+        window.location.href = '/configurator';
+      }
+    });
+  };
+
+  const handleSaveConfig = useCallback(() => {
+    if (typeof window === 'undefined' || mode !== 'workspace' || !activeToken) {
+      return;
+    }
+
+    setConfigSaveStatus('saving');
+    void fetch('/api/workspace-config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config: persistedTokenConfigPayload }),
+    })
+      .then((response) => {
+        setConfigSaveStatus(response.ok ? 'saved' : 'error');
+      })
+      .catch(() => {
+        setConfigSaveStatus('error');
+      })
+      .finally(() => {
+        const resetId = window.setTimeout(() => setConfigSaveStatus('idle'), 2000);
+        return () => window.clearTimeout(resetId);
+      });
+  }, [mode, activeToken, persistedTokenConfigPayload]);
+
   const normalizedProxyManifestUrl = normalizeManifestUrl(proxyManifestUrl);
   const canGenerateProxy = Boolean(
     normalizedProxyManifestUrl &&
     !isBareHttpUrl(normalizedProxyManifestUrl) &&
-    tmdbKey.trim() &&
-    mdblistKey.trim()
+    (activeToken || (tmdbKey.trim() && mdblistKey.trim()))
   );
-  const isConfigStringVisible = canGenerateConfig && showConfigString;
   const isProxyUrlVisible = Boolean(proxyUrl) && showProxyUrl;
   const proxyDisplayValue = proxyUrl || `${baseUrl || 'https://erdb.example.com'}/proxy/{config}/manifest.json`;
-  const displayedConfigString =
-    canGenerateConfig && !isConfigStringVisible ? maskSensitiveText(configString) : configString;
   const displayedProxyUrl = isProxyUrlVisible ? proxyDisplayValue : maskSensitiveText(proxyDisplayValue);
   const activeRatingStyle =
     previewType === 'poster'
@@ -2282,13 +2578,14 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
       thumbnailSize,
       qualityBadgesSide,
       posterQualityBadgesPosition,
-      configCopied,
       proxyCopied,
       copied,
       aiometadataCopiedType,
       aiometadataEpisodeProvider,
       proxySeriesMetadataProvider,
       proxyAiometadataProvider,
+      activeToken,
+      configSaveStatus,
     },
     derived: {
       baseUrl,
@@ -2298,11 +2595,8 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
       githubPackageVersion,
       repoUrl,
       previewNotice,
-      canGenerateConfig,
       canGenerateProxy,
-      isConfigStringVisible,
       isProxyUrlVisible,
-      displayedConfigString,
       displayedProxyUrl,
       styleLabel,
       textLabel,
@@ -2322,7 +2616,6 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
       handleExportConfig,
       handleImportFile,
       handleImportConfigString,
-      handleCopyConfig,
       handleCopyProxy,
       handleCopyPrompt,
       handleCopyAiometadataPattern,
@@ -2442,11 +2735,9 @@ export default function HomePage({ mode = 'landing' }: { mode?: HomePageMode }) 
       },
       toggleProxyEnabledType,
       toggleProxyTranslateMeta: () => setProxyTranslateMeta((value) => !value),
-      toggleConfigStringVisibility: () => {
-        if (!canGenerateConfig) return;
-        setShowConfigString((value) => !value);
-      },
       toggleProxyUrlVisibility: () => setShowProxyUrl((value) => !value),
+      handleTokenDisconnect,
+      handleSaveConfig,
     },
   };
 

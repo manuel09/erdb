@@ -57,6 +57,7 @@ const ERDB_TYPE_STYLE_PARAMS = {
 
 export const ERDB_RESERVED_PARAMS = new Set<string>([
   'url',
+  'token',
   'tmdbKey',
   'mdblistKey',
   'simklClientId',
@@ -83,6 +84,7 @@ export const ERDB_RESERVED_PARAMS = new Set<string>([
 
 export type ProxyConfig = {
   url: string;
+  token?: string;
   tmdbKey: string;
   mdblistKey: string;
   simklClientId?: string;
@@ -420,12 +422,19 @@ export const buildErdbImageUrl = (options: {
   const { reqUrl, imageType, erdbId, tmdbKey, mdblistKey, simklClientId, config = null } = options;
   const baseOverride = getProxyParam(reqUrl, config, 'erdbBase');
   const base = new URL(baseOverride || reqUrl.origin);
-  base.pathname = `/${imageType}/${encodeURIComponent(erdbId)}.jpg`;
   base.search = '';
-  base.searchParams.set('tmdbKey', tmdbKey);
-  base.searchParams.set('mdblistKey', mdblistKey);
-  if (simklClientId) {
-    base.searchParams.set('simklClientId', simklClientId);
+
+  const token = config?.token;
+  if (token) {
+    base.pathname = `/${token}/${imageType}/${encodeURIComponent(erdbId)}.jpg`;
+    return base.toString();
+  } else {
+    base.pathname = `/${imageType}/${encodeURIComponent(erdbId)}.jpg`;
+    base.searchParams.set('tmdbKey', tmdbKey);
+    base.searchParams.set('mdblistKey', mdblistKey);
+    if (simklClientId) {
+      base.searchParams.set('simklClientId', simklClientId);
+    }
   }
 
   for (const key of ERDB_OPTIONAL_PARAMS) {

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { ArrowLeft, ArrowUpRight, Bot, Code2, FileJson, ImageIcon, Layers3, Workflow } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Bot, Code2, FileJson, ImageIcon, Workflow } from 'lucide-react';
 import { DocsCopyPromptButton } from '@/components/docs-copy-prompt-button';
 import { ERDB_AI_INTEGRATION_PROMPT } from '@/lib/aiIntegrationPrompt';
 import { RATING_PROVIDER_OPTIONS } from '@/lib/ratingPreferences';
@@ -15,7 +15,7 @@ import { LOGO_MODE_OPTIONS } from '@/lib/logoMode';
 
 export const metadata: Metadata = {
   title: 'ERDB API Docs',
-  description: 'Dedicated documentation for the ERDB renderer, proxy, and helper endpoints.',
+  description: 'Dedicated documentation for the ERDB renderer and helper endpoints.',
 };
 
 const providers = RATING_PROVIDER_OPTIONS.map((provider) => provider.id).join(', ');
@@ -107,12 +107,16 @@ export default function DocsPage() {
               <span>Dedicated API Docs</span>
             </div>
             <h1 className="max-w-5xl text-4xl leading-tight text-white sm:text-5xl">
-              ERDB renderer, proxy, helper endpoints, and the real query surface.
+              ERDB renderer, helper endpoints, and the real query surface.
             </h1>
             <p className="max-w-4xl text-base leading-8 text-slate-400">
-              This page documents the routes that actually exist in the codebase. The big correction
-              versus the old inline docs is simple: <Code>tmdbKey</Code> is always required for the renderer,
-              while <Code>mdblistKey</Code> is optional there but required by proxy config validation.
+              This page documents the routes that actually exist in the codebase. The important change
+              is simple: ERDB now uses a secure, persistent <strong>token-based account system</strong>.
+              Instead of passing TMDB keys, MDBList keys, layouts, and provider settings in every request,
+              you use your <Code>Tk-...</Code> token and ERDB resolves the saved configuration server-side.
+            </p>
+            <p className="max-w-4xl text-sm leading-7 text-slate-500">
+              For addon integrations, use the fixed base URL <Code>https://easyratingsdb.com</Code>. Addons only need the token field.
             </p>
           </section>
 
@@ -120,38 +124,37 @@ export default function DocsPage() {
             <Table
               columns={['Method', 'Path', 'Purpose', 'Notes']}
               rows={[
-                [<Code key="1">GET</Code>, <Code key="2">/{'{type}'}/{'{id}'}.jpg</Code>, 'Stateless poster/backdrop/logo/thumbnail rendering.', 'Main image API. Logos still use a .jpg path but return PNG.'],
-                [<Code key="3">GET</Code>, <Code key="4">/api/version</Code>, 'Returns currentVersion, githubPackageVersion, and repoUrl.', 'Useful for self-hosted version checks.'],
-                [<Code key="5">GET</Code>, <Code key="6">/api/proxy-manifest?url=...</Code>, 'Inspects a source manifest and returns normalized catalog descriptors.', 'Used by the configurator.'],
-                [<Code key="7">GET</Code>, <Code key="8">/proxy/manifest.json?url=...&tmdbKey=...&mdblistKey=...</Code>, 'Query-config proxy manifest.', 'Fast test path with CORS enabled.'],
-                [<Code key="9">GET</Code>, <Code key="10">/proxy/{'{config}'}/manifest.json</Code>, 'Path-config proxy manifest.', 'Preferred stable production form.'],
-                [<Code key="11">GET</Code>, <Code key="12">/proxy/{'{config}'}/{'{resource...}'}</Code>, 'Forwards addon traffic and rewrites artwork to ERDB URLs.', 'Catalog/meta JSON are rewritten; other resources pass through.'],
+                [<Code key="1">GET</Code>, <Code key="2">/{'{token}'}/{'{type}'}/{'{id}'}.jpg</Code>, 'Token-based poster/backdrop/logo/thumbnail rendering.', 'Main image API. Resolves configurations via accounts.db.'],
+                [<Code key="3">POST</Code>, <Code key="4">/api/workspace-auth</Code>, 'Login, register, and logout for the workspace.', 'Cookie-based session for /configurator.'],
+                [<Code key="5">POST</Code>, <Code key="6">/api/token</Code>, 'Create a new token with the current settings.', 'Used by the workspace.'],
+                [<Code key="7">PUT</Code>, <Code key="8">/api/token</Code>, 'Update settings for an existing token.', 'Requires matching password.'],
+                [<Code key="9">GET</Code>, <Code key="10">/api/token?token=...</Code>, 'Fetch settings for a token.', 'Used by the workspace and loaders.'],
+                [<Code key="11">GET</Code>, <Code key="12">/api/version</Code>, 'Returns currentVersion, githubPackageVersion, repoUrl.', 'Useful for self-hosted version checks.'],
               ]}
             />
           </Section>
 
-          <Section icon={<ImageIcon className="h-3.5 w-3.5 text-orange-300" />} title="Image Renderer" description="Canonical route: GET /{type}/{id}.jpg">
+          <Section icon={<ImageIcon className="h-3.5 w-3.5 text-orange-300" />} title="Image Renderer" description="Canonical route: GET /{token}/{type}/{id}.jpg">
+            <div className="rounded-3xl border border-white/10 bg-[#0a0f16]/90 p-5 text-sm leading-7 text-slate-400 mb-4">
+              <p>The image renderer no longer relies on query strings. All settings, including API keys, layouts, badges, and providers, are stored in the server database and resolved using the provided token.</p>
+            </div>
             <Table
               columns={['Field', 'Values', 'Default', 'Notes']}
               rows={[
-                [<Code key="tmdbKey">tmdbKey</Code>, 'TMDB v3 API key', 'required', 'Hard requirement. Alias: tmdb_key.'],
-                [<Code key="mdblistKey">mdblistKey</Code>, 'MDBList API key', 'optional', 'Needed for MDBList ratings unless the server already has MDBLIST_API_KEY(S). Alias: mdblist_key.'],
-                [<Code key="simkl">simklClientId</Code>, 'SIMKL client_id', 'optional', 'Only for direct SIMKL ratings. Alias: simkl_client_id.'],
-                [<Code key="ratings">ratings</Code>, providers, 'all providers', 'Global provider fallback. Empty string disables ratings.'],
+                [<Code key="token">token</Code>, 'Tk-xxxxxxxxxxxxxxx', 'required', 'Unique account token generated via the UI or /api/token.'],
                 [<Code key="type">type</Code>, 'poster, backdrop, logo, thumbnail', '-', 'thumbnail is episode-only.'],
-                [<Code key="lang">lang</Code>, 'TMDB language code', 'en', 'Examples: en, it, es-ES, pt-BR.'],
-                [<Code key="style">ratingStyle</Code>, styles, 'glass, except logo -> plain', 'Alias: style.'],
-                [<Code key="imageText">imageText</Code>, 'original, clean, alternative', 'original, except backdrop -> clean', 'Alias: posterText.'],
-                [<Code key="posterLayout">posterRatingsLayout</Code>, posterLayouts, 'top-bottom', 'Vertical poster layouts can use posterRatingsMaxPerSide and posterVerticalBadgeContent.'],
-                [<Code key="backdropLayout">backdropRatingsLayout</Code>, backdropLayouts, 'center', 'Backdrop-only layout.'],
-                [<Code key="thumbLayout">thumbnailRatingsLayout</Code>, thumbnailLayouts, 'center', 'Thumbnail-only layout.'],
-                [<Code key="thumbSize">thumbnailSize</Code>, thumbnailSizes, 'medium', 'Thumbnails only support tmdb and imdb ratings.'],
-                [<Code key="logoMode">logoMode</Code>, 'logo-ratings, ratings-only, custom-logo', 'logo-ratings', 'Primary mode for logos. custom-logo enables fonts and colors.'],
-                [<Code key="logoFont">logoFontVariant</Code>, logoFonts, 'spicy-sale', 'Only applied when logoMode is custom-logo.'],
-                [<Code key="logoColors">logoPrimary / logoSecondary / logoOutline</Code>, 'Hex colors (#rrggbb)', '#fde68a / #f472b6... ', 'Colors for custom-logo mode.'],
-                [<Code key="logoMax">logoRatingsMax</Code>, '1-20', 'auto', 'Maximum number of rating badges to show below the logo.'],
-                [<Code key="vertical">posterVerticalBadgeContent</Code>, 'standard, stacked', 'standard', 'Content style for vertical poster ratings.'],
-                [<Code key="qualityPosition">posterQualityBadgesPosition</Code>, 'auto, left, right', 'auto', 'Placement of quality badges (HDR, 4K) on posters.'],
+                [<Code key="stored">stored config</Code>, `providers: ${providers}`, 'saved in token', `Saved server-side, including styles (${styles}), layouts (${posterLayouts}; ${backdropLayouts}; ${thumbnailLayouts}), thumbnail sizes (${thumbnailSizes}), logo fonts (${logoFonts}), and logo modes (${logoModes}).`],
+                [<Code key="lang">lang behavior</Code>, 'TMDB language code', 'saved in token', 'Usually configured once in the workspace and reused automatically.'],
+                [<Code key="overrides">query overrides</Code>, 'not required', 'off', 'Integrations should prefer token-only renderer URLs and avoid per-request config fields.'],
+              ]}
+            />
+            <Table
+              columns={['Type', 'Use case', 'Accepted IDs', 'Notes']}
+              rows={[
+                [<Code key="type-poster">poster</Code>, 'Movie poster or series poster.', 'IMDb, TMDB, TVDB bridge, anime IDs', 'Main vertical artwork endpoint. Works for movies and series.'],
+                [<Code key="type-backdrop">backdrop</Code>, 'Movie backdrop or series backdrop.', 'IMDb, TMDB, TVDB bridge, anime IDs', 'Main horizontal hero/background artwork endpoint.'],
+                [<Code key="type-logo">logo</Code>, 'Title logo for movies or series.', 'IMDb, TMDB, anime IDs', 'Returns branded logo artwork when available.'],
+                [<Code key="type-thumbnail">thumbnail</Code>, 'Episode thumbnail / still frame.', 'Episode-style IDs only', 'Use episode IDs like tt0944947:1:1, tmdb:tv:1399:1:1, tvdb:121361:1:1, or realimdb:tt0944947:1:1.'],
               ]}
             />
             <Table
@@ -167,15 +170,23 @@ export default function DocsPage() {
                 [<Code key="id8">anilist:16498 / mal:5114 / anidb:69</Code>, 'Anime-native IDs', 'Enable anime-only provider paths.'],
               ]}
             />
-            <div className="rounded-3xl border border-white/10 bg-[#0a0f16]/90 p-5 text-sm leading-7 text-slate-400">
-              <p><Code>thumbnailRatings</Code> falls back to <Code>thumbnailRatings</Code> -&gt; <Code>backdropRatings</Code> -&gt; <Code>ratings</Code>.</p>
-              <p><Code>posterStreamBadges</Code> and <Code>backdropStreamBadges</Code> fall back to <Code>streamBadges</Code>.</p>
-              <p><Code>posterQualityBadgesStyle</Code> and <Code>backdropQualityBadgesStyle</Code> fall back to <Code>qualityBadgesStyle</Code>.</p>
-              <p><Code>verticalBadgeContent</Code> is accepted as a generic fallback for the type-specific vertical badge params.</p>
-              <p>Poster/backdrop/thumbnail negotiate WebP vs JPEG via <Code>Accept</Code>; logos always return <Code>image/png</Code>.</p>
-            </div>
-            <pre className="overflow-x-auto rounded-3xl border border-white/10 bg-[#0a0f16]/90 p-5 text-[12px] leading-6 text-slate-200"><code>{`GET /poster/tmdb:movie:603.jpg?tmdbKey=YOUR_TMDB_KEY&ratings=tmdb,imdb&posterRatingsLayout=top-bottom&ratingStyle=glass
-GET /thumbnail/tt0944947:1:1.jpg?tmdbKey=YOUR_TMDB_KEY&thumbnailRatings=tmdb,imdb&thumbnailRatingsLayout=center-bottom&thumbnailSize=large`}</code></pre>
+            <Table
+              columns={['Pattern', 'Use when', 'Example']}
+              rows={[
+                [<Code key="pattern1">/{'{token}'}/poster/{'{imdbId}'}.jpg</Code>, 'Movie or series posters from IMDb IDs.', <Code key="pattern1ex">/Tk-abc123/poster/tt0133093.jpg</Code>],
+                [<Code key="pattern2">/{'{token}'}/backdrop/{'{imdbId}'}.jpg</Code>, 'Movie or series backdrops from IMDb IDs.', <Code key="pattern2ex">/Tk-abc123/backdrop/tt0944947.jpg</Code>],
+                [<Code key="pattern3">/{'{token}'}/logo/{'{imdbId}'}.jpg</Code>, 'Movie or series logos from IMDb IDs.', <Code key="pattern3ex">/Tk-abc123/logo/tt0944947.jpg</Code>],
+                [<Code key="pattern4">/{'{token}'}/thumbnail/{'{seriesImdbId}'}:{'{season}'}:{'{episode}'}.jpg</Code>, 'Episode thumbnails using IMDb episode addressing.', <Code key="pattern4ex">/Tk-abc123/thumbnail/tt0944947:1:1.jpg</Code>],
+                [<Code key="pattern5">/{'{token}'}/thumbnail/realimdb:{'{seriesImdbId}'}:{'{season}'}:{'{episode}'}.jpg</Code>, 'Episode thumbnails when the addon uses real IMDb TV metadata.', <Code key="pattern5ex">/Tk-abc123/thumbnail/realimdb:tt0944947:1:1.jpg</Code>],
+                [<Code key="pattern6">/{'{token}'}/thumbnail/tvdb:{'{tvdbId}'}:{'{season}'}:{'{episode}'}.jpg</Code>, 'Episode thumbnails when the addon uses TVDB numbering.', <Code key="pattern6ex">/Tk-abc123/thumbnail/tvdb:121361:1:1.jpg</Code>],
+                [<Code key="pattern7">/{'{token}'}/poster/tmdb:movie:{'{tmdbId}'}.jpg</Code>, 'Movie posters when you only have a TMDB movie ID.', <Code key="pattern7ex">/Tk-abc123/poster/tmdb:movie:603.jpg</Code>],
+                [<Code key="pattern8">/{'{token}'}/backdrop/tmdb:tv:{'{tmdbId}'}.jpg</Code>, 'Series backdrops when you only have a TMDB TV ID.', <Code key="pattern8ex">/Tk-abc123/backdrop/tmdb:tv:1399.jpg</Code>],
+              ]}
+            />
+            <pre className="overflow-x-auto rounded-3xl border border-white/10 bg-[#0a0f16]/90 p-5 text-[12px] leading-6 text-slate-200"><code>{`GET /Tk-abc123xyz/poster/tt0133093.jpg
+GET /Tk-abc123xyz/backdrop/tt0944947.jpg
+GET /Tk-abc123xyz/logo/tt0944947.jpg
+GET /Tk-abc123xyz/thumbnail/realimdb:tt0944947:1:1.jpg`}</code></pre>
           </Section>
 
           <Section
@@ -187,37 +198,15 @@ GET /thumbnail/tt0944947:1:1.jpg?tmdbKey=YOUR_TMDB_KEY&thumbnailRatings=tmdb,imd
               <div className="max-w-3xl text-sm leading-7 text-slate-300">
                 <p>
                   This section should be usable as-is: copy the prompt, give it to an AI or developer, and implement the
-                  ERDB renderer from a single <Code>erdbConfig</Code> base64url field.
+                  ERDB renderer from a single <Code>ERDB Token</Code> field.
                 </p>
                 <p>
-                  It includes the newer logo and thumbnail fields such as <Code>logoMode</Code>,
-                  <Code>logoFontVariant</Code>, <Code>logoPrimary</Code>, <Code>logoSecondary</Code>,
-                  <Code>logoOutline</Code>, <Code>thumbnailRatingsLayout</Code>, and <Code>thumbnailSize</Code>.
+                  It instructs the AI to use the fixed URL structure <Code>{`https://easyratingsdb.com/{token}/{type}/{id}.jpg`}</Code>.
                 </p>
               </div>
               <DocsCopyPromptButton prompt={ERDB_AI_INTEGRATION_PROMPT} />
             </div>
             <pre className="overflow-x-auto rounded-3xl border border-white/10 bg-[#0a0f16]/90 p-5 text-[12px] leading-6 text-slate-200"><code>{ERDB_AI_INTEGRATION_PROMPT}</code></pre>
-          </Section>
-
-          <Section icon={<Layers3 className="h-3.5 w-3.5 text-orange-300" />} title="Addon Proxy" description="Proxy config can live in query parameters for testing or inside a base64url JSON path segment for production.">
-            <Table
-              columns={['Field', 'Required', 'Notes']}
-              rows={[
-                [<Code key="url">url</Code>, 'yes', 'Absolute source manifest URL.'],
-                [<Code key="ptmdb">tmdbKey</Code>, 'yes', 'Required by proxy config validation.'],
-                [<Code key="pmdb">mdblistKey</Code>, 'yes', 'Required by proxy config validation even if renderer-only requests can omit it.'],
-                [<Code key="toggles">posterEnabled / backdropEnabled / logoEnabled / thumbnailEnabled</Code>, 'no', 'False keeps original artwork for that type.'],
-                [<Code key="translate">translateMeta</Code>, 'no', 'Localizes metadata through TMDB when lang is available.'],
-                [<Code key="proxyFields">ratings, per-type ratings, styles, layouts, badge settings</Code>, 'no', 'Same semantics as the image renderer.'],
-                [<Code key="seriesProvider">seriesMetadataProvider / aiometadataProvider</Code>, 'no', 'Controls TV ID normalization for tricky addon flows, especially addons that actually expose IMDb-based series metadata and should therefore use realimdb-style resolution.'],
-                [<Code key="catalog">catalogNames / hiddenCatalogs / searchDisabledCatalogs / discoverOnlyCatalogs</Code>, 'no', 'Catalog customization maps and arrays.'],
-                [<Code key="erdbBase">erdbBase</Code>, 'no', 'Overrides the absolute ERDB base used in generated artwork URLs.'],
-              ]}
-            />
-            <pre className="overflow-x-auto rounded-3xl border border-white/10 bg-[#0a0f16]/90 p-5 text-[12px] leading-6 text-slate-200"><code>{`GET /proxy/manifest.json?url=https://addon.example.com/manifest.json&tmdbKey=YOUR_TMDB_KEY&mdblistKey=YOUR_MDBLIST_KEY
-GET /proxy/{base64url(jsonConfig)}/manifest.json
-GET /proxy/{base64url(jsonConfig)}/catalog/movie/top.json`}</code></pre>
           </Section>
 
           <Section icon={<FileJson className="h-3.5 w-3.5 text-orange-300" />} title="Helpers And Headers" description="Useful integration details that are easy to miss when wiring ERDB behind another proxy or CDN.">

@@ -2,6 +2,34 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.4](https://github.com/realbestia1/erdb/compare/v0.3.3...v0.3.4) - 2026-04-03
+
+- Bump version to 0.3.4; fix thumbnail badge ([fe2e2a4](https://github.com/realbestia1/erdb/commit/fe2e2a448223a26f3345a273706a7d5178c8e049))
+  Update project version to 0.3.4 (package.json and UI reference) and adjust route image badge logic: only use thumbnailVerticalBadgeContent when the thumbnail rating layout is vertical, otherwise fall back to 'standard'. Also updated build metadata (tsconfig.tsbuildinfo).
+
+## [0.3.3](https://github.com/realbestia1/erdb/compare/v0.3.2...v0.3.3) - 2026-04-03
+
+- Bump package to 0.3.3; fix backdrop badge layout ([2502917](https://github.com/realbestia1/erdb/commit/25029174080311ef786450d173321c955d386222))
+  Import and use isVerticalBackdropRatingLayout in app/[type]/[id]/route.tsx so backdrop badge content uses the vertical variant only when backdropRatingsLayout is vertical (falls back to 'standard' otherwise). Update components/home-page.tsx to reflect currentVersion 0.3.3 and bump package version in package.json/package-lock.json. tsconfig.tsbuildinfo updated by the build. This fixes incorrect badge selection for backdrop images and publishes a patch version bump.
+
+## [0.3.2](https://github.com/realbestia1/erdb/compare/v0.3.1...v0.3.2) - 2026-04-03
+
+- Fix poster token badge layout so stacked is ignored for non-vertical poster layouts ([13e1967](https://github.com/realbestia1/erdb/commit/13e196797ff88c86ba3ae91f9f78718080905612))
+  Updated the poster render pipeline to apply verticalBadgeContent=stacked only when posterRatingsLayout is vertical (left, right, or left-right).
+
+  This prevents tokens using Poster Layout=top from incorrectly rendering poster badges in stacked mode when a lingering verticalBadgeContent=stacked value is present in the token or imported config.
+
+## [0.3.1](https://github.com/realbestia1/erdb/compare/v0.3.0...v0.3.1) - 2026-04-03
+
+- Add token-based accounts and workspace APIs ([9244088](https://github.com/realbestia1/erdb/commit/924408803cf9ba549268bd540fd8ff0ee93e5b04))
+  Introduce a token-based account system and workspace flow. Adds new API endpoints (/api/token, /api/workspace-auth, /api/workspace-config) and libraries to manage tokens, accounts, and workspace sessions, plus an accounts DB. Make renderer and proxy token-aware: image routes accept/respect token configs, proxy can build config from a token, and cache/version seeding uses token update timestamps. Update configurator and docs/UI to support login/registration, persistent active token, token-driven preview/proxy patterns, and workspace session handling. Minor docs and .env.example updates (ERDB_DATA_DIR) to reflect the new workspace/token features.
+- rollback ([18c5a8e](https://github.com/realbestia1/erdb/commit/18c5a8ee9f753dcaf690c34a3c33743c18897f1a))
+
+## [0.3.0](https://github.com/realbestia1/erdb/compare/v0.2.12...v0.3.0) - 2026-04-03
+
+- Add token-based accounts, API & workspace UI ([9abcadb](https://github.com/realbestia1/erdb/commit/9abcadb4a5b60d414fdb7ff6731488f76416e877))
+  Introduce a token-based account system and workspace flow. Adds new API endpoints (/api/token, /api/workspace-auth, /api/workspace-config) and libraries to manage tokens, accounts, and workspace sessions. The image renderer and proxy were updated to resolve per-token configuration server-side (token-aware routes and proxy config builders), and cache/versioning now uses token update timestamps. The configurator and home UI were updated to support login/registration, persistent active token, token-driven preview/proxy patterns, and workspace session handling. Minor docs and .env.example updates included (ERDB_DATA_DIR).
+
 ## [0.2.12](https://github.com/realbestia1/erdb/compare/v0.2.11...v0.2.12) - 2026-04-02
 
 - Bump version to 0.2.12 and normalize path split ([65e7701](https://github.com/realbestia1/erdb/commit/65e77012f9ea256c6bdc5b1d51c77c1c831f8479))

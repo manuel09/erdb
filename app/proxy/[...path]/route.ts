@@ -11,6 +11,132 @@ import {
 } from '@/lib/addonProxy';
 import { applyProxyCatalogOverrides, unwrapProxyCatalogVariantId } from '@/lib/proxyCatalog';
 import { fetchWithRetry } from '@/lib/request';
+import { getTokenConfig } from '@/lib/tokens';
+import { stringifyRatingPreferencesAllowEmpty } from '@/lib/ratingPreferences';
+
+const buildProxyConfigFromToken = (
+  t: Record<string, any>,
+  manifestUrlOverride?: string | null,
+  proxyOverrides?: Record<string, any> | null
+): ProxyConfig | null => {
+  const url =
+    (typeof manifestUrlOverride === 'string' && manifestUrlOverride) ||
+    (typeof t.proxyManifestUrl === 'string' ? t.proxyManifestUrl : t.url);
+  if (!url || typeof url !== 'string') return null;
+  const tmdbKey = typeof t.tmdbKey === 'string' ? t.tmdbKey : null;
+  const mdblistKey = typeof t.mdblistKey === 'string' ? t.mdblistKey : null;
+  if (!tmdbKey || !mdblistKey) return null;
+
+  const config: ProxyConfig = { url, tmdbKey, mdblistKey };
+  
+  if (typeof proxyOverrides?.baseUrl === 'string') config.baseUrl = proxyOverrides.baseUrl;
+  else if (typeof t.baseUrl === 'string') config.baseUrl = t.baseUrl;
+  if (typeof proxyOverrides?.erdbBase === 'string') config.erdbBase = proxyOverrides.erdbBase;
+  else if (typeof t.erdbBase === 'string') config.erdbBase = t.erdbBase; // fallback
+  if (typeof t.simklClientId === 'string') config.simklClientId = t.simklClientId;
+  if (typeof t.lang === 'string') config.lang = t.lang;
+
+  if (Array.isArray(t.posterRatingPreferences)) {
+    const pQ = stringifyRatingPreferencesAllowEmpty(t.posterRatingPreferences);
+    const bQ = stringifyRatingPreferencesAllowEmpty(Array.isArray(t.backdropRatingPreferences) ? t.backdropRatingPreferences : []);
+    const tQ = stringifyRatingPreferencesAllowEmpty(Array.isArray(t.thumbnailRatingPreferences) ? t.thumbnailRatingPreferences : []);
+    const lQ = stringifyRatingPreferencesAllowEmpty(Array.isArray(t.logoRatingPreferences) ? t.logoRatingPreferences : []);
+    if (pQ === bQ && pQ === tQ && pQ === lQ) config.ratings = pQ;
+    else {
+      config.posterRatings = pQ;
+      config.backdropRatings = bQ;
+      config.thumbnailRatings = tQ;
+      config.logoRatings = lQ;
+    }
+  }
+
+  const mapStr = (tk: string, pk: keyof ProxyConfig | 'thumbnailRatingStyle') => { if (typeof t[tk] === 'string') (config as any)[pk] = t[tk]; };
+  mapStr('posterStreamBadges', 'posterStreamBadges');
+  mapStr('backdropStreamBadges', 'backdropStreamBadges');
+  mapStr('qualityBadgesSide', 'qualityBadgesSide');
+  mapStr('posterQualityBadgesPosition', 'posterQualityBadgesPosition');
+  mapStr('posterQualityBadgesStyle', 'posterQualityBadgesStyle');
+  mapStr('backdropQualityBadgesStyle', 'backdropQualityBadgesStyle');
+  mapStr('posterRatingStyle', 'posterRatingStyle');
+  mapStr('backdropRatingStyle', 'backdropRatingStyle');
+  mapStr('thumbnailRatingStyle', 'thumbnailRatingStyle');
+  mapStr('logoRatingStyle', 'logoRatingStyle');
+  mapStr('logoMode', 'logoMode');
+  mapStr('logoFontVariant', 'logoFontVariant');
+  mapStr('logoCustomPrimary', 'logoPrimary');
+  mapStr('logoCustomSecondary', 'logoSecondary');
+  mapStr('logoCustomOutline', 'logoOutline');
+  mapStr('posterImageText', 'posterImageText');
+  mapStr('backdropImageText', 'backdropImageText');
+  mapStr('posterRatingsLayout', 'posterRatingsLayout');
+  mapStr('backdropRatingsLayout', 'backdropRatingsLayout');
+  mapStr('thumbnailRatingsLayout', 'thumbnailRatingsLayout');
+  mapStr('posterVerticalBadgeContent', 'posterVerticalBadgeContent');
+  mapStr('backdropVerticalBadgeContent', 'backdropVerticalBadgeContent');
+  mapStr('thumbnailVerticalBadgeContent', 'thumbnailVerticalBadgeContent');
+  mapStr('thumbnailSize', 'thumbnailSize');
+
+  if (typeof t.posterRatingsMaxPerSide === 'number') config.posterRatingsMaxPerSide = String(t.posterRatingsMaxPerSide);
+  if (typeof t.logoRatingsMax === 'number') config.logoRatingsMax = String(t.logoRatingsMax);
+
+  if (proxyOverrides && typeof proxyOverrides === 'object') {
+    if (typeof proxyOverrides.posterEnabled === 'boolean') config.posterEnabled = proxyOverrides.posterEnabled;
+    if (typeof proxyOverrides.backdropEnabled === 'boolean') config.backdropEnabled = proxyOverrides.backdropEnabled;
+    if (typeof proxyOverrides.logoEnabled === 'boolean') config.logoEnabled = proxyOverrides.logoEnabled;
+    if (typeof proxyOverrides.thumbnailEnabled === 'boolean') config.thumbnailEnabled = proxyOverrides.thumbnailEnabled;
+  } else if (t.proxyEnabledTypes && typeof t.proxyEnabledTypes === 'object') {
+    if (typeof t.proxyEnabledTypes.poster === 'boolean') config.posterEnabled = t.proxyEnabledTypes.poster;
+    if (typeof t.proxyEnabledTypes.backdrop === 'boolean') config.backdropEnabled = t.proxyEnabledTypes.backdrop;
+    if (typeof t.proxyEnabledTypes.logo === 'boolean') config.logoEnabled = t.proxyEnabledTypes.logo;
+    if (typeof t.proxyEnabledTypes.thumbnail === 'boolean') config.thumbnailEnabled = t.proxyEnabledTypes.thumbnail;
+  }
+
+  if (proxyOverrides?.translateMeta || t.translateMeta || t.proxyTranslateMeta) config.translateMeta = true;
+
+  if (proxyOverrides?.catalogNames || t.proxyCatalogNames || t.catalogNames) {
+    config.catalogNames = proxyOverrides?.catalogNames || t.proxyCatalogNames || t.catalogNames;
+  }
+  if (proxyOverrides?.hiddenCatalogs || t.proxyHiddenCatalogs || t.hiddenCatalogs) {
+    config.hiddenCatalogs = proxyOverrides?.hiddenCatalogs || t.proxyHiddenCatalogs || t.hiddenCatalogs;
+  }
+  if (proxyOverrides?.searchDisabledCatalogs || t.proxySearchDisabledCatalogs || t.searchDisabledCatalogs) {
+    config.searchDisabledCatalogs =
+      proxyOverrides?.searchDisabledCatalogs || t.proxySearchDisabledCatalogs || t.searchDisabledCatalogs;
+  }
+  if (proxyOverrides?.discoverOnlyCatalogs || t.proxyDiscoverOnlyCatalogs || t.discoverOnlyCatalogs) {
+    config.discoverOnlyCatalogs =
+      proxyOverrides?.discoverOnlyCatalogs || t.proxyDiscoverOnlyCatalogs || t.discoverOnlyCatalogs;
+  }
+
+  const isAiometadataManifest = config.url.toLowerCase().includes('aiometadata');
+  try {
+    const isCinemetaManifest = /(^|[-.])cinemeta\.strem\.io$/i.test(new URL(config.url).hostname);
+    if (isAiometadataManifest) {
+      if (typeof proxyOverrides?.aiometadataProvider === 'string') config.aiometadataProvider = proxyOverrides.aiometadataProvider;
+      else if (typeof t.proxyAiometadataProvider === 'string') config.aiometadataProvider = t.proxyAiometadataProvider;
+      else if (typeof t.aiometadataProvider === 'string') config.aiometadataProvider = t.aiometadataProvider;
+    } else if (!isCinemetaManifest) {
+      if (proxyOverrides?.seriesMetadataProvider === 'imdb' || t.proxySeriesMetadataProvider === 'imdb' || t.seriesMetadataProvider === 'imdb') {
+        config.seriesMetadataProvider = 'imdb';
+      }
+    }
+  } catch (err) {
+    // ignore
+  }
+
+  return config;
+};
+
+const decodeBase64UrlValue = (value: string) => {
+  try {
+    return Buffer.from(value, 'base64url').toString('utf8');
+  } catch {
+    const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+    const padding = normalized.length % 4;
+    const padded = padding ? normalized + '='.repeat(4 - padding) : normalized;
+    return Buffer.from(padded, 'base64').toString('utf8');
+  }
+};
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -727,11 +853,59 @@ export async function GET(
       return buildError('Missing proxy config in path.');
     }
     configSeed = pathSegments[0];
-    config = decodeProxyConfig(configSeed);
+
+    if (configSeed.startsWith('Tk-')) {
+      const tokenData = getTokenConfig(configSeed);
+      if (tokenData && tokenData.config) {
+        const encodedManifestUrl = pathSegments[1];
+        let decodedManifestUrl: string | null = null;
+        let decodedProxyOverrides: Record<string, any> | null = null;
+        if (encodedManifestUrl && encodedManifestUrl !== 'manifest.json') {
+          try {
+            const candidate = decodeBase64UrlValue(encodedManifestUrl);
+            if (/^https?:\/\//i.test(candidate)) {
+              decodedManifestUrl = candidate;
+            } else {
+              const parsed = JSON.parse(candidate);
+              if (parsed && typeof parsed === 'object') {
+                decodedProxyOverrides = parsed as Record<string, any>;
+                if (typeof decodedProxyOverrides.url === 'string' && /^https?:\/\//i.test(decodedProxyOverrides.url)) {
+                  decodedManifestUrl = decodedProxyOverrides.url;
+                }
+              }
+            }
+          } catch {
+            // ignore invalid manifest override and fall back to token-only path parsing
+          }
+        }
+
+        config = buildProxyConfigFromToken(tokenData.config, decodedManifestUrl, decodedProxyOverrides);
+
+        if (config && decodedManifestUrl && encodedManifestUrl && encodedManifestUrl !== 'manifest.json') {
+          config = {
+            ...config,
+            token: configSeed,
+            url: decodedManifestUrl,
+          };
+          configSeed = `${configSeed}:${encodedManifestUrl}`;
+          resourceSegments = pathSegments.slice(2);
+        } else if (config) {
+          config = {
+            ...config,
+            token: configSeed,
+          };
+        }
+      }
+    } else {
+      config = decodeProxyConfig(configSeed);
+    }
+
     if (!config) {
       return buildError('Invalid proxy config in path.');
     }
-    resourceSegments = pathSegments.slice(1);
+    if (resourceSegments === pathSegments) {
+      resourceSegments = pathSegments.slice(1);
+    }
   }
 
   if (resourceSegments.length === 0) {
