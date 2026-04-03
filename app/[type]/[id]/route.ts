@@ -2071,7 +2071,7 @@ const pickBackdropByPreference = (
   if (!Array.isArray(backdrops) || backdrops.length === 0) return null;
 
   const canonicalOriginalPath =
-    pickByLanguageWithFallback(backdrops, preferredLang, fallbackLang, originalBackdropPath)?.file_path ||
+    pickByLanguageWithFallback(backdrops, preferredLang, fallbackLang)?.file_path ||
     originalBackdropPath ||
     backdrops[0]?.file_path ||
     null;
@@ -2080,8 +2080,12 @@ const pickBackdropByPreference = (
     : null;
   const fallbackOriginal =
     originalBackdrop || (canonicalOriginalPath ? { file_path: canonicalOriginalPath } : backdrops[0]);
+  const defaultBackdrop =
+    pickByLanguageWithFallback(backdrops, preferredLang, fallbackLang) ||
+    fallbackOriginal;
+  const defaultBackdropPath = defaultBackdrop?.file_path || canonicalOriginalPath;
   const alternativeBackdrops = backdrops.filter(
-    (backdrop: any) => backdrop.file_path !== canonicalOriginalPath
+    (backdrop: any) => backdrop.file_path !== defaultBackdropPath
   );
 
   if (preference === 'clean') {
@@ -2093,11 +2097,12 @@ const pickBackdropByPreference = (
   }
 
   if (preference === 'default') {
-    return fallbackOriginal;
+    return defaultBackdrop;
   }
 
   return (
-    pickByLanguageWithFallback(alternativeBackdrops, preferredLang, fallbackLang) ||
+    pickByLanguageWithFallback(alternativeBackdrops, preferredLang, '') ||
+    pickByLanguageWithFallback(alternativeBackdrops, fallbackLang, '') ||
     alternativeBackdrops[0] ||
     fallbackOriginal
   );
@@ -5270,6 +5275,14 @@ export async function GET(
     tokenConfig.posterLang || request.nextUrl.searchParams.get('posterLang') || null;
   const posterAnimeLang =
     tokenConfig.posterAnimeLang || request.nextUrl.searchParams.get('posterAnimeLang') || null;
+  const backdropLang =
+    tokenConfig.backdropLang || request.nextUrl.searchParams.get('backdropLang') || null;
+  const backdropAnimeLang =
+    tokenConfig.backdropAnimeLang || request.nextUrl.searchParams.get('backdropAnimeLang') || null;
+  const logoLang =
+    tokenConfig.logoLang || request.nextUrl.searchParams.get('logoLang') || null;
+  const logoAnimeLang =
+    tokenConfig.logoAnimeLang || request.nextUrl.searchParams.get('logoAnimeLang') || null;
   const globalRatings = tokenConfig.ratings || request.nextUrl.searchParams.get('ratings');
 
   const getRatings = (configKey: string, queryKey: string) => {
@@ -5294,6 +5307,9 @@ export async function GET(
   const posterAnimeImageTextParam =
     tokenConfig.posterAnimeImageText ||
     request.nextUrl.searchParams.get('posterAnimeImageText');
+  const backdropAnimeImageTextParam =
+    tokenConfig.backdropAnimeImageText ||
+    request.nextUrl.searchParams.get('backdropAnimeImageText');
   const backdropImageTextParam =
     tokenConfig.backdropImageText ||
     request.nextUrl.searchParams.get('backdropText') ||
@@ -5521,7 +5537,15 @@ export async function GET(
       ? String(posterLang || '').trim().toLowerCase() === 'original'
         ? lang
         : posterLang || lang
-      : lang;
+      : imageType === 'backdrop'
+        ? String(backdropLang || '').trim().toLowerCase() === 'original'
+          ? lang
+          : backdropLang || lang
+        : imageType === 'logo'
+          ? String(logoLang || '').trim().toLowerCase() === 'original'
+            ? lang
+            : logoLang || lang
+          : lang;
   const requestedImageLang = normalizeTmdbLanguageCode(activeImageLang) || FALLBACK_IMAGE_LANGUAGE;
   const includeImageLanguage = buildIncludeImageLanguage(
     requestedImageLang,
@@ -5545,6 +5569,14 @@ export async function GET(
     normalizedPosterAnimeImageText === 'alternative' ||
     normalizedPosterAnimeImageText === 'default'
       ? normalizedPosterAnimeImageText
+      : 'clean';
+  const normalizedBackdropAnimeImageText =
+    backdropAnimeImageTextParam === 'original' ? 'default' : backdropAnimeImageTextParam;
+  const backdropAnimeTextPreference: PosterTextPreference =
+    normalizedBackdropAnimeImageText === 'clean' ||
+    normalizedBackdropAnimeImageText === 'alternative' ||
+    normalizedBackdropAnimeImageText === 'default'
+      ? normalizedBackdropAnimeImageText
       : 'clean';
   const ratingsForType =
     imageType === 'poster'
@@ -5596,12 +5628,19 @@ export async function GET(
     requestedImageLang,
     imageType === 'poster'
       ? `${posterTextPreference}:${posterAnimeTextPreference}`
-      : posterTextPreference,
+      : imageType === 'backdrop'
+        ? `${posterTextPreference}:${backdropAnimeTextPreference}`
+        : posterTextPreference,
     imageType === 'poster' ? posterRatingsLayout : '-',
     imageType === 'poster' ? String(posterRatingsMaxPerSide ?? 'auto') : '-',
     imageType === 'poster' ? String(posterLang || '-') : '-',
     imageType === 'poster' ? String(posterAnimeLang || '-') : '-',
+    imageType === 'backdrop' ? String(backdropLang || '-') : '-',
+    imageType === 'backdrop' ? String(backdropAnimeLang || '-') : '-',
+    imageType === 'logo' ? String(logoLang || '-') : '-',
+    imageType === 'logo' ? String(logoAnimeLang || '-') : '-',
     imageType === 'poster' ? String(posterAnimeImageTextParam || '-') : '-',
+    imageType === 'backdrop' ? String(backdropAnimeImageTextParam || '-') : '-',
     imageType === 'logo' ? String(logoRatingsMax ?? 'auto') : '-',
     imageType === 'logo' ? logoMode : DEFAULT_LOGO_MODE,
     imageType === 'logo' ? logoFontVariant : DEFAULT_LOGO_FONT_VARIANT,
@@ -6031,18 +6070,46 @@ export async function GET(
       const isAnimeContent = hasNativeAnimeInput || hasConfirmedAnimeMapping || mediaLooksAnimated;
       const effectivePosterTextPreference =
         type === 'poster' && isAnimeContent ? posterAnimeTextPreference : posterTextPreference;
+      const effectiveBackdropTextPreference =
+        type === 'backdrop' && isAnimeContent ? backdropAnimeTextPreference : (imageText as PosterTextPreference);
       const activePosterLanguageSetting =
         imageType === 'poster'
           ? isAnimeContent && posterAnimeLang
             ? posterAnimeLang
             : posterLang
           : null;
+      const activeBackdropLanguageSetting =
+        imageType === 'backdrop'
+          ? isAnimeContent && backdropAnimeLang
+            ? backdropAnimeLang
+            : backdropLang
+          : null;
+      const activeLogoLanguageSetting =
+        imageType === 'logo'
+          ? isAnimeContent && logoAnimeLang
+            ? logoAnimeLang
+            : logoLang
+          : null;
       const isEffectiveOriginalPosterLang =
         imageType === 'poster' &&
         String(activePosterLanguageSetting || '').trim().toLowerCase() === 'original';
+      const isEffectiveOriginalBackdropLang =
+        imageType === 'backdrop' &&
+        String(activeBackdropLanguageSetting || '').trim().toLowerCase() === 'original';
+      const isEffectiveOriginalLogoLang =
+        imageType === 'logo' &&
+        String(activeLogoLanguageSetting || '').trim().toLowerCase() === 'original';
       const effectivePosterRequestedImageLang =
         normalizeTmdbLanguageCode(
           isEffectiveOriginalPosterLang ? lang : activePosterLanguageSetting || lang
+        ) || FALLBACK_IMAGE_LANGUAGE;
+      const effectiveBackdropRequestedImageLang =
+        normalizeTmdbLanguageCode(
+          isEffectiveOriginalBackdropLang ? lang : activeBackdropLanguageSetting || lang
+        ) || FALLBACK_IMAGE_LANGUAGE;
+      const effectiveLogoRequestedImageLang =
+        normalizeTmdbLanguageCode(
+          isEffectiveOriginalLogoLang ? lang : activeLogoLanguageSetting || lang
         ) || FALLBACK_IMAGE_LANGUAGE;
       const effectivePosterFallbackImageLang =
         normalizeTmdbLanguageCode(lang) || FALLBACK_IMAGE_LANGUAGE;
@@ -6182,7 +6249,12 @@ export async function GET(
         imageType === 'poster' ? String(posterRatingsMaxPerSide ?? 'auto') : '-',
         imageType === 'poster' ? String(posterLang || '-') : '-',
         imageType === 'poster' ? String(posterAnimeLang || '-') : '-',
+        imageType === 'backdrop' ? String(backdropLang || '-') : '-',
+        imageType === 'backdrop' ? String(backdropAnimeLang || '-') : '-',
+        imageType === 'logo' ? String(logoLang || '-') : '-',
+        imageType === 'logo' ? String(logoAnimeLang || '-') : '-',
         imageType === 'poster' ? String(posterAnimeImageTextParam || '-') : '-',
+        imageType === 'backdrop' ? String(backdropAnimeImageTextParam || '-') : '-',
         imageType === 'logo' ? String(logoRatingsMax ?? 'auto') : '-',
         imageType === 'logo' ? logoMode : DEFAULT_LOGO_MODE,
         imageType === 'logo' ? logoFontVariant : DEFAULT_LOGO_FONT_VARIANT,
@@ -6990,6 +7062,10 @@ export async function GET(
               ? mediaOriginalLanguage
               : imageType === 'poster'
                 ? resolvedPosterRequestedImageLang
+                : imageType === 'logo' && isEffectiveOriginalLogoLang && mediaOriginalLanguage
+                  ? mediaOriginalLanguage
+                  : imageType === 'logo'
+                    ? effectiveLogoRequestedImageLang
                 : requestedImageLang;
           const preferredBackdropPath = details?.backdrop_path || media?.backdrop_path || null;
           const selectedLogo = pickByLanguageWithFallback(
@@ -7026,7 +7102,7 @@ export async function GET(
           const localizedBackdropPath =
             pickByLanguageWithFallback(
               backdropCollection,
-              requestedImageLang,
+              effectiveBackdropRequestedImageLang,
               FALLBACK_IMAGE_LANGUAGE,
               preferredBackdropPath
             )?.file_path || preferredBackdropPath;
@@ -7128,8 +7204,8 @@ export async function GET(
           if (type === 'backdrop') {
             const selectedBackdrop = pickBackdropByPreference(
               backdropCollection,
-              imageText as PosterTextPreference,
-              requestedImageLang,
+              effectiveBackdropTextPreference,
+              effectiveBackdropRequestedImageLang,
               FALLBACK_IMAGE_LANGUAGE,
               originalBackdropPath
             );
@@ -7174,8 +7250,8 @@ export async function GET(
 
             const selectedBackdrop = pickBackdropByPreference(
               backdropCollection,
-              imageText as PosterTextPreference,
-              requestedImageLang,
+              effectiveBackdropTextPreference,
+              effectiveBackdropRequestedImageLang,
               FALLBACK_IMAGE_LANGUAGE,
               originalBackdropPath
             );

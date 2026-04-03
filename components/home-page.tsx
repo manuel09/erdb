@@ -340,7 +340,12 @@ const buildAiometadataPattern = (options: {
   lang: string;
   posterLang: string;
   posterAnimeLang: string;
+  backdropLang: string;
+  backdropAnimeLang: string;
+  logoLang: string;
+  logoAnimeLang: string;
   posterAnimeImageText: 'default' | 'clean' | 'alternative';
+  backdropAnimeImageText: 'default' | 'clean' | 'alternative';
   posterRatings: string;
   backdropRatings: string;
   thumbnailRatings: string;
@@ -386,7 +391,12 @@ const buildAiometadataPattern = (options: {
     lang,
     posterLang,
     posterAnimeLang,
+    backdropLang,
+    backdropAnimeLang,
+    logoLang,
+    logoAnimeLang,
     posterAnimeImageText,
+    backdropAnimeImageText,
     posterRatings,
     backdropRatings,
     thumbnailRatings,
@@ -475,6 +485,13 @@ const buildAiometadataPattern = (options: {
       params.push(['posterVerticalBadgeContent', posterVerticalBadgeContent]);
     }
   } else if (imageType === 'backdrop') {
+    if (backdropLang) {
+      params.push(['backdropLang', backdropLang]);
+    }
+    if (backdropAnimeLang) {
+      params.push(['backdropAnimeLang', backdropAnimeLang]);
+    }
+    params.push(['backdropAnimeImageText', backdropAnimeImageText]);
     params.push(['backdropRatings', backdropRatings]);
     if (backdropStreamBadges !== 'auto') {
       params.push(['backdropStreamBadges', backdropStreamBadges]);
@@ -498,6 +515,12 @@ const buildAiometadataPattern = (options: {
       params.push(['thumbnailVerticalBadgeContent', thumbnailVerticalBadgeContent]);
     }
   } else {
+    if (logoLang) {
+      params.push(['logoLang', logoLang]);
+    }
+    if (logoAnimeLang) {
+      params.push(['logoAnimeLang', logoAnimeLang]);
+    }
     params.push(['logoRatings', logoRatings]);
     if (logoRatingsMax !== null) {
       params.push(['logoRatingsMax', String(logoRatingsMax)]);
@@ -604,6 +627,11 @@ const buildAiometadataPatternBlock = (options: {
     }
     pushIfString('posterVerticalBadgeContent');
   } else if (options.imageType === 'backdrop' || options.imageType === 'thumbnail') {
+    if (options.imageType === 'backdrop') {
+      pushIfString('backdropLang');
+      pushIfString('backdropAnimeLang');
+      pushIfString('backdropAnimeImageText');
+    }
     const typeRatingStyle = options.imageType === 'thumbnail' ? config.thumbnailRatingStyle : config.backdropRatingStyle;
     if (typeof typeRatingStyle === 'string' && typeRatingStyle !== '') {
       params.push(['ratingStyle', typeRatingStyle]);
@@ -625,6 +653,8 @@ const buildAiometadataPatternBlock = (options: {
       pushIfString('backdropRatingsSize');
     }
   } else {
+    pushIfString('logoLang');
+    pushIfString('logoAnimeLang');
     pushIfString('logoRatings');
     if (typeof config.logoRatingsMax === 'string' || typeof config.logoRatingsMax === 'number') {
       params.push(['logoRatingsMax', String(config.logoRatingsMax)]);
@@ -693,9 +723,14 @@ export default function HomePage({
   const [lang, setLang] = useState('en');
   const [posterLang, setPosterLang] = useState('');
   const [posterAnimeLang, setPosterAnimeLang] = useState('');
+  const [backdropLang, setBackdropLang] = useState('');
+  const [backdropAnimeLang, setBackdropAnimeLang] = useState('');
+  const [logoLang, setLogoLang] = useState('');
+  const [logoAnimeLang, setLogoAnimeLang] = useState('');
   const [posterImageText, setPosterImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
   const [posterAnimeImageText, setPosterAnimeImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
   const [backdropImageText, setBackdropImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
+  const [backdropAnimeImageText, setBackdropAnimeImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
   const [posterRatingRows, setPosterRatingRows] = useState<RatingProviderRow[]>(buildDefaultRatingRows);
   const [backdropRatingRows, setBackdropRatingRows] = useState<RatingProviderRow[]>(buildDefaultRatingRows);
   const [thumbnailRatingRows, setThumbnailRatingRows] = useState<RatingProviderRow[]>(
@@ -766,7 +801,7 @@ export default function HomePage({
   const [showProxyUrl, setShowProxyUrl] = useState(false);
   const [aiometadataCopiedType, setAiometadataCopiedType] = useState<AiometadataPatternType | null>(null);
   const [aiometadataEpisodeProvider, setAiometadataEpisodeProvider] = useState<AiometadataEpisodeProvider>('realimdb');
-  const [currentVersion, setCurrentVersion] = useState('0.3.11');
+  const [currentVersion, setCurrentVersion] = useState('0.3.12');
   const [githubPackageVersion, setGithubPackageVersion] = useState<string | null>(null);
   const [repoUrl, setRepoUrl] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<'idle' | 'with' | 'without'>('idle');
@@ -827,6 +862,46 @@ export default function HomePage({
     const normalizedPosterAnimeLang = normalizeTmdbLanguageCode(posterAnimeLang) || posterAnimeLang;
     return normalizedPosterAnimeLang || effectivePosterLang;
   }, [effectivePosterLang, posterAnimeLang]);
+  const effectiveBackdropLang = useMemo(() => {
+    if (backdropLang === 'original') {
+      return 'original';
+    }
+    const normalizedBackdropLang = normalizeTmdbLanguageCode(backdropLang) || backdropLang;
+    if (!normalizedBackdropLang) {
+      return effectiveLang;
+    }
+    return normalizedBackdropLang;
+  }, [backdropLang, effectiveLang]);
+  const effectiveBackdropAnimeLang = useMemo(() => {
+    if (!backdropAnimeLang) {
+      return effectiveBackdropLang;
+    }
+    if (backdropAnimeLang === 'original') {
+      return 'original';
+    }
+    const normalizedBackdropAnimeLang = normalizeTmdbLanguageCode(backdropAnimeLang) || backdropAnimeLang;
+    return normalizedBackdropAnimeLang || effectiveBackdropLang;
+  }, [backdropAnimeLang, effectiveBackdropLang]);
+  const effectiveLogoLang = useMemo(() => {
+    if (logoLang === 'original') {
+      return 'original';
+    }
+    const normalizedLogoLang = normalizeTmdbLanguageCode(logoLang) || logoLang;
+    if (!normalizedLogoLang) {
+      return effectiveLang;
+    }
+    return normalizedLogoLang;
+  }, [effectiveLang, logoLang]);
+  const effectiveLogoAnimeLang = useMemo(() => {
+    if (!logoAnimeLang) {
+      return effectiveLogoLang;
+    }
+    if (logoAnimeLang === 'original') {
+      return 'original';
+    }
+    const normalizedLogoAnimeLang = normalizeTmdbLanguageCode(logoAnimeLang) || logoAnimeLang;
+    return normalizedLogoAnimeLang || effectiveLogoLang;
+  }, [effectiveLogoLang, logoAnimeLang]);
   const sanitizedProxyCatalogNames = useMemo(
     () => normalizeProxyCatalogNameOverrides(proxyCatalogNames) || {},
     [proxyCatalogNames]
@@ -1156,10 +1231,23 @@ export default function HomePage({
       query.set('posterAnimeImageText', posterAnimeImageText);
       query.set('posterRatings', ratingsQuery);
     } else if (previewType === 'backdrop') {
+      if (backdropLang) {
+        query.set('backdropLang', effectiveBackdropLang);
+      }
+      if (backdropAnimeLang) {
+        query.set('backdropAnimeLang', effectiveBackdropAnimeLang);
+      }
+      query.set('backdropAnimeImageText', backdropAnimeImageText);
       query.set('backdropRatings', ratingsQuery);
     } else if (previewType === 'thumbnail') {
       query.set('thumbnailRatings', ratingsQuery);
     } else {
+      if (logoLang) {
+        query.set('logoLang', effectiveLogoLang);
+      }
+      if (logoAnimeLang) {
+        query.set('logoAnimeLang', effectiveLogoAnimeLang);
+      }
       query.set('logoRatings', ratingsQuery);
       if (logoRatingsMax !== null) {
         query.set('logoRatingsMax', String(logoRatingsMax));
@@ -1254,11 +1342,20 @@ export default function HomePage({
     effectiveLang,
     effectivePosterLang,
     effectivePosterAnimeLang,
+    effectiveBackdropLang,
+    effectiveBackdropAnimeLang,
+    effectiveLogoLang,
+    effectiveLogoAnimeLang,
     posterLang,
     posterAnimeLang,
+    backdropLang,
+    backdropAnimeLang,
+    logoLang,
+    logoAnimeLang,
     posterImageText,
     posterAnimeImageText,
     backdropImageText,
+    backdropAnimeImageText,
     posterRatingPreferences,
     backdropRatingPreferences,
     thumbnailRatingPreferences,
@@ -1336,11 +1433,26 @@ export default function HomePage({
     if (posterAnimeImageText) {
       config.posterAnimeImageText = posterAnimeImageText;
     }
+    if (backdropAnimeImageText) {
+      config.backdropAnimeImageText = backdropAnimeImageText;
+    }
     if (posterLang) {
       config.posterLang = effectivePosterLang;
     }
     if (posterAnimeLang) {
       config.posterAnimeLang = effectivePosterAnimeLang;
+    }
+    if (backdropLang) {
+      config.backdropLang = effectiveBackdropLang;
+    }
+    if (backdropAnimeLang) {
+      config.backdropAnimeLang = effectiveBackdropAnimeLang;
+    }
+    if (logoLang) {
+      config.logoLang = effectiveLogoLang;
+    }
+    if (logoAnimeLang) {
+      config.logoAnimeLang = effectiveLogoAnimeLang;
     }
     if (posterStreamBadges !== 'auto') {
       config.posterStreamBadges = posterStreamBadges;
@@ -1559,7 +1671,20 @@ export default function HomePage({
     if (posterAnimeLang) {
       config.posterAnimeLang = effectivePosterAnimeLang;
     }
+    if (backdropLang) {
+      config.backdropLang = effectiveBackdropLang;
+    }
+    if (backdropAnimeLang) {
+      config.backdropAnimeLang = effectiveBackdropAnimeLang;
+    }
+    if (logoLang) {
+      config.logoLang = effectiveLogoLang;
+    }
+    if (logoAnimeLang) {
+      config.logoAnimeLang = effectiveLogoAnimeLang;
+    }
     config.posterAnimeImageText = posterAnimeImageText;
+    config.backdropAnimeImageText = backdropAnimeImageText;
     if (posterStreamBadges !== 'auto') {
       config.posterStreamBadges = posterStreamBadges;
     }
@@ -1952,6 +2077,18 @@ export default function HomePage({
     if (typeof payload.posterAnimeLang === 'string') {
       setPosterAnimeLang(normalizeTmdbLanguageCode(payload.posterAnimeLang) || payload.posterAnimeLang);
     }
+    if (typeof payload.backdropLang === 'string') {
+      setBackdropLang(normalizeTmdbLanguageCode(payload.backdropLang) || payload.backdropLang);
+    }
+    if (typeof payload.backdropAnimeLang === 'string') {
+      setBackdropAnimeLang(normalizeTmdbLanguageCode(payload.backdropAnimeLang) || payload.backdropAnimeLang);
+    }
+    if (typeof payload.logoLang === 'string') {
+      setLogoLang(normalizeTmdbLanguageCode(payload.logoLang) || payload.logoLang);
+    }
+    if (typeof payload.logoAnimeLang === 'string') {
+      setLogoAnimeLang(normalizeTmdbLanguageCode(payload.logoAnimeLang) || payload.logoAnimeLang);
+    }
     if (typeof payload.previewType === 'string' && isPreviewType(payload.previewType)) {
       setPreviewType(payload.previewType);
     }
@@ -1960,6 +2097,9 @@ export default function HomePage({
     }
     if (typeof payload.posterAnimeImageText === 'string' && isImageText(payload.posterAnimeImageText)) {
       setPosterAnimeImageText(payload.posterAnimeImageText);
+    }
+    if (typeof payload.backdropAnimeImageText === 'string' && isImageText(payload.backdropAnimeImageText)) {
+      setBackdropAnimeImageText(payload.backdropAnimeImageText);
     }
     if (typeof payload.backdropImageText === 'string' && isImageText(payload.backdropImageText)) {
       setBackdropImageText(payload.backdropImageText);
@@ -2230,8 +2370,14 @@ export default function HomePage({
       mediaId,
       lang: effectiveLang,
       posterLang,
+      posterAnimeLang,
+      backdropLang,
+      backdropAnimeLang,
+      logoLang,
+      logoAnimeLang,
       posterImageText,
       posterAnimeImageText,
+      backdropAnimeImageText,
       backdropImageText,
       posterRatingPreferences,
       backdropRatingPreferences,
@@ -2683,7 +2829,12 @@ export default function HomePage({
       lang: effectiveLang,
       posterLang,
       posterAnimeLang,
+      backdropLang,
+      backdropAnimeLang,
+      logoLang,
+      logoAnimeLang,
       posterAnimeImageText,
+      backdropAnimeImageText,
       supportedLanguages,
       tmdbKey,
       mdblistKey,
@@ -2764,7 +2915,12 @@ export default function HomePage({
       setLang,
       setPosterLang,
       setPosterAnimeLang,
+      setBackdropLang,
+      setBackdropAnimeLang,
+      setLogoLang,
+      setLogoAnimeLang,
       setPosterAnimeImageText,
+      setBackdropAnimeImageText,
       setTmdbKey,
       setMdblistKey,
       setSimklClientId,

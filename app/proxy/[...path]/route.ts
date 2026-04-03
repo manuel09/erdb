@@ -37,6 +37,10 @@ const buildProxyConfigFromToken = (
   if (typeof t.lang === 'string') config.lang = t.lang;
   if (typeof t.posterLang === 'string') config.posterLang = t.posterLang;
   if (typeof t.posterAnimeLang === 'string') config.posterAnimeLang = t.posterAnimeLang;
+  if (typeof t.backdropLang === 'string') config.backdropLang = t.backdropLang;
+  if (typeof t.backdropAnimeLang === 'string') config.backdropAnimeLang = t.backdropAnimeLang;
+  if (typeof t.logoLang === 'string') config.logoLang = t.logoLang;
+  if (typeof t.logoAnimeLang === 'string') config.logoAnimeLang = t.logoAnimeLang;
 
   if (Array.isArray(t.posterRatingPreferences)) {
     const pQ = stringifyRatingPreferencesAllowEmpty(t.posterRatingPreferences);
@@ -71,6 +75,7 @@ const buildProxyConfigFromToken = (
   mapStr('posterImageText', 'posterImageText');
   mapStr('posterAnimeImageText', 'posterAnimeImageText');
   mapStr('backdropImageText', 'backdropImageText');
+  mapStr('backdropAnimeImageText', 'backdropAnimeImageText');
   mapStr('posterRatingsLayout', 'posterRatingsLayout');
   mapStr('backdropRatingsLayout', 'backdropRatingsLayout');
   mapStr('backdropRatingsSize', 'backdropRatingsSize');

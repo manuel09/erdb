@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.12](https://github.com/realbestia1/erdb/compare/v0.3.11...v0.3.12) - 2026-04-03
+
+- feat(images): add anime-specific backdrop and logo language controls and fix localized artwork selection ([933f724](https://github.com/realbestia1/erdb/commit/933f724b524081d5fde77216eb51e08c20200c07))
+  - add `Backdrop Language` and `Backdrop Language Anime` controls across UI, config import/export, proxy config, token config, and server-side rendering
+  - add `Logo Language` and `Logo Language Anime` controls across UI, config import/export, proxy config, token config, and server-side rendering
+  - add `Backdrop Text Anime` and wire it through preview, saved config, proxy forwarding, and server-side backdrop selection
+  - rename poster text mode `original` to `default` while preserving backward compatibility for legacy `original` query/config values
+  - make poster and backdrop `default` resolve to the default artwork for the selected language
+  - make poster and backdrop `alternative` exclude the current default artwork and prefer a different artwork in the same selected language
+  - fix the case where `Backdrop Text` `default` and `clean` could resolve to the same image
+  - fix build and type issues introduced during the language/text-mode expansion
+  - rename the dynamic image route handler from `route.tsx` to `route.ts` to restore a clean Next.js production build
+  - bump project version from `0.3.11` to `0.3.12`
+
 ## [0.3.11](https://github.com/realbestia1/erdb/compare/v0.3.10...v0.3.11) - 2026-04-03
 
 - build error fix ([e56d637](https://github.com/realbestia1/erdb/commit/e56d6373eb0de46eb389c864aa1db41523b76cec))

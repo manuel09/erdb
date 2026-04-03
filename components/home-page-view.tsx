@@ -34,7 +34,12 @@ type HomePageViewState = {
   lang: string;
   posterLang: string;
   posterAnimeLang: string;
+  backdropLang: string;
+  backdropAnimeLang: string;
+  logoLang: string;
+  logoAnimeLang: string;
   posterAnimeImageText: 'default' | 'clean' | 'alternative';
+  backdropAnimeImageText: 'default' | 'clean' | 'alternative';
   supportedLanguages: SupportedLanguage[];
   tmdbKey: string;
   mdblistKey: string;
@@ -117,7 +122,12 @@ type HomePageViewActions = {
   setLang: Dispatch<SetStateAction<string>>;
   setPosterLang: Dispatch<SetStateAction<string>>;
   setPosterAnimeLang: Dispatch<SetStateAction<string>>;
+  setBackdropLang: Dispatch<SetStateAction<string>>;
+  setBackdropAnimeLang: Dispatch<SetStateAction<string>>;
+  setLogoLang: Dispatch<SetStateAction<string>>;
+  setLogoAnimeLang: Dispatch<SetStateAction<string>>;
   setPosterAnimeImageText: Dispatch<SetStateAction<'default' | 'clean' | 'alternative'>>;
+  setBackdropAnimeImageText: Dispatch<SetStateAction<'default' | 'clean' | 'alternative'>>;
   setTmdbKey: Dispatch<SetStateAction<string>>;
   setMdblistKey: Dispatch<SetStateAction<string>>;
   setSimklClientId: Dispatch<SetStateAction<string>>;

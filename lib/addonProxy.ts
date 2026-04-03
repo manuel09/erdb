@@ -10,7 +10,12 @@ const ERDB_OPTIONAL_PARAMS = [
   'lang',
   'posterLang',
   'posterAnimeLang',
+  'backdropLang',
+  'backdropAnimeLang',
+  'logoLang',
+  'logoAnimeLang',
   'posterAnimeImageText',
+  'backdropAnimeImageText',
   'streamBadges',
   'qualityBadgesSide',
   'posterQualityBadgesPosition',
@@ -107,6 +112,10 @@ export type ProxyConfig = {
   lang?: string;
   posterLang?: string;
   posterAnimeLang?: string;
+  backdropLang?: string;
+  backdropAnimeLang?: string;
+  logoLang?: string;
+  logoAnimeLang?: string;
   streamBadges?: string;
   posterStreamBadges?: string;
   backdropStreamBadges?: string;
@@ -123,6 +132,7 @@ export type ProxyConfig = {
   posterImageText?: string;
   posterAnimeImageText?: string;
   backdropImageText?: string;
+  backdropAnimeImageText?: string;
   posterRatingsLayout?: string;
   posterRatingsMaxPerSide?: string;
   backdropRatingsLayout?: string;
@@ -162,6 +172,10 @@ const PROXY_OPTIONAL_STRING_KEYS = [
   'lang',
   'posterLang',
   'posterAnimeLang',
+  'backdropLang',
+  'backdropAnimeLang',
+  'logoLang',
+  'logoAnimeLang',
   'streamBadges',
   'posterStreamBadges',
   'backdropStreamBadges',
@@ -178,6 +192,7 @@ const PROXY_OPTIONAL_STRING_KEYS = [
   'posterImageText',
   'posterAnimeImageText',
   'backdropImageText',
+  'backdropAnimeImageText',
   'posterRatingsLayout',
   'posterRatingsMaxPerSide',
   'backdropRatingsLayout',
