@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.17](https://github.com/realbestia1/erdb/compare/v0.3.16...v0.3.17) - 2026-04-04
+
+- fix(poster): infer TMDB season for MAL/AniList/AniDB and use season artwork like Kitsu ([2935b3d](https://github.com/realbestia1/erdb/commit/2935b3d243ac491cd7d7ef0d0ac7ec26fa39cf87))
+  - After reverse-mapping native anime IDs (mal/anilist/anidb) to TMDB TV, probe
+  animemapping with ep=1 when season is unset and subtype is not movie, mirroring
+  the Kitsu path so season maps to the correct TMDB season_number.
+  - Prefer TMDB season posters for all native anime inputs (hasNativeAnimeInput) when
+  season is known and episode is absent, not only kitsu:*.
+- Update README.md ([211156a](https://github.com/realbestia1/erdb/commit/211156a0168fb5b989e3a23506d9573c08415a2d))
+- Update README.md ([b4b32b4](https://github.com/realbestia1/erdb/commit/b4b32b4f31ab0e6d1686a4b6c8ea5a8881189b95))
+- Update README.md ([8e3e6e7](https://github.com/realbestia1/erdb/commit/8e3e6e719ca9b7d71c8d5b48413b7b40feb2ddd1))
+- Update README.md ([5bdb4ca](https://github.com/realbestia1/erdb/commit/5bdb4ca4a64ce9a35740bcad3bf62205f07f7dd3))
+- Update README.md ([95333e9](https://github.com/realbestia1/erdb/commit/95333e991493c5fd41ad18f7898c20db80bc2a7c))
+- . ([7b2dd8f](https://github.com/realbestia1/erdb/commit/7b2dd8fb3f1d79e29b400b03882c61672199d7c5))
+- Update README.md ([17a33c2](https://github.com/realbestia1/erdb/commit/17a33c2c749e6978f9209a8fbd40cc9acbcfa4fd))
+- Delete Dockerfile.hf ([ed09d95](https://github.com/realbestia1/erdb/commit/ed09d9555de4fe5afcb6dfc1efb8af1a07dc48e3))
+- Update README.md ([0d4acaf](https://github.com/realbestia1/erdb/commit/0d4acaff4b69c790d6415719deeaeb444f424507))
+
 ## [0.3.16](https://github.com/realbestia1/erdb/compare/v0.3.15...v0.3.16) - 2026-04-04
 
 - docs(ai): allow configurable ERDB base URL with default easyratingsdb.com ([3936069](https://github.com/realbestia1/erdb/commit/39360691ccaf48169329c781623c1295fce1db22))
