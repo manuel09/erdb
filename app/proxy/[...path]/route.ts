@@ -317,6 +317,7 @@ const resolveTmdbFromErdbId = async (
 
     const movieResults = Array.isArray(data.movie_results) ? data.movie_results : [];
     const tvResults = Array.isArray(data.tv_results) ? data.tv_results : [];
+    const episodeResult = Array.isArray(data.tv_episode_results) ? data.tv_episode_results[0] : null;
 
     if (stremioType === 'movie' && movieResults[0]?.id) {
       return { id: Number(movieResults[0].id), type: 'movie' };
@@ -324,12 +325,26 @@ const resolveTmdbFromErdbId = async (
     if (stremioType === 'tv' && tvResults[0]?.id) {
       return { id: Number(tvResults[0].id), type: 'tv' };
     }
+    if (stremioType === 'tv' && episodeResult?.show_id) {
+      return {
+        id: Number(episodeResult.show_id),
+        type: 'tv',
+        season: Number.isFinite(Number(episodeResult.season_number)) ? Number(episodeResult.season_number) : null,
+      };
+    }
 
     if (movieResults[0]?.id) {
       return { id: Number(movieResults[0].id), type: 'movie' };
     }
     if (tvResults[0]?.id) {
       return { id: Number(tvResults[0].id), type: 'tv' };
+    }
+    if (episodeResult?.show_id) {
+      return {
+        id: Number(episodeResult.show_id),
+        type: 'tv',
+        season: Number.isFinite(Number(episodeResult.season_number)) ? Number(episodeResult.season_number) : null,
+      };
     }
   }
 

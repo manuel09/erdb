@@ -151,6 +151,33 @@ const getTmdbLanguageFallbackChain = (requestedLanguage?: string | null, fallbac
 
   return [...new Set([requested, requestedBase, fallback, fallbackBase].filter(Boolean) as string[])];
 };
+const isOriginalLanguageSetting = (value?: string | null) =>
+  String(value || '').trim().toLowerCase() === 'original';
+
+const resolveRequestedImageLanguage = (input: {
+  configuredLanguage?: string | null;
+  requestLanguage?: string | null;
+  fallbackLanguage: string;
+}) =>
+  normalizeTmdbLanguageCode(
+    isOriginalLanguageSetting(input.configuredLanguage)
+      ? input.requestLanguage
+      : input.configuredLanguage || input.requestLanguage
+  ) || input.fallbackLanguage;
+
+const resolveOriginalAwareImageLanguage = (input: {
+  configuredLanguage?: string | null;
+  requestLanguage?: string | null;
+  mediaOriginalLanguage?: string | null;
+  fallbackLanguage: string;
+}) =>
+  normalizeTmdbLanguageCode(
+    isOriginalLanguageSetting(input.configuredLanguage) && input.mediaOriginalLanguage
+      ? input.mediaOriginalLanguage
+      : input.configuredLanguage || input.requestLanguage
+  ) ||
+  normalizeTmdbLanguageCode(input.requestLanguage) ||
+  input.fallbackLanguage;
 const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v62';
 const TMDB_CACHE_TTL_MS = parseCacheTtlMs(
   process.env.ERDB_TMDB_CACHE_TTL_MS,
@@ -2022,7 +2049,9 @@ const pickPosterByPreference = (
   fallbackLang: string,
   originalPosterPath?: string | null
 ) => {
-  if (!Array.isArray(posters) || posters.length === 0) return null;
+  if (!Array.isArray(posters) || posters.length === 0) {
+    return originalPosterPath ? { file_path: originalPosterPath } : null;
+  }
 
   const canonicalOriginalPath =
     originalPosterPath ||
@@ -2068,7 +2097,9 @@ const pickBackdropByPreference = (
   fallbackLang: string,
   originalBackdropPath?: string | null
 ) => {
-  if (!Array.isArray(backdrops) || backdrops.length === 0) return null;
+  if (!Array.isArray(backdrops) || backdrops.length === 0) {
+    return originalBackdropPath ? { file_path: originalBackdropPath } : null;
+  }
 
   const canonicalOriginalPath =
     pickByLanguageWithFallback(backdrops, preferredLang, fallbackLang)?.file_path ||
@@ -6035,18 +6066,38 @@ export async function GET(
           }
 
           if (!media) {
-            const findResponse = await fetchJsonCached(
-              `tmdb:find:${rawImdbSeriesId}`,
-              `https://api.themoviedb.org/3/find/${rawImdbSeriesId}?api_key=${tmdbKey}&external_source=imdb_id`,
+          const findResponse = await fetchJsonCached(
+            `tmdb:find:${rawImdbSeriesId}`,
+            `https://api.themoviedb.org/3/find/${rawImdbSeriesId}?api_key=${tmdbKey}&external_source=imdb_id`,
+            TMDB_CACHE_TTL_MS,
+            phases,
+            'tmdb'
+          );
+          const findData = findResponse.data || {};
+          const episodeResult = findData.tv_episode_results?.[0] || null;
+          const prefersTvResult =
+            imageType === 'thumbnail' ||
+            (typeof season === 'string' && season.length > 0) ||
+            (typeof episode === 'string' && episode.length > 0);
+          if (episodeResult?.show_id) {
+            mediaId = String(episodeResult.show_id);
+            season = Number.isFinite(Number(episodeResult.season_number)) ? String(episodeResult.season_number) : season;
+            episode = Number.isFinite(Number(episodeResult.episode_number)) ? String(episodeResult.episode_number) : episode;
+
+            const showResponse = await fetchJsonCached(
+              `tmdb:tv:${mediaId}`,
+              `https://api.themoviedb.org/3/tv/${mediaId}?api_key=${tmdbKey}`,
               TMDB_CACHE_TTL_MS,
               phases,
               'tmdb'
             );
-            const findData = findResponse.data || {};
-            const prefersTvResult =
-              imageType === 'thumbnail' ||
-              (typeof season === 'string' && season.length > 0) ||
-              (typeof episode === 'string' && episode.length > 0);
+            if (showResponse.ok) {
+              media = showResponse.data;
+              mediaType = 'tv';
+            }
+          }
+
+          if (!media) {
             media = prefersTvResult
               ? findData.tv_results?.[0] || findData.movie_results?.[0]
               : findData.movie_results?.[0] || findData.tv_results?.[0];
@@ -6057,6 +6108,7 @@ export async function GET(
               : null;
           }
         }
+      }
       }
 
       if (!media && !useRawKitsuFallback) {
@@ -6091,30 +6143,50 @@ export async function GET(
             : logoLang
           : null;
       const isEffectiveOriginalPosterLang =
-        imageType === 'poster' &&
-        String(activePosterLanguageSetting || '').trim().toLowerCase() === 'original';
+        imageType === 'poster' && isOriginalLanguageSetting(activePosterLanguageSetting);
       const isEffectiveOriginalBackdropLang =
-        imageType === 'backdrop' &&
-        String(activeBackdropLanguageSetting || '').trim().toLowerCase() === 'original';
+        imageType === 'backdrop' && isOriginalLanguageSetting(activeBackdropLanguageSetting);
       const isEffectiveOriginalLogoLang =
-        imageType === 'logo' &&
-        String(activeLogoLanguageSetting || '').trim().toLowerCase() === 'original';
-      const effectivePosterRequestedImageLang =
-        normalizeTmdbLanguageCode(
-          isEffectiveOriginalPosterLang ? lang : activePosterLanguageSetting || lang
-        ) || FALLBACK_IMAGE_LANGUAGE;
-      const effectiveBackdropRequestedImageLang =
-        normalizeTmdbLanguageCode(
-          isEffectiveOriginalBackdropLang ? lang : activeBackdropLanguageSetting || lang
-        ) || FALLBACK_IMAGE_LANGUAGE;
-      const effectiveLogoRequestedImageLang =
-        normalizeTmdbLanguageCode(
-          isEffectiveOriginalLogoLang ? lang : activeLogoLanguageSetting || lang
-        ) || FALLBACK_IMAGE_LANGUAGE;
+        imageType === 'logo' && isOriginalLanguageSetting(activeLogoLanguageSetting);
+      const effectivePosterRequestedImageLang = resolveRequestedImageLanguage({
+        configuredLanguage: activePosterLanguageSetting,
+        requestLanguage: lang,
+        fallbackLanguage: FALLBACK_IMAGE_LANGUAGE,
+      });
+      const effectiveBackdropRequestedImageLang = resolveRequestedImageLanguage({
+        configuredLanguage: activeBackdropLanguageSetting,
+        requestLanguage: lang,
+        fallbackLanguage: FALLBACK_IMAGE_LANGUAGE,
+      });
+      const effectiveLogoRequestedImageLang = resolveRequestedImageLanguage({
+        configuredLanguage: activeLogoLanguageSetting,
+        requestLanguage: lang,
+        fallbackLanguage: FALLBACK_IMAGE_LANGUAGE,
+      });
       const effectivePosterFallbackImageLang =
         normalizeTmdbLanguageCode(lang) || FALLBACK_IMAGE_LANGUAGE;
       const requestedImageLanguageFallbacks = getTmdbLanguageFallbackChain(
         requestedImageLang,
+        FALLBACK_IMAGE_LANGUAGE
+      );
+      const mediaOriginalLanguage =
+        typeof media?.original_language === 'string' && media.original_language.trim().length > 0
+          ? media.original_language.trim()
+          : null;
+      const resolvedIncludeImageLanguage = buildIncludeImageLanguage(
+        resolveOriginalAwareImageLanguage({
+          configuredLanguage:
+            imageType === 'poster'
+              ? activePosterLanguageSetting
+              : imageType === 'backdrop'
+                ? activeBackdropLanguageSetting
+                : imageType === 'logo'
+                  ? activeLogoLanguageSetting
+                  : null,
+          requestLanguage: requestedImageLang,
+          mediaOriginalLanguage,
+          fallbackLanguage: FALLBACK_IMAGE_LANGUAGE,
+        }),
         FALLBACK_IMAGE_LANGUAGE
       );
 
@@ -6303,14 +6375,14 @@ export async function GET(
             url.searchParams.set('api_key', tmdbKey);
             url.searchParams.set('language', language);
             url.searchParams.set('append_to_response', 'images,external_ids,translations');
-            if (includeImageLanguage) {
-              url.searchParams.set('include_image_language', includeImageLanguage);
+            if (resolvedIncludeImageLanguage) {
+              url.searchParams.set('include_image_language', resolvedIncludeImageLanguage);
             }
             return url.toString();
           };
           const [primaryLanguage, ...fallbackLanguages] = requestedImageLanguageFallbacks;
           const primaryResponse = await fetchJsonCached(
-            `tmdb:${mediaType}:${media.id}:details:${primaryLanguage}:bundle:${includeImageLanguage}`,
+            `tmdb:${mediaType}:${media.id}:details:${primaryLanguage}:bundle:${resolvedIncludeImageLanguage}`,
             buildDetailsUrl(primaryLanguage),
             TMDB_CACHE_TTL_MS,
             phases,
@@ -6319,7 +6391,7 @@ export async function GET(
           const fallbackResponses = await Promise.all(
             fallbackLanguages.map((language) =>
               fetchJsonCached(
-                `tmdb:${mediaType}:${media.id}:details:${language}:bundle:${includeImageLanguage}`,
+                `tmdb:${mediaType}:${media.id}:details:${language}:bundle:${resolvedIncludeImageLanguage}`,
                 buildDetailsUrl(language),
                 TMDB_CACHE_TTL_MS,
                 phases,
@@ -7301,9 +7373,9 @@ export async function GET(
         ) {
           const logoFallbackImagesUrl = new URL(`https://api.themoviedb.org/3/${mediaType}/${media.id}/images`);
           logoFallbackImagesUrl.searchParams.set('api_key', tmdbKey);
-          logoFallbackImagesUrl.searchParams.set('include_image_language', includeImageLanguage);
+          logoFallbackImagesUrl.searchParams.set('include_image_language', resolvedIncludeImageLanguage);
           const logoFallbackImagesResponse = await fetchJsonCached(
-            `tmdb:${mediaType}:${media.id}:images:${includeImageLanguage || 'all'}`,
+            `tmdb:${mediaType}:${media.id}:images:${resolvedIncludeImageLanguage || 'all'}`,
             logoFallbackImagesUrl.toString(),
             TMDB_CACHE_TTL_MS,
             phases,
@@ -7339,9 +7411,9 @@ export async function GET(
         if (!imgPath && !imgUrl) {
           const fallbackImagesUrl = new URL(`https://api.themoviedb.org/3/${mediaType}/${media.id}/images`);
           fallbackImagesUrl.searchParams.set('api_key', tmdbKey);
-          fallbackImagesUrl.searchParams.set('include_image_language', includeImageLanguage);
+          fallbackImagesUrl.searchParams.set('include_image_language', resolvedIncludeImageLanguage);
           const fallbackImagesResponse = await fetchJsonCached(
-            `tmdb:${mediaType}:${media.id}:images:${includeImageLanguage || 'all'}`,
+            `tmdb:${mediaType}:${media.id}:images:${resolvedIncludeImageLanguage || 'all'}`,
             fallbackImagesUrl.toString(),
             TMDB_CACHE_TTL_MS,
             phases,

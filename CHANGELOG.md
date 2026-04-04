@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.13](https://github.com/realbestia1/erdb/compare/v0.3.12...v0.3.13) - 2026-04-04
+
+- fix(poster): resolve IMDb poster fallback and original-language image selection ([c801899](https://github.com/realbestia1/erdb/commit/c80189956f38f9a798a858c567b9c68ec893ab63))
+  - fix IMDb poster resolution for titles that expose a valid TMDB match but return an empty `images.posters` collection for the requested language
+  - fallback to TMDB `poster_path` / `backdrop_path` when the localized image collection is empty instead of returning `404 Image not found`
+  - fix `posterLang=original` so `include_image_language` is resolved from the media's real `original_language` after TMDB lookup, rather than incorrectly reusing the request language
+  - unify original-language handling across poster/backdrop/logo image language resolution with shared helpers
+  - improve TMDB ID resolution so IMDb IDs can also map through `tv_episode_results` when TMDB classifies the external ID as an episode
+  - bump package/app version from `0.3.12` to `0.3.13`
+
 ## [0.3.12](https://github.com/realbestia1/erdb/compare/v0.3.11...v0.3.12) - 2026-04-03
 
 - feat(images): add anime-specific backdrop and logo language controls and fix localized artwork selection ([933f724](https://github.com/realbestia1/erdb/commit/933f724b524081d5fde77216eb51e08c20200c07))
