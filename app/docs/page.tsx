@@ -116,7 +116,7 @@ export default function DocsPage() {
               you use your <Code>Tk-...</Code> token and ERDB resolves the saved configuration server-side.
             </p>
             <p className="max-w-4xl text-sm leading-7 text-slate-500">
-              For addon integrations, use the fixed base URL <Code>https://easyratingsdb.com</Code>. Addons only need the token field.
+              For addon integrations, default to <Code>https://easyratingsdb.com</Code> but allow advanced users to override the ERDB base URL for self-hosted instances. The integration should normalize the base URL automatically so it works with or without a trailing slash.
             </p>
           </section>
 
@@ -201,7 +201,7 @@ GET /Tk-abc123xyz/thumbnail/realimdb:tt0944947:1:1.jpg`}</code></pre>
                   ERDB renderer from a single <Code>ERDB Token</Code> field.
                 </p>
                 <p>
-                  It instructs the AI to use the fixed URL structure <Code>{`https://easyratingsdb.com/{token}/{type}/{id}.jpg`}</Code>.
+                  It instructs the AI to default to <Code>{`https://easyratingsdb.com/{token}/{type}/{id}.jpg`}</Code> while keeping the ERDB base URL configurable.
                 </p>
               </div>
               <DocsCopyPromptButton prompt={ERDB_AI_INTEGRATION_PROMPT} />

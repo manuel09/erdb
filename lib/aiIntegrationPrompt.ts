@@ -4,20 +4,25 @@ export const ERDB_AI_INTEGRATION_PROMPT = `Act as an expert media center addon d
 Add a single text configuration field called "erdbToken".
 The user will paste their ERDB token from the configurator after logging in.
 
-Use this fixed ERDB base URL:
+Also add an optional text configuration field called "erdbBaseUrl".
+Use this ERDB base URL by default:
 https://easyratingsdb.com
 
-Do NOT ask for TMDB keys, MDBList keys, layout fields, rating provider lists, or a custom base URL inside the addon UI.
+The addon must allow advanced users to change the ERDB base URL, but it should default to \`https://easyratingsdb.com\`.
+It must also normalize the base URL automatically so both \`https://easyratingsdb.com\` and \`https://easyratingsdb.com/\` work correctly.
+
+Do NOT ask for TMDB keys, MDBList keys, layout fields, or rating provider lists inside the addon UI.
 Those settings are already stored server-side behind the token.
 
 ### --- API MODEL ---
 ERDB is now token-based for renderer URLs.
 
 **Renderer endpoint:**
-GET https://easyratingsdb.com/{erdbToken}/{type}/{id}.jpg
+GET {erdbBaseUrl}/{erdbToken}/{type}/{id}.jpg
 
 Path parameter | Values
 --- | ---
+erdbBaseUrl | Defaults to https://easyratingsdb.com but should be user-configurable
 erdbToken | Tk-...
 type | poster, backdrop, logo, thumbnail
 id | IMDb (tt...), TMDB (tmdb:id, tmdb:movie:id, tmdb:tv:id), TVDB episode IDs, Kitsu, AniList, MAL
@@ -29,29 +34,31 @@ Use these patterns directly if you are not generating the integration from the E
 
 Pattern | Use case
 --- | ---
-https://easyratingsdb.com/{erdbToken}/poster/{imdbId}.jpg | Movie or series poster
-https://easyratingsdb.com/{erdbToken}/backdrop/{imdbId}.jpg | Movie or series backdrop
-https://easyratingsdb.com/{erdbToken}/logo/{imdbId}.jpg | Movie or series logo
-https://easyratingsdb.com/{erdbToken}/thumbnail/{seriesImdbId}:{season}:{episode}.jpg | Episode thumbnail with IMDb episode addressing
-https://easyratingsdb.com/{erdbToken}/thumbnail/realimdb:{seriesImdbId}:{season}:{episode}.jpg | Episode thumbnail when the addon uses real IMDb TV metadata
-https://easyratingsdb.com/{erdbToken}/thumbnail/tvdb:{tvdbId}:{season}:{episode}.jpg | Episode thumbnail when the addon uses TVDB numbering
-https://easyratingsdb.com/{erdbToken}/poster/tmdb:movie:{tmdbId}.jpg | Movie poster when only TMDB movie ID is available
-https://easyratingsdb.com/{erdbToken}/backdrop/tmdb:tv:{tmdbId}.jpg | Series backdrop when only TMDB TV ID is available
+{erdbBaseUrl}/{erdbToken}/poster/{imdbId}.jpg | Movie or series poster
+{erdbBaseUrl}/{erdbToken}/backdrop/{imdbId}.jpg | Movie or series backdrop
+{erdbBaseUrl}/{erdbToken}/logo/{imdbId}.jpg | Movie or series logo
+{erdbBaseUrl}/{erdbToken}/thumbnail/{seriesImdbId}:{season}:{episode}.jpg | Episode thumbnail with IMDb episode addressing
+{erdbBaseUrl}/{erdbToken}/thumbnail/realimdb:{seriesImdbId}:{season}:{episode}.jpg | Episode thumbnail when the addon uses real IMDb TV metadata
+{erdbBaseUrl}/{erdbToken}/thumbnail/tvdb:{tvdbId}:{season}:{episode}.jpg | Episode thumbnail when the addon uses TVDB numbering
+{erdbBaseUrl}/{erdbToken}/poster/tmdb:movie:{tmdbId}.jpg | Movie poster when only TMDB movie ID is available
+{erdbBaseUrl}/{erdbToken}/backdrop/tmdb:tv:{tmdbId}.jpg | Series backdrop when only TMDB TV ID is available
 
 ### --- INTEGRATION REQUIREMENTS ---
-1. Minimal UI: Use only \`erdbToken\`.
+1. Minimal UI: Use \`erdbToken\` and optionally \`erdbBaseUrl\` with default \`https://easyratingsdb.com\`.
 2. Artwork Toggles: Provide optional toggles to enable or disable ERDB for posters, backdrops, logos, and thumbnails.
 3. Smart Fallback: If ERDB is disabled for a type, or if the token is missing, keep the original artwork URL.
-4. URL Building: Always use \`https://easyratingsdb.com\` as the base URL and append token, type, and media id.
+4. URL Building: Use \`erdbBaseUrl\` when provided, otherwise default to \`https://easyratingsdb.com\`, then append token, type, and media id.
+   Normalize trailing slashes automatically before building renderer URLs.
 5. Preserve Existing IDs: Do not rewrite IDs unless your addon already has a normalization layer.
 
 ### --- URL BUILD LOGIC ---
-function buildErdbUrl({ erdbToken, type, id }) {
-  if (!erdbToken || !type || !id) {
+function buildErdbUrl({ erdbToken, erdbBaseUrl = 'https://easyratingsdb.com', type, id }) {
+  if (!erdbToken || !type || !id || !erdbBaseUrl) {
     return null;
   }
 
-  return \`https://easyratingsdb.com/\${erdbToken}/\${type}/\${id}.jpg\`;
+  const baseUrl = erdbBaseUrl.replace(/\/+$/, '');
+  return \`\${baseUrl}/\${erdbToken}/\${type}/\${id}.jpg\`;
 }
 
 ### --- EXAMPLES ---
@@ -79,4 +86,6 @@ https://easyratingsdb.com/Tk-abc123/thumbnail/realimdb:tt0944947:1:1.jpg
 ### --- PROXY NOTE ---
 If you also integrate the ERDB proxy manifest, keep that as a separate feature.
 For artwork rendering, the addon should not append TMDB, MDBList, SIMKL, style, or layout query parameters when a token is available.
+Default the base URL to \`https://easyratingsdb.com\`, but keep it user-configurable for self-hosted ERDB instances.
+Handle base URLs with or without a trailing slash automatically.
 `;

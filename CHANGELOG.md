@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.16](https://github.com/realbestia1/erdb/compare/v0.3.15...v0.3.16) - 2026-04-04
+
+- docs(ai): allow configurable ERDB base URL with default easyratingsdb.com ([3936069](https://github.com/realbestia1/erdb/commit/39360691ccaf48169329c781623c1295fce1db22))
+  - add optional `erdbBaseUrl` guidance to the AI integration prompt
+  - keep `https://easyratingsdb.com` as the default base URL
+  - document automatic trailing-slash normalization
+  - clarify self-hosted ERDB override behavior in the public docs
+  - bump app/package version to `0.3.16`
+
 ## [0.3.15](https://github.com/realbestia1/erdb/compare/v0.3.14...v0.3.15) - 2026-04-04
 
 - Add Filmweb user and critics rating providers with automatic IMDb/TMDB mapping fallback
