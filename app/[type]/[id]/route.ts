@@ -178,7 +178,7 @@ const resolveOriginalAwareImageLanguage = (input: {
   ) ||
   normalizeTmdbLanguageCode(input.requestLanguage) ||
   input.fallbackLanguage;
-const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v62';
+const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v63';
 const TMDB_CACHE_TTL_MS = parseCacheTtlMs(
   process.env.ERDB_TMDB_CACHE_TTL_MS,
   3 * 24 * 60 * 60 * 1000,
@@ -222,6 +222,12 @@ const KITSU_CACHE_TTL_MS = parseCacheTtlMs(
 );
 const SIMKL_CACHE_TTL_MS = parseCacheTtlMs(
   process.env.ERDB_SIMKL_CACHE_TTL_MS,
+  3 * 24 * 60 * 60 * 1000,
+  10 * 60 * 1000,
+  30 * 24 * 60 * 60 * 1000
+);
+const FILMWEB_CACHE_TTL_MS = parseCacheTtlMs(
+  process.env.ERDB_FILMWEB_CACHE_TTL_MS,
   3 * 24 * 60 * 60 * 1000,
   10 * 60 * 1000,
   30 * 24 * 60 * 60 * 1000
@@ -503,6 +509,8 @@ const SCALE_SUFFIX_RATING_PROVIDERS: Partial<Record<RatingPreference, string>> =
   imdb: '/10',
   metacriticuser: '/10',
   simkl: '/10',
+  filmweb: '/10',
+  filmwebcritics: '/10',
   letterboxd: '/5',
   myanimelist: '/10',
   rogerebert: '/4',
@@ -1159,6 +1167,189 @@ const fetchSimklRating = async ({
 
   const rating = normalizeRatingValue(response.data?.simkl?.rating);
   return rating && !isNegativeRatingValue(rating) ? rating : null;
+};
+
+const fetchFilmwebIdFromWikidata = async ({
+  imdbId,
+  tmdbId,
+  mediaType,
+  phases,
+}: {
+  imdbId?: string | null;
+  tmdbId?: string | null;
+  mediaType: 'movie' | 'tv';
+  phases: PhaseDurations;
+}) => {
+  const normalizedImdbId = String(imdbId || '').trim();
+  const normalizedTmdbId = String(tmdbId || '').trim();
+
+  let query: string | null = null;
+  let cacheKey: string | null = null;
+
+  if (normalizedImdbId) {
+    query = `SELECT ?filmwebId WHERE { ?item wdt:P345 "${normalizedImdbId}". ?item wdt:P5032 ?filmwebId. } LIMIT 1`;
+    cacheKey = `wikidata:filmweb:imdb:${normalizedImdbId}`;
+  } else if (normalizedTmdbId) {
+    const tmdbProperty = mediaType === 'tv' ? 'P4983' : 'P4947';
+    query = `SELECT ?filmwebId WHERE { ?item wdt:${tmdbProperty} "${normalizedTmdbId}". ?item wdt:P5032 ?filmwebId. } LIMIT 1`;
+    cacheKey = `wikidata:filmweb:tmdb:${mediaType}:${normalizedTmdbId}`;
+  }
+
+  if (!query || !cacheKey) return null;
+
+  const url = `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(query)}`;
+  const response = await fetchJsonCached(
+    cacheKey,
+    url,
+    FILMWEB_CACHE_TTL_MS,
+    phases,
+    'mdb',
+    {
+      headers: {
+        'Accept': 'application/sparql-results+json',
+        'User-Agent': 'ERDB/filmweb-provider',
+      },
+    }
+  );
+
+  if (!response.ok) return null;
+
+  const candidate = response.data?.results?.bindings?.[0]?.filmwebId?.value;
+  if (typeof candidate !== 'string') return null;
+
+  const normalized = candidate.trim();
+  return /^\d+$/.test(normalized) ? normalized : null;
+};
+
+const fetchFilmwebRating = async ({
+  filmwebId,
+  cacheTtlMs,
+  phases,
+}: {
+  filmwebId: string;
+  cacheTtlMs: number;
+  phases: PhaseDurations;
+}) => {
+  const normalizedFilmwebId = String(filmwebId || '').trim();
+  if (!/^\d+$/.test(normalizedFilmwebId)) return null;
+
+  const response = await fetchJsonCached(
+    `filmweb:rating:${normalizedFilmwebId}`,
+    `https://www.filmweb.pl/api/v1/film/${encodeURIComponent(normalizedFilmwebId)}/rating`,
+    cacheTtlMs,
+    phases,
+    'mdb',
+    {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0',
+      },
+    }
+  );
+
+  if (!response.ok) return null;
+
+  const rating = normalizeRatingValue(response.data?.rate);
+  return rating && !isNegativeRatingValue(rating) ? rating : null;
+};
+
+const fetchFilmwebCriticsRating = async ({
+  filmwebId,
+  cacheTtlMs,
+  phases,
+}: {
+  filmwebId: string;
+  cacheTtlMs: number;
+  phases: PhaseDurations;
+}) => {
+  const normalizedFilmwebId = String(filmwebId || '').trim();
+  if (!/^\d+$/.test(normalizedFilmwebId)) return null;
+
+  const response = await fetchJsonCached(
+    `filmweb:critics:rating:${normalizedFilmwebId}`,
+    `https://www.filmweb.pl/api/v1/film/${encodeURIComponent(normalizedFilmwebId)}/critics/rating`,
+    cacheTtlMs,
+    phases,
+    'mdb',
+    {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0',
+      },
+    }
+  );
+
+  if (!response.ok) return null;
+
+  const rating = normalizeRatingValue(response.data?.rate);
+  return rating && !isNegativeRatingValue(rating) ? rating : null;
+};
+
+const extractFilmwebIdFromText = (value: string) => {
+  const match = value.match(/filmweb\.pl\/(?:film|serial)\/[^"'`\s<>]*-(\d+)|\/(?:film|serial)\/[^"'`\s<>]*-(\d+)/i);
+  if (!match) return null;
+  const candidate = match[1] || match[2] || '';
+  return /^\d+$/.test(candidate) ? candidate : null;
+};
+
+const fetchFilmwebIdBySearch = async ({
+  title,
+  originalTitle,
+  year,
+  mediaType,
+  phases,
+}: {
+  title?: string | null;
+  originalTitle?: string | null;
+  year?: string | null;
+  mediaType: 'movie' | 'tv';
+  phases: PhaseDurations;
+}) => {
+  const normalizedTitle = String(title || '').trim();
+  const normalizedOriginalTitle = String(originalTitle || '').trim();
+  const normalizedYear = String(year || '').trim().slice(0, 4);
+  const siteType = mediaType === 'tv' ? 'serial' : 'film';
+
+  const queryCandidates = [
+    [normalizedOriginalTitle, normalizedYear].filter(Boolean).join(' '),
+    [normalizedTitle, normalizedYear].filter(Boolean).join(' '),
+    normalizedOriginalTitle,
+    normalizedTitle,
+  ]
+    .map((candidate) => candidate.trim())
+    .filter(Boolean);
+
+  for (const queryCandidate of [...new Set(queryCandidates)]) {
+    const cacheKey = `filmweb:search:${mediaType}:${sha1Hex(queryCandidate.toLowerCase())}`;
+    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(`site:filmweb.pl/${siteType} ${queryCandidate}`)}`;
+    const response = await fetchTextCached(
+      cacheKey,
+      url,
+      FILMWEB_CACHE_TTL_MS,
+      phases,
+      'mdb',
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0',
+        },
+      }
+    );
+
+    if (!response.ok || !response.data) continue;
+
+    const matches = [
+      ...response.data.matchAll(/https?:\/\/www\.filmweb\.pl\/(?:film|serial)\/[^"'`\s<>]+/gi),
+      ...response.data.matchAll(/\/\/www\.filmweb\.pl\/(?:film|serial)\/[^"'`\s<>]+/gi),
+      ...response.data.matchAll(/\/(?:film|serial)\/[^"'`\s<>]+-\d+/gi),
+    ];
+
+    for (const match of matches) {
+      const candidateId = extractFilmwebIdFromText(match[0]);
+      if (candidateId) return candidateId;
+    }
+  }
+
+  return null;
 };
 
 const normalizeKitsuId = (value: unknown) => {
@@ -2102,8 +2293,8 @@ const pickBackdropByPreference = (
   }
 
   const canonicalOriginalPath =
-    pickByLanguageWithFallback(backdrops, preferredLang, fallbackLang)?.file_path ||
     originalBackdropPath ||
+    pickByLanguageWithFallback(backdrops, preferredLang, fallbackLang)?.file_path ||
     backdrops[0]?.file_path ||
     null;
   const originalBackdrop = canonicalOriginalPath
@@ -6216,6 +6407,8 @@ export async function GET(
       const shouldAttemptAnimeMapping = hasNativeAnimeInput || mediaLooksAnimated;
       const needsExternalRatings = [...requestedExternalRatings].some((provider) => provider !== 'tmdb');
       const needsImdbRating = requestedExternalRatings.has('imdb');
+      const needsFilmwebRating = requestedExternalRatings.has('filmweb');
+      const needsFilmwebCriticsRating = requestedExternalRatings.has('filmwebcritics');
       const needsKitsuRating = requestedExternalRatings.has('kitsu');
       const hasMdbListApiKey = MDBLIST_API_KEYS.length > 0;
       const shouldRenderRawKitsuFallbackRating =
@@ -6465,12 +6658,15 @@ export async function GET(
           needsExternalRatings &&
           (mdblistKey ||
             hasMdbListApiKey ||
+            needsFilmwebRating ||
+            needsFilmwebCriticsRating ||
             needsKitsuRating ||
             needsImdbRating ||
             needsAnimeOnlyRatings)
           ? (async () => {
             let imdbId: string | null = null;
             let episodeImdbId: string | null = null;
+            let filmwebId: string | null = null;
             let kitsuId: string | null = isKitsu ? mediaId : null;
             let anilistId: string | null = idPrefix === 'anilist' ? mediaId : null;
             let malId: string | null = idPrefix === 'mal' ? mediaId : null;
@@ -6603,6 +6799,8 @@ export async function GET(
               let hasFetchedAnilist = false;
               let hasFetchedMal = false;
               let hasFetchedSimkl = false;
+              let hasFetchedFilmweb = false;
+              let hasFetchedFilmwebCritics = false;
 
               const ensureImdbId = async () => {
                 if (imdbId) return imdbId;
@@ -6663,6 +6861,123 @@ export async function GET(
                   hasConfirmedAnimeMapping = true;
                   allowAnimeOnlyRatings = hasNativeAnimeInput || mediaLooksAnimated;
                 }
+              };
+
+              const ensureFilmwebRating = async () => {
+                if (hasFetchedFilmweb || combinedRatings.has('filmweb')) {
+                  return combinedRatings.get('filmweb') || null;
+                }
+                hasFetchedFilmweb = true;
+                const resolvedImdbId = await ensureImdbId();
+                const tmdbId =
+                  media?.id != null
+                    ? String(media.id)
+                    : isTmdb && mediaId
+                      ? String(mediaId)
+                      : null;
+
+                if (!filmwebId) {
+                  try {
+                    filmwebId = await fetchFilmwebIdFromWikidata({
+                      imdbId: resolvedImdbId,
+                      tmdbId,
+                      mediaType: mediaType as 'movie' | 'tv',
+                      phases,
+                    });
+                  } catch {
+                    filmwebId = null;
+                  }
+                }
+
+                if (!filmwebId) {
+                  try {
+                    const title =
+                      mediaType === 'movie'
+                        ? media?.title || media?.name || null
+                        : media?.name || media?.title || null;
+                    const originalTitle =
+                      mediaType === 'movie'
+                        ? media?.original_title || media?.original_name || null
+                        : media?.original_name || media?.original_title || null;
+                    const releaseDate =
+                      mediaType === 'movie' ? media?.release_date : media?.first_air_date;
+                    const releaseYear =
+                      typeof releaseDate === 'string' && releaseDate.trim().length >= 4
+                        ? releaseDate.trim().slice(0, 4)
+                        : null;
+
+                    filmwebId = await fetchFilmwebIdBySearch({
+                      title,
+                      originalTitle,
+                      year: releaseYear,
+                      mediaType: mediaType as 'movie' | 'tv',
+                      phases,
+                    });
+                  } catch {
+                    filmwebId = null;
+                  }
+                }
+
+                if (!filmwebId) return null;
+
+                try {
+                  const filmwebCacheTtlMs = getRatingCacheTtlMs({
+                    id: `filmweb:${filmwebId}`,
+                    mediaType: mediaType as 'movie' | 'tv',
+                    releaseDate: mediaType === 'movie' ? media?.release_date : media?.first_air_date,
+                    defaultTtlMs: FILMWEB_CACHE_TTL_MS,
+                    oldTtlMs: MDBLIST_OLD_MOVIE_CACHE_TTL_MS,
+                  });
+                  const filmwebRating = await fetchFilmwebRating({
+                    filmwebId,
+                    cacheTtlMs: filmwebCacheTtlMs,
+                    phases,
+                  });
+                  if (filmwebRating) {
+                    combinedRatings.set('filmweb', filmwebRating);
+                    renderedRatingTtlByProvider.set('filmweb', filmwebCacheTtlMs);
+                  }
+                } catch {
+                  // Ignore
+                }
+
+                return combinedRatings.get('filmweb') || null;
+              };
+
+              const ensureFilmwebCriticsRating = async () => {
+                if (hasFetchedFilmwebCritics || combinedRatings.has('filmwebcritics')) {
+                  return combinedRatings.get('filmwebcritics') || null;
+                }
+                hasFetchedFilmwebCritics = true;
+
+                if (!filmwebId) {
+                  await ensureFilmwebRating();
+                }
+
+                if (!filmwebId) return null;
+
+                try {
+                  const filmwebCriticsCacheTtlMs = getRatingCacheTtlMs({
+                    id: `filmwebcritics:${filmwebId}`,
+                    mediaType: mediaType as 'movie' | 'tv',
+                    releaseDate: mediaType === 'movie' ? media?.release_date : media?.first_air_date,
+                    defaultTtlMs: FILMWEB_CACHE_TTL_MS,
+                    oldTtlMs: MDBLIST_OLD_MOVIE_CACHE_TTL_MS,
+                  });
+                  const filmwebCriticsRating = await fetchFilmwebCriticsRating({
+                    filmwebId,
+                    cacheTtlMs: filmwebCriticsCacheTtlMs,
+                    phases,
+                  });
+                  if (filmwebCriticsRating) {
+                    combinedRatings.set('filmwebcritics', filmwebCriticsRating);
+                    renderedRatingTtlByProvider.set('filmwebcritics', filmwebCriticsCacheTtlMs);
+                  }
+                } catch {
+                  // Ignore
+                }
+
+                return combinedRatings.get('filmwebcritics') || null;
               };
 
               const ensureMdbRatings = async () => {
@@ -6888,6 +7203,14 @@ export async function GET(
                   return ensureSimklRating();
                 }
 
+                if (provider === 'filmweb') {
+                  return ensureFilmwebRating();
+                }
+
+                if (provider === 'filmwebcritics') {
+                  return ensureFilmwebCriticsRating();
+                }
+
                 await ensureMdbRatings();
                 return combinedRatings.get(provider) || null;
               };
@@ -7039,6 +7362,100 @@ export async function GET(
               }
             }
 
+            if ((needsFilmwebRating || needsFilmwebCriticsRating) && !filmwebId) {
+              try {
+                const tmdbId =
+                  media?.id != null
+                    ? String(media.id)
+                    : isTmdb && mediaId
+                      ? String(mediaId)
+                      : null;
+                filmwebId = await fetchFilmwebIdFromWikidata({
+                  imdbId,
+                  tmdbId,
+                  mediaType: mediaType as 'movie' | 'tv',
+                  phases,
+                });
+              } catch {
+                filmwebId = null;
+              }
+
+              if (!filmwebId) {
+                try {
+                  const title =
+                    mediaType === 'movie'
+                      ? media?.title || media?.name || null
+                      : media?.name || media?.title || null;
+                  const originalTitle =
+                    mediaType === 'movie'
+                      ? media?.original_title || media?.original_name || null
+                      : media?.original_name || media?.original_title || null;
+                  const releaseDate =
+                    mediaType === 'movie' ? media?.release_date : media?.first_air_date;
+                  const releaseYear =
+                    typeof releaseDate === 'string' && releaseDate.trim().length >= 4
+                      ? releaseDate.trim().slice(0, 4)
+                      : null;
+
+                  filmwebId = await fetchFilmwebIdBySearch({
+                    title,
+                    originalTitle,
+                    year: releaseYear,
+                    mediaType: mediaType as 'movie' | 'tv',
+                    phases,
+                  });
+                } catch {
+                  filmwebId = null;
+                }
+              }
+            }
+
+            if (needsFilmwebRating && !combinedRatings.has('filmweb') && filmwebId) {
+              try {
+                const filmwebCacheTtlMs = getRatingCacheTtlMs({
+                  id: `filmweb:${filmwebId}`,
+                  mediaType: mediaType as 'movie' | 'tv',
+                  releaseDate: mediaType === 'movie' ? media?.release_date : media?.first_air_date,
+                  defaultTtlMs: FILMWEB_CACHE_TTL_MS,
+                  oldTtlMs: MDBLIST_OLD_MOVIE_CACHE_TTL_MS,
+                });
+                const filmwebRating = await fetchFilmwebRating({
+                  filmwebId,
+                  cacheTtlMs: filmwebCacheTtlMs,
+                  phases,
+                });
+                if (filmwebRating) {
+                  combinedRatings.set('filmweb', filmwebRating);
+                  renderedRatingTtlByProvider.set('filmweb', filmwebCacheTtlMs);
+                }
+              } catch {
+                // Ignore
+              }
+            }
+
+            if (needsFilmwebCriticsRating && !combinedRatings.has('filmwebcritics') && filmwebId) {
+              try {
+                const filmwebCriticsCacheTtlMs = getRatingCacheTtlMs({
+                  id: `filmwebcritics:${filmwebId}`,
+                  mediaType: mediaType as 'movie' | 'tv',
+                  releaseDate: mediaType === 'movie' ? media?.release_date : media?.first_air_date,
+                  defaultTtlMs: FILMWEB_CACHE_TTL_MS,
+                  oldTtlMs: MDBLIST_OLD_MOVIE_CACHE_TTL_MS,
+                });
+                const filmwebCriticsRating = await fetchFilmwebCriticsRating({
+                  filmwebId,
+                  cacheTtlMs: filmwebCriticsCacheTtlMs,
+                  phases,
+                });
+                if (filmwebCriticsRating) {
+                  combinedRatings.set('filmwebcritics', filmwebCriticsRating);
+                  renderedRatingTtlByProvider.set('filmwebcritics', filmwebCriticsCacheTtlMs);
+                }
+              } catch {
+                // Ignore
+              }
+            }
+
             return combinedRatings;
           })()
           : null;
@@ -7126,6 +7543,10 @@ export async function GET(
             isEffectiveOriginalPosterLang && mediaOriginalLanguage
               ? normalizeTmdbLanguageCode(mediaOriginalLanguage) || effectivePosterRequestedImageLang
               : effectivePosterRequestedImageLang;
+          const resolvedBackdropRequestedImageLang =
+            isEffectiveOriginalBackdropLang && mediaOriginalLanguage
+              ? normalizeTmdbLanguageCode(mediaOriginalLanguage) || effectiveBackdropRequestedImageLang
+              : effectiveBackdropRequestedImageLang;
           const preferredPosterPath = isEffectiveOriginalPosterLang
             ? null
             : media?.poster_path || details?.poster_path || null;
@@ -7174,12 +7595,19 @@ export async function GET(
           const localizedBackdropPath =
             pickByLanguageWithFallback(
               backdropCollection,
-              effectiveBackdropRequestedImageLang,
+              resolvedBackdropRequestedImageLang,
               FALLBACK_IMAGE_LANGUAGE,
               preferredBackdropPath
             )?.file_path || preferredBackdropPath;
           const originalBackdropPath =
-            localizedBackdropPath ||
+            (isEffectiveOriginalBackdropLang
+              ? pickByLanguageWithFallback(
+                  backdropCollection,
+                  mediaOriginalLanguage,
+                  ''
+                )?.file_path
+              : localizedBackdropPath) ||
+            preferredBackdropPath ||
             backdropCollection[0]?.file_path;
 
           // Kitsu IDs usually represent a specific anime season: prefer season posters over unified show posters.
@@ -7277,7 +7705,7 @@ export async function GET(
             const selectedBackdrop = pickBackdropByPreference(
               backdropCollection,
               effectiveBackdropTextPreference,
-              effectiveBackdropRequestedImageLang,
+              resolvedBackdropRequestedImageLang,
               FALLBACK_IMAGE_LANGUAGE,
               originalBackdropPath
             );
@@ -7323,7 +7751,7 @@ export async function GET(
             const selectedBackdrop = pickBackdropByPreference(
               backdropCollection,
               effectiveBackdropTextPreference,
-              effectiveBackdropRequestedImageLang,
+              resolvedBackdropRequestedImageLang,
               FALLBACK_IMAGE_LANGUAGE,
               originalBackdropPath
             );

@@ -1660,22 +1660,22 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
                           </tr>
                           <tr>
                             <td className="px-5 py-2 font-mono text-orange-400 text-xs">ratings</td>
-                            <td className="px-5 py-2 text-slate-400 text-xs">tmdb, mdblist, imdb, tomatoes, letterboxd, metacritic, trakt, simkl, myanimelist, anilist, kitsu (global fallback)</td>
+                            <td className="px-5 py-2 text-slate-400 text-xs">tmdb, mdblist, imdb, tomatoes, letterboxd, metacritic, trakt, simkl, filmweb, filmwebcritics, myanimelist, anilist, kitsu (global fallback)</td>
                             <td className="px-5 py-2 text-slate-500 text-xs">all</td>
                           </tr>
                           <tr>
                             <td className="px-5 py-2 font-mono text-orange-400 text-xs">posterRatings</td>
-                            <td className="px-5 py-2 text-slate-400 text-xs">tmdb, mdblist, imdb, tomatoes, letterboxd, metacritic, trakt, simkl, myanimelist, anilist, kitsu (poster only)</td>
+                            <td className="px-5 py-2 text-slate-400 text-xs">tmdb, mdblist, imdb, tomatoes, letterboxd, metacritic, trakt, simkl, filmweb, filmwebcritics, myanimelist, anilist, kitsu (poster only)</td>
                             <td className="px-5 py-2 text-slate-500 text-xs">all</td>
                           </tr>
                           <tr>
                             <td className="px-5 py-2 font-mono text-orange-400 text-xs">backdropRatings</td>
-                            <td className="px-5 py-2 text-slate-400 text-xs">tmdb, mdblist, imdb, tomatoes, letterboxd, metacritic, trakt, simkl, myanimelist, anilist, kitsu (backdrop only)</td>
+                            <td className="px-5 py-2 text-slate-400 text-xs">tmdb, mdblist, imdb, tomatoes, letterboxd, metacritic, trakt, simkl, filmweb, filmwebcritics, myanimelist, anilist, kitsu (backdrop only)</td>
                             <td className="px-5 py-2 text-slate-500 text-xs">all</td>
                           </tr>
                           <tr>
                             <td className="px-5 py-2 font-mono text-orange-400 text-xs">logoRatings</td>
-                            <td className="px-5 py-2 text-slate-400 text-xs">tmdb, mdblist, imdb, tomatoes, letterboxd, metacritic, trakt, simkl, myanimelist, anilist, kitsu (logo only)</td>
+                            <td className="px-5 py-2 text-slate-400 text-xs">tmdb, mdblist, imdb, tomatoes, letterboxd, metacritic, trakt, simkl, filmweb, filmwebcritics, myanimelist, anilist, kitsu (logo only)</td>
                             <td className="px-5 py-2 text-slate-500 text-xs">all</td>
                           </tr>
                           <tr>

@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.15](https://github.com/realbestia1/erdb/compare/v0.3.14...v0.3.15) - 2026-04-04
+
+- Add Filmweb user and critics rating providers with automatic IMDb/TMDB mapping fallback
+  - add `filmweb` and `filmwebcritics` to the rating provider catalog and configurator/docs lists
+  - resolve Filmweb IDs from IMDb/TMDB via Wikidata first, then fall back to cached title/year search
+  - fetch Filmweb user ratings from `/api/v1/film/{id}/rating` and critics ratings from `/api/v1/film/{id}/critics/rating`
+  - cache Filmweb mapping, search, and rating responses in metadata cache with dedicated TTL handling
+  - wire Filmweb providers into poster, backdrop, and logo rendering flows
+
+## [0.3.14](https://github.com/realbestia1/erdb/compare/v0.3.13...v0.3.14) - 2026-04-04
+
+- fix(backdrop): prefer native-language backdrop over clean fallback for original language mode ([2420d44](https://github.com/realbestia1/erdb/commit/2420d44c58baa1406856f4a69bc62de16c2c5807))
+  - fix backdrop selection when `Backdrop Language=original` and `Backdrop Text=default`
+  - resolve the effective backdrop language from the media `original_language` before backdrop selection
+  - prefer the resolved native-language backdrop path before generic language fallback ordering
+  - prevent language-neutral (`null`) clean backdrops from winning over a valid native-language backdrop in default mode
+  - bump final image renderer cache version from `v62` to `v63` to invalidate stale cached backdrop renders
+  - bump package/app version from `0.3.13` to `0.3.14`
+
 ## [0.3.13](https://github.com/realbestia1/erdb/compare/v0.3.12...v0.3.13) - 2026-04-04
 
 - fix(poster): resolve IMDb poster fallback and original-language image selection ([c801899](https://github.com/realbestia1/erdb/commit/c80189956f38f9a798a858c567b9c68ec893ab63))
