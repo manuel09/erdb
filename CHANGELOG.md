@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.19](https://github.com/realbestia1/erdb/compare/v0.3.18...v0.3.19) - 2026-04-04
+
+- Reorder anime fallback logic & bump version ([f3edb4b](https://github.com/realbestia1/erdb/commit/f3edb4b1734e2bd8c18a0f4f3484ac33be62e158))
+  Rework fallback flow in app/[type]/[id]/route.ts to try Kitsu-based fallback first (via fetchKitsuIdFromReverseMapping + fetchKitsuFallbackAsset) before falling back to the native direct asset. Adds flags (usedNoTmdbFallback / usedTmdbFailFallback) to track whether a fallback was applied and only throw a 404 if no fallback succeeded. Also updates related parameter usage for the fallback calls and simplifies the control flow. Bump app version to 0.3.19 and update HomePage currentVersion to match.
+
+## [0.3.18](https://github.com/realbestia1/erdb/compare/v0.3.17...v0.3.18) - 2026-04-04
+
+- Add MAL/Anilist anime fallbacks; bump version ([b5c809a](https://github.com/realbestia1/erdb/commit/b5c809a60654ee47374a69c46e9a5f5342ec8b5a))
+  Introduce direct fallback support for MyAnimeList (via Jikan) and Anilist: new fetchers, pickers, and asset builders (poster/backdrop/logo/thumbnail) and a native direct-fallback flow for anime mapping providers. Replace several Kitsu-only fallback paths with a unified applyAnimeCdnFallback helper and adjust rating/provider handling to surface provider-specific ratings when using direct fallbacks. Also handle thumbnail imageType earlier and update MAL rating lookup to reuse the Jikan helper. Bump package and UI currentVersion to 0.3.18; tsbuildinfo updated.
+
 ## [0.3.17](https://github.com/realbestia1/erdb/compare/v0.3.16...v0.3.17) - 2026-04-04
 
 - fix(poster): infer TMDB season for MAL/AniList/AniDB and use season artwork like Kitsu ([2935b3d](https://github.com/realbestia1/erdb/commit/2935b3d243ac491cd7d7ef0d0ac7ec26fa39cf87))

@@ -1757,6 +1757,15 @@ const fetchKitsuFallbackAsset = async (
     };
   }
 
+  if (imageType === 'thumbnail') {
+    return {
+      imageUrl: coverUrl || posterUrl,
+      rating,
+      title: originalTitle,
+      logoAspectRatio: null,
+    };
+  }
+
   return {
     imageUrl: posterUrl || coverUrl,
     rating,
@@ -1768,6 +1777,311 @@ const fetchKitsuFallbackAsset = async (
 const fetchKitsuRating = async (kitsuId: string, phases: PhaseDurations) => {
   const attributes = await fetchKitsuAnimeAttributes(kitsuId, phases);
   return normalizeRatingValue(attributes?.averageRating);
+};
+
+const fetchJikanAnimeData = async (malId: string, phases: PhaseDurations) => {
+  const normalized = normalizeNumericAnimeSiteId(malId);
+  if (!normalized) return null;
+  try {
+    const response = await fetchJsonCached(
+      `jikan:anime:${normalized}:v4`,
+      `https://api.jikan.moe/v4/anime/${encodeURIComponent(normalized)}`,
+      KITSU_CACHE_TTL_MS,
+      phases,
+      'mdb'
+    );
+    if (!response.ok) return null;
+    return response.data?.data ?? null;
+  } catch {
+    return null;
+  }
+};
+
+const pickJikanPosterUrl = (data: any) => {
+  const candidates = [
+    data?.images?.webp?.large_image_url,
+    data?.images?.webp?.image_url,
+    data?.images?.jpg?.large_image_url,
+    data?.images?.jpg?.image_url,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string') continue;
+    const normalized = candidate.trim();
+    if (normalized) return normalized;
+  }
+  return null;
+};
+
+const pickMalTitleForFallback = (data: any) => {
+  const candidates = [data?.title_japanese, data?.title, data?.title_english];
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string') continue;
+    const normalized = candidate.replace(/\s+/g, ' ').trim();
+    if (normalized) return normalized;
+  }
+  return null;
+};
+
+const fetchMalJikanFallbackAsset = async (
+  malId: string,
+  imageType: RenderImageType,
+  logoMode: LogoMode,
+  logoFontVariant: LogoFontVariant,
+  logoPrimary: string,
+  logoSecondary: string,
+  logoOutline: string,
+  phases: PhaseDurations
+) => {
+  const data = await fetchJikanAnimeData(malId, phases);
+  if (!data) return null;
+
+  const posterUrl = pickJikanPosterUrl(data);
+  const rating = normalizeRatingValue(data?.score);
+  const originalTitle = pickMalTitleForFallback(data);
+
+  if (imageType === 'logo' && originalTitle) {
+    const generatedLogo =
+      logoMode === 'custom-logo'
+        ? await buildGeneratedLogoVariantDataUrl(originalTitle, logoFontVariant, logoPrimary, logoSecondary, logoOutline)
+        : logoMode === 'ratings-only'
+          ? { dataUrl: buildTransparentLogoDataUrl(), aspectRatio: 2.4 }
+          : buildGeneratedLogoDataUrl(originalTitle);
+    return {
+      imageUrl: generatedLogo.dataUrl,
+      rating,
+      title: originalTitle,
+      logoAspectRatio: generatedLogo.aspectRatio,
+    };
+  }
+
+  if (imageType === 'poster') {
+    return {
+      imageUrl: posterUrl,
+      rating,
+      title: originalTitle,
+      logoAspectRatio: null,
+    };
+  }
+
+  if (imageType === 'backdrop') {
+    return {
+      imageUrl: posterUrl,
+      rating,
+      title: originalTitle,
+      logoAspectRatio: null,
+    };
+  }
+
+  if (imageType === 'thumbnail') {
+    return {
+      imageUrl: posterUrl,
+      rating,
+      title: originalTitle,
+      logoAspectRatio: null,
+    };
+  }
+
+  return {
+    imageUrl: posterUrl,
+    rating,
+    title: originalTitle,
+    logoAspectRatio: null,
+  };
+};
+
+const pickAnilistCoverUrl = (media: any) => {
+  const cover = media?.coverImage;
+  const candidates = [cover?.extraLarge, cover?.large, cover?.medium];
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string') continue;
+    const normalized = candidate.trim();
+    if (normalized) return normalized;
+  }
+  return null;
+};
+
+const pickAnilistTitleForFallback = (media: any) => {
+  const title = media?.title;
+  const candidates = [title?.native, title?.romaji, title?.english];
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string') continue;
+    const normalized = candidate.replace(/\s+/g, ' ').trim();
+    if (normalized) return normalized;
+  }
+  return null;
+};
+
+const fetchAnilistMediaExtended = async (anilistId: string, phases: PhaseDurations) => {
+  const normalized = normalizeNumericAnimeSiteId(anilistId);
+  if (!normalized) return null;
+  const numericId = Number(normalized);
+  if (!Number.isFinite(numericId) || numericId <= 0) return null;
+
+  try {
+    const response = await fetchJsonCached(
+      `anilist:media:${normalized}:extended`,
+      ANILIST_GRAPHQL_URL,
+      KITSU_CACHE_TTL_MS,
+      phases,
+      'mdb',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          query: `query ($id: Int) {
+            Media(id: $id) {
+              averageScore
+              title { romaji native english }
+              bannerImage
+              coverImage { extraLarge large medium }
+            }
+          }`,
+          variables: { id: Math.trunc(numericId) },
+        }),
+      }
+    );
+    if (!response.ok) return null;
+    return response.data?.data?.Media ?? null;
+  } catch {
+    return null;
+  }
+};
+
+const fetchAnilistFallbackAsset = async (
+  anilistId: string,
+  imageType: RenderImageType,
+  logoMode: LogoMode,
+  logoFontVariant: LogoFontVariant,
+  logoPrimary: string,
+  logoSecondary: string,
+  logoOutline: string,
+  phases: PhaseDurations
+) => {
+  const media = await fetchAnilistMediaExtended(anilistId, phases);
+  if (!media) return null;
+
+  const coverUrl = pickAnilistCoverUrl(media);
+  const bannerUrl = typeof media?.bannerImage === 'string' ? media.bannerImage.trim() : '';
+  const posterUrl = coverUrl;
+  const backdropUrl = bannerUrl || coverUrl;
+  const rating = normalizeRatingValue(media?.averageScore);
+  const originalTitle = pickAnilistTitleForFallback(media);
+
+  if (imageType === 'logo' && originalTitle) {
+    const generatedLogo =
+      logoMode === 'custom-logo'
+        ? await buildGeneratedLogoVariantDataUrl(originalTitle, logoFontVariant, logoPrimary, logoSecondary, logoOutline)
+        : logoMode === 'ratings-only'
+          ? { dataUrl: buildTransparentLogoDataUrl(), aspectRatio: 2.4 }
+          : buildGeneratedLogoDataUrl(originalTitle);
+    return {
+      imageUrl: generatedLogo.dataUrl,
+      rating,
+      title: originalTitle,
+      logoAspectRatio: generatedLogo.aspectRatio,
+    };
+  }
+
+  if (imageType === 'poster') {
+    return {
+      imageUrl: posterUrl,
+      rating,
+      title: originalTitle,
+      logoAspectRatio: null,
+    };
+  }
+
+  if (imageType === 'backdrop') {
+    return {
+      imageUrl: backdropUrl,
+      rating,
+      title: originalTitle,
+      logoAspectRatio: null,
+    };
+  }
+
+  if (imageType === 'thumbnail') {
+    return {
+      imageUrl: backdropUrl,
+      rating,
+      title: originalTitle,
+      logoAspectRatio: null,
+    };
+  }
+
+  return {
+    imageUrl: posterUrl || backdropUrl,
+    rating,
+    title: originalTitle,
+    logoAspectRatio: null,
+  };
+};
+
+type NativeAnimeDirectFallback = {
+  imageUrl: string | null;
+  rating: string | null;
+  title: string | null;
+  logoAspectRatio: number | null;
+  ratingProvider: RatingPreference;
+};
+
+const fetchNativeAnimeDirectFallbackAsset = async (args: {
+  provider: AnimeMappingProvider;
+  externalId: string;
+  imageType: RenderImageType;
+  logoMode: LogoMode;
+  logoFontVariant: LogoFontVariant;
+  logoPrimary: string;
+  logoSecondary: string;
+  logoOutline: string;
+  phases: PhaseDurations;
+}): Promise<NativeAnimeDirectFallback | null> => {
+  const {
+    provider,
+    externalId,
+    imageType,
+    logoMode,
+    logoFontVariant,
+    logoPrimary,
+    logoSecondary,
+    logoOutline,
+    phases,
+  } = args;
+
+  if (provider === 'mal') {
+    const asset = await fetchMalJikanFallbackAsset(
+      externalId,
+      imageType,
+      logoMode,
+      logoFontVariant,
+      logoPrimary,
+      logoSecondary,
+      logoOutline,
+      phases
+    );
+    if (!asset?.imageUrl) return null;
+    return { ...asset, ratingProvider: 'myanimelist' };
+  }
+
+  if (provider === 'anilist') {
+    const asset = await fetchAnilistFallbackAsset(
+      externalId,
+      imageType,
+      logoMode,
+      logoFontVariant,
+      logoPrimary,
+      logoSecondary,
+      logoOutline,
+      phases
+    );
+    if (!asset?.imageUrl) return null;
+    return { ...asset, ratingProvider: 'anilist' };
+  }
+
+  return null;
 };
 
 // Older proxy URLs may still include a placeholder season: `kitsu:id:season:episode`.
@@ -1825,24 +2139,11 @@ const fetchAnilistRating = async (anilistId: string, phases: PhaseDurations) => 
 };
 
 const fetchMyAnimeListRating = async (malId: string, phases: PhaseDurations) => {
-  const normalized = normalizeNumericAnimeSiteId(malId);
-  if (!normalized) return null;
-
-  try {
-    const response = await fetchJsonCached(
-      `jikan:anime:${normalized}:score`,
-      `https://api.jikan.moe/v4/anime/${encodeURIComponent(normalized)}`,
-      KITSU_CACHE_TTL_MS,
-      phases,
-      'mdb'
-    );
-    if (!response.ok) return null;
-    const score = response.data?.data?.score;
-    if (score == null || typeof score !== 'number' || !Number.isFinite(score) || score <= 0) return null;
-    return normalizeRatingValue(score);
-  } catch {
-    return null;
-  }
+  const data = await fetchJikanAnimeData(malId, phases);
+  if (!data) return null;
+  const score = data.score;
+  if (score == null || typeof score !== 'number' || !Number.isFinite(score) || score <= 0) return null;
+  return normalizeRatingValue(score);
 };
 
 const fetchJsonCached = async (
@@ -5897,12 +6198,34 @@ export async function GET(
     const renderedImage = await withDedupe(finalImageInFlight, renderSeedKey, async () => {
       let media = null;
       let mediaType: 'movie' | 'tv' | null = null;
-      let useRawKitsuFallback = false;
+      let useRawAnimeImageFallback = false;
       let rawFallbackImageUrl: string | null = null;
-      let rawFallbackKitsuRating: string | null = null;
+      let rawFallbackAnimeRating: string | null = null;
+      let rawFallbackAnimeRatingProvider: RatingPreference | null = null;
       let rawFallbackTitle: string | null = null;
       let rawFallbackLogoAspectRatio: number | null = null;
       let mappedImdbId: string | null = null;
+
+      const applyAnimeCdnFallback = (
+        asset: {
+          imageUrl: string | null;
+          rating: string | null;
+          title: string | null;
+          logoAspectRatio: number | null;
+        } | null | undefined,
+        ratingProvider: RatingPreference
+      ): boolean => {
+        if (!asset?.imageUrl) return false;
+        rawFallbackImageUrl = asset.imageUrl;
+        rawFallbackAnimeRating = asset.rating ?? null;
+        rawFallbackTitle = asset.title ?? null;
+        rawFallbackLogoAspectRatio = asset.logoAspectRatio ?? null;
+        rawFallbackAnimeRatingProvider = ratingProvider;
+        useRawAnimeImageFallback = true;
+        allowAnimeOnlyRatings = false;
+        hasConfirmedAnimeMapping = false;
+        return true;
+      };
 
       if (isTmdb) {
         if (explicitTmdbMediaType) {
@@ -6087,16 +6410,9 @@ export async function GET(
 
         if (!tmdbId) {
           const kitsuFallbackAsset = await fetchKitsuFallbackAsset(mediaId, imageType, logoMode, logoFontVariant, logoPrimary, logoSecondary, logoOutline, phases);
-          rawFallbackImageUrl = kitsuFallbackAsset?.imageUrl || null;
-          rawFallbackKitsuRating = kitsuFallbackAsset?.rating || null;
-          rawFallbackTitle = kitsuFallbackAsset?.title || null;
-          rawFallbackLogoAspectRatio = kitsuFallbackAsset?.logoAspectRatio ?? null;
-          if (!rawFallbackImageUrl) {
+          if (!applyAnimeCdnFallback(kitsuFallbackAsset, 'kitsu')) {
             throw new HttpError('TMDB ID not found for Kitsu ID', 404);
           }
-          useRawKitsuFallback = true;
-          allowAnimeOnlyRatings = false;
-          hasConfirmedAnimeMapping = false;
         } else {
           const mappedMediaTypeCandidates: Array<'movie' | 'tv'> =
             mappingSubtype === 'movie' ? ['movie', 'tv'] : ['tv', 'movie'];
@@ -6117,16 +6433,9 @@ export async function GET(
 
           if (!media || !mediaType) {
             const kitsuFallbackAsset = await fetchKitsuFallbackAsset(mediaId, imageType, logoMode, logoFontVariant, logoPrimary, logoSecondary, logoOutline, phases);
-            rawFallbackImageUrl = kitsuFallbackAsset?.imageUrl || null;
-            rawFallbackKitsuRating = kitsuFallbackAsset?.rating || null;
-            rawFallbackTitle = kitsuFallbackAsset?.title || null;
-            rawFallbackLogoAspectRatio = kitsuFallbackAsset?.logoAspectRatio ?? null;
-            if (!rawFallbackImageUrl) {
+            if (!applyAnimeCdnFallback(kitsuFallbackAsset, 'kitsu')) {
               throw new HttpError('Movie/Show not found on TMDB', 404);
             }
-            useRawKitsuFallback = true;
-            allowAnimeOnlyRatings = false;
-            hasConfirmedAnimeMapping = false;
           }
         }
       } else if (
@@ -6142,27 +6451,56 @@ export async function GET(
           phases,
         });
         if (!mappedTmdbId) {
-          const kitsuId = await fetchKitsuIdFromReverseMapping({
+          let usedNoTmdbFallback = false;
+          const kitsuIdNoTmdb = await fetchKitsuIdFromReverseMapping({
             provider: inputAnimeMappingProvider,
             externalId: inputAnimeMappingExternalId,
             season,
             phases,
           });
-          if (!kitsuId) {
+          if (kitsuIdNoTmdb) {
+            const kitsuFallbackAsset = await fetchKitsuFallbackAsset(
+              kitsuIdNoTmdb,
+              imageType,
+              logoMode,
+              logoFontVariant,
+              logoPrimary,
+              logoSecondary,
+              logoOutline,
+              phases
+            );
+            usedNoTmdbFallback = applyAnimeCdnFallback(kitsuFallbackAsset, 'kitsu');
+          }
+          if (!usedNoTmdbFallback) {
+            const directFallback = await fetchNativeAnimeDirectFallbackAsset({
+              provider: inputAnimeMappingProvider,
+              externalId: inputAnimeMappingExternalId,
+              imageType,
+              logoMode,
+              logoFontVariant,
+              logoPrimary,
+              logoSecondary,
+              logoOutline,
+              phases,
+            });
+            if (
+              directFallback &&
+              applyAnimeCdnFallback(
+                {
+                  imageUrl: directFallback.imageUrl,
+                  rating: directFallback.rating,
+                  title: directFallback.title,
+                  logoAspectRatio: directFallback.logoAspectRatio,
+                },
+                directFallback.ratingProvider
+              )
+            ) {
+              usedNoTmdbFallback = true;
+            }
+          }
+          if (!usedNoTmdbFallback) {
             throw new HttpError('TMDB ID not found for anime mapping ID', 404);
           }
-
-          const kitsuFallbackAsset = await fetchKitsuFallbackAsset(kitsuId, imageType, logoMode, logoFontVariant, logoPrimary, logoSecondary, logoOutline, phases);
-          rawFallbackImageUrl = kitsuFallbackAsset?.imageUrl || null;
-          rawFallbackKitsuRating = kitsuFallbackAsset?.rating || null;
-          rawFallbackTitle = kitsuFallbackAsset?.title || null;
-          rawFallbackLogoAspectRatio = kitsuFallbackAsset?.logoAspectRatio ?? null;
-          if (!rawFallbackImageUrl) {
-            throw new HttpError('TMDB ID not found for anime mapping ID', 404);
-          }
-          useRawKitsuFallback = true;
-          allowAnimeOnlyRatings = false;
-          hasConfirmedAnimeMapping = false;
         } else {
           const tvResponse = await fetchJsonCached(
             `tmdb:tv:${mappedTmdbId}`,
@@ -6216,22 +6554,51 @@ export async function GET(
           }
 
           if (!media) {
-            const kitsuId = await fetchKitsuIdFromReverseMapping({
+            let usedTmdbFailFallback = false;
+            const kitsuIdAfterTmdbFail = await fetchKitsuIdFromReverseMapping({
               provider: inputAnimeMappingProvider,
               externalId: inputAnimeMappingExternalId,
               season,
               phases,
             });
-            if (kitsuId) {
-              const kitsuFallbackAsset = await fetchKitsuFallbackAsset(kitsuId, imageType, logoMode, logoFontVariant, logoPrimary, logoSecondary, logoOutline, phases);
-              rawFallbackImageUrl = kitsuFallbackAsset?.imageUrl || null;
-              rawFallbackKitsuRating = kitsuFallbackAsset?.rating || null;
-              rawFallbackTitle = kitsuFallbackAsset?.title || null;
-              rawFallbackLogoAspectRatio = kitsuFallbackAsset?.logoAspectRatio ?? null;
-              if (rawFallbackImageUrl) {
-                useRawKitsuFallback = true;
-                allowAnimeOnlyRatings = false;
-                hasConfirmedAnimeMapping = false;
+            if (kitsuIdAfterTmdbFail) {
+              const kitsuFallbackAsset = await fetchKitsuFallbackAsset(
+                kitsuIdAfterTmdbFail,
+                imageType,
+                logoMode,
+                logoFontVariant,
+                logoPrimary,
+                logoSecondary,
+                logoOutline,
+                phases
+              );
+              usedTmdbFailFallback = applyAnimeCdnFallback(kitsuFallbackAsset, 'kitsu');
+            }
+            if (!usedTmdbFailFallback) {
+              const directFallback = await fetchNativeAnimeDirectFallbackAsset({
+                provider: inputAnimeMappingProvider,
+                externalId: inputAnimeMappingExternalId,
+                imageType,
+                logoMode,
+                logoFontVariant,
+                logoPrimary,
+                logoSecondary,
+                logoOutline,
+                phases,
+              });
+              if (
+                directFallback &&
+                applyAnimeCdnFallback(
+                  {
+                    imageUrl: directFallback.imageUrl,
+                    rating: directFallback.rating,
+                    title: directFallback.title,
+                    logoAspectRatio: directFallback.logoAspectRatio,
+                  },
+                  directFallback.ratingProvider
+                )
+              ) {
+                usedTmdbFailFallback = true;
               }
             }
           }
@@ -6329,7 +6696,7 @@ export async function GET(
       }
       }
 
-      if (!media && !useRawKitsuFallback) {
+      if (!media && !useRawAnimeImageFallback) {
         throw new HttpError('Movie/Show not found on TMDB', 404);
       }
 
@@ -6409,7 +6776,7 @@ export async function GET(
       );
 
       let imgPath = '';
-      let imgUrl = rawFallbackImageUrl;
+      let imgUrl: string | null = rawFallbackImageUrl;
       let tmdbRating = 'N/A';
       let episodeTmdbRating: string | null = null;
       let thumbnailFallbackEpisodeText: string | null = null;
@@ -6438,12 +6805,28 @@ export async function GET(
       const needsFilmwebCriticsRating = requestedExternalRatings.has('filmwebcritics');
       const needsKitsuRating = requestedExternalRatings.has('kitsu');
       const hasMdbListApiKey = MDBLIST_API_KEYS.length > 0;
-      const shouldRenderRawKitsuFallbackRating =
-        useRawKitsuFallback && needsKitsuRating && typeof rawFallbackKitsuRating === 'string' && rawFallbackKitsuRating.length > 0;
-      const shouldRenderRatings = shouldApplyRatings && (!useRawKitsuFallback || shouldRenderRawKitsuFallbackRating);
+      // applyAnimeCdnFallback assigns these; CFA does not see nested-function writes.
+      const rawAnimeRatingForBadges = rawFallbackAnimeRating as string | null;
+      const rawAnimeProviderForBadges = rawFallbackAnimeRatingProvider as RatingPreference | null;
+      const shouldRenderRawAnimeFallbackRating =
+        useRawAnimeImageFallback &&
+        typeof rawAnimeRatingForBadges === 'string' &&
+        rawAnimeRatingForBadges.length > 0 &&
+        rawAnimeProviderForBadges != null &&
+        requestedExternalRatings.has(rawAnimeProviderForBadges);
+      const shouldRenderRatings = shouldApplyRatings && (!useRawAnimeImageFallback || shouldRenderRawAnimeFallbackRating);
       const shouldRenderStreamBadges = shouldApplyStreamBadges && !isAnimeContent;
       const shouldRenderBadges = shouldRenderRatings || shouldRenderStreamBadges;
-      if (imageType === 'thumbnail' && (mediaType !== 'tv' || !season || !episode)) {
+      const rawFallbackImageUrlForThumb = rawFallbackImageUrl as string | null;
+      const hasRawAnimeThumbnailImage =
+        useRawAnimeImageFallback &&
+        typeof rawFallbackImageUrlForThumb === 'string' &&
+        rawFallbackImageUrlForThumb.length > 0;
+      if (
+        imageType === 'thumbnail' &&
+        (mediaType !== 'tv' || !season || !episode) &&
+        !hasRawAnimeThumbnailImage
+      ) {
         throw new HttpError('Thumbnails are only available for TV episodes', 404);
       }
       const releaseDateForCache =
@@ -6467,7 +6850,7 @@ export async function GET(
         streamBadgesIdForCache = `${streamBadgesIdForCache}:${streamSeason}:${streamEpisode}`;
       }
       const seasonDetailsPromise =
-        !useRawKitsuFallback && imageType === 'thumbnail' && mediaType === 'tv' && season && episode
+        !useRawAnimeImageFallback && imageType === 'thumbnail' && mediaType === 'tv' && season && episode
           ? (async () => {
             const seasonCacheKeyBase = `tmdb:tv:${media.id}:season:${season}`;
             const primaryResponse = await fetchJsonCached(
@@ -6588,7 +6971,7 @@ export async function GET(
 
         }
       }
-      const detailsBundlePromise = !useRawKitsuFallback
+      const detailsBundlePromise = !useRawAnimeImageFallback
         ? (async () => {
           const buildDetailsUrl = (language: string) => {
             const url = new URL(`https://api.themoviedb.org/3/${mediaType}/${media.id}`);
@@ -6634,7 +7017,7 @@ export async function GET(
         })()
         : null;
       const episodeDetailsPromise =
-        !useRawKitsuFallback && imageType === 'thumbnail' && mediaType === 'tv' && season && episode
+        !useRawAnimeImageFallback && imageType === 'thumbnail' && mediaType === 'tv' && season && episode
           ? (async () => {
             const tmdbEpisodeLookupNumber = resolvedTmdbEpisodeNumber || episode;
             const episodeCacheKeyBase = `tmdb:tv:${media.id}:season:${season}:episode:${tmdbEpisodeLookupNumber}`;
@@ -6664,7 +7047,7 @@ export async function GET(
           })()
           : null;
       const episodeExternalIdsPromise =
-        !useRawKitsuFallback && imageType === 'thumbnail' && mediaType === 'tv' && season && episode
+        !useRawAnimeImageFallback && imageType === 'thumbnail' && mediaType === 'tv' && season && episode
           ? (async () => {
             const tmdbEpisodeLookupNumber = resolvedTmdbEpisodeNumber || episode;
             const response = await fetchJsonCached(
@@ -6681,7 +7064,7 @@ export async function GET(
       const needsMalRating = requestedExternalRatings.has('myanimelist');
       const providerRatingsPromise =
         shouldRenderRatings &&
-          !useRawKitsuFallback &&
+          !useRawAnimeImageFallback &&
           needsExternalRatings &&
           (mdblistKey ||
             hasMdbListApiKey ||
@@ -7487,7 +7870,7 @@ export async function GET(
           })()
           : null;
       const streamBadgesPromise =
-        shouldRenderStreamBadges && !useRawKitsuFallback && (mediaType === 'movie' || mediaType === 'tv')
+        shouldRenderStreamBadges && !useRawAnimeImageFallback && (mediaType === 'movie' || mediaType === 'tv')
           ? (async () => {
             let imdbId: string | null = isImdbId(mediaId) ? mediaId : null;
             if (!imdbId) {
@@ -7540,7 +7923,7 @@ export async function GET(
 
       let localizedMediaDetails: any = null;
       let fallbackMediaDetails: any = null;
-      if (!useRawKitsuFallback && detailsBundlePromise) {
+      if (!useRawAnimeImageFallback && detailsBundlePromise) {
         const { details, fallbackDetails, bundledImages, tmdbRating: bundledRating } = await detailsBundlePromise;
         localizedMediaDetails = details;
         fallbackMediaDetails = fallbackDetails;
@@ -8009,13 +8392,15 @@ export async function GET(
         streamBadges = streamBadgeResult.badges;
         streamBadgesCacheTtlMs = streamBadgeResult.cacheTtlMs;
       }
-      if (shouldRenderRawKitsuFallbackRating) {
-        providerRatings.set('kitsu', rawFallbackKitsuRating as string);
-        renderedRatingTtlByProvider.set('kitsu', KITSU_CACHE_TTL_MS);
+      if (shouldRenderRawAnimeFallbackRating && rawFallbackAnimeRatingProvider && rawFallbackAnimeRating) {
+        providerRatings.set(rawFallbackAnimeRatingProvider, rawFallbackAnimeRating);
+        renderedRatingTtlByProvider.set(rawFallbackAnimeRatingProvider, KITSU_CACHE_TTL_MS);
       }
       const ratingBadges: RatingBadge[] = [];
-      const renderableRatingPreferences = useRawKitsuFallback
-        ? (shouldRenderRawKitsuFallbackRating ? (['kitsu'] as RatingPreference[]) : [])
+      const renderableRatingPreferences = useRawAnimeImageFallback
+        ? shouldRenderRawAnimeFallbackRating && rawFallbackAnimeRatingProvider
+          ? [rawFallbackAnimeRatingProvider]
+          : []
         : effectiveRatingPreferences.filter(
           (provider) => allowAnimeOnlyRatings || !ANIME_ONLY_RATING_PROVIDER_SET.has(provider)
         );
