@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.20](https://github.com/realbestia1/erdb/compare/v0.3.19...v0.3.20) - 2026-04-05
+
+- Refactor workspace UI and tweak defaults ([2c53dae](https://github.com/realbestia1/erdb/commit/2c53daed660befd4bd7037ca8dfbfa5e6c303be4))
+  Extract workspace UI into new components (workspace-nav, workspace-controls-panel, workspace-preview-panel, workspace-proxy-panel, workspace-modals, constants) and export several types. Replace inline nav/controls/modal code in WorkspacePageView with Workspace* components. Adjust HomePage defaults and behaviors: change default lang to en-US, update various image/text/rating/badge defaults (including posterAnimeImageText, backdropStreamBadges, posterQualityBadgesStyle, several rating layouts/styles, thumbnailSize, logoRatingsMax), bump currentVersion to 0.3.20, and add isHydrated/isPreviewHydrated guards to prevent premature localStorage writes. Also update package.json (and lockfile) accordingly.
+
 ## [0.3.19](https://github.com/realbestia1/erdb/compare/v0.3.18...v0.3.19) - 2026-04-04
 
 - Reorder anime fallback logic & bump version ([f3edb4b](https://github.com/realbestia1/erdb/commit/f3edb4b1734e2bd8c18a0f4f3484ac33be62e158))
