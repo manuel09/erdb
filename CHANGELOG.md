@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.21](https://github.com/realbestia1/erdb/compare/v0.3.20...v0.3.21) - 2026-04-07
+
+- Bump to v0.3.21; add image language props ([a90ebce](https://github.com/realbestia1/erdb/commit/a90ebce949406357b3b9f0795bdb2f1975d56f55))
+  Update project version to 0.3.21 (package.json and package-lock.json) and sync UI state in HomePage (currentVersion -> 0.3.21). Also expose additional image-language props in HomePage parameter destructuring: backdropLang, backdropAnimeLang, logoLang, logoAnimeLang, and backdropAnimeImageText to support more localized image/text options.
+
 ## [0.3.20](https://github.com/realbestia1/erdb/compare/v0.3.19...v0.3.20) - 2026-04-05
 
 - Refactor workspace UI and tweak defaults ([2c53dae](https://github.com/realbestia1/erdb/commit/2c53daed660befd4bd7037ca8dfbfa5e6c303be4))

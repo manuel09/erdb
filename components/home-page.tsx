@@ -801,7 +801,7 @@ export default function HomePage({
   const [showProxyUrl, setShowProxyUrl] = useState(false);
   const [aiometadataCopiedType, setAiometadataCopiedType] = useState<AiometadataPatternType | null>(null);
   const [aiometadataEpisodeProvider, setAiometadataEpisodeProvider] = useState<AiometadataEpisodeProvider>('realimdb');
-  const [currentVersion, setCurrentVersion] = useState('0.3.20');
+  const [currentVersion, setCurrentVersion] = useState('0.3.21');
   const [githubPackageVersion, setGithubPackageVersion] = useState<string | null>(null);
   const [repoUrl, setRepoUrl] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<'idle' | 'with' | 'without'>('idle');
@@ -2628,8 +2628,13 @@ export default function HomePage({
       lang: effectiveLang,
       posterLang,
       posterAnimeLang,
+      backdropLang,
+      backdropAnimeLang,
+      logoLang,
+      logoAnimeLang,
       posterImageText,
       posterAnimeImageText,
+      backdropAnimeImageText,
       backdropImageText,
       posterRatingPreferences,
       backdropRatingPreferences,
@@ -2668,8 +2673,13 @@ export default function HomePage({
       effectiveLang,
       posterLang,
       posterAnimeLang,
+      backdropLang,
+      backdropAnimeLang,
+      logoLang,
+      logoAnimeLang,
       posterImageText,
       posterAnimeImageText,
+      backdropAnimeImageText,
       backdropImageText,
       posterRatingPreferences,
       backdropRatingPreferences,
