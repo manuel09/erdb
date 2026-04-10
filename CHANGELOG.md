@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.22](https://github.com/realbestia1/erdb/compare/v0.3.21...v0.3.22) - 2026-04-10
+
+- Add Fanart.tv fallback for textless images ([2a703d3](https://github.com/realbestia1/erdb/commit/2a703d33621f69ca1b008e245d181301c66c58a8))
+  Integrate optional Fanart.tv support as a fallback when TMDB lacks textless posters/backdrops. Adds FANART_API_KEY env var and a fanartKey token/config param, a fetchFanartImages helper (12h cache, sorts images by likes), and uses Fanart results for 'clean'/'alternative' poster/backdrop fallbacks. Wires fanartKey through the UI (home/workspace controls), localStorage persistence, proxy token mapping, and cache keys so behavior can be toggled per-token. Also bumps package version.
+- Add backdropRatingsMax support ([c1b16b1](https://github.com/realbestia1/erdb/commit/c1b16b1ab36a824f41e96039a3c2373915d19a6f))
+  Introduce a new backdropRatingsMax setting to limit the number of rating badges on backdrops. Added lib/backdropRatingsMax.ts with normalization, min/max (1–20) and default (null). Wired the value through token parsing and query generation in app/[type]/[id]/route.ts, updated proxy manifest and config handling in app/proxy/[...path]/route.ts and lib/addonProxy.ts, and added UI/state bindings and controls in HomePage, Workspace page/view and workspace controls so users can set/reset the value. Also applied the cap when building badge arrays so backdrop badges respect the configured maximum.
+
 ## [0.3.21](https://github.com/realbestia1/erdb/compare/v0.3.20...v0.3.21) - 2026-04-07
 
 - Bump to v0.3.21; add image language props ([a90ebce](https://github.com/realbestia1/erdb/commit/a90ebce949406357b3b9f0795bdb2f1975d56f55))

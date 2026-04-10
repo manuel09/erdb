@@ -37,6 +37,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     tmdbKey,
     mdblistKey,
     simklClientId,
+    fanartKey,
     posterLang,
     posterAnimeLang,
     backdropLang,
@@ -48,6 +49,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     posterRatingsLayout,
     posterRatingsMaxPerSide,
     backdropRatingsLayout,
+    backdropRatingsMax,
     backdropRatingsSize,
     thumbnailRatingsLayout,
     thumbnailSize,
@@ -82,6 +84,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     setTmdbKey,
     setMdblistKey,
     setSimklClientId,
+    setFanartKey,
     setPosterLang,
     setPosterAnimeLang,
     setBackdropLang,
@@ -96,6 +99,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     setPosterRatingsMaxPerSide,
     setPosterVerticalBadgeContent,
     setBackdropRatingsLayout,
+    setBackdropRatingsMax,
     setBackdropRatingsSize,
     setBackdropVerticalBadgeContent,
     setThumbnailRatingsLayout,
@@ -174,6 +178,11 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
             <label className="flex flex-col gap-1.5">
               <span className="text-xs font-medium text-slate-400">SIMKL Client ID</span>
               <input type="password" value={simklClientId} onChange={(e) => setSimklClientId(e.target.value)} placeholder="Optional Integration" className={INPUT_CLASS} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-slate-400">Fanart.tv API Key <span className="text-slate-500 font-normal">(optional)</span></span>
+              <span className="text-xs text-slate-500">Used as fallback for Clean posters/backdrops when TMDB has none. Not required.</span>
+              <input type="password" value={fanartKey} onChange={(e) => setFanartKey(e.target.value)} placeholder="Fanart.tv API key" className={INPUT_CLASS} />
             </label>
           </div>
         </div>
@@ -336,6 +345,11 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                 </div>
               </div>
             )}
+            <div className="pt-2 flex items-center gap-3">
+              <span className="text-xs font-medium text-slate-400">Max Badges</span>
+              <input type="number" min={1} max={20} value={backdropRatingsMax ?? ''} onChange={(e) => setBackdropRatingsMax(e.target.value === '' ? null : parseInt(e.target.value, 10))} placeholder="Auto" className={`w-20 ${INPUT_CLASS}`} />
+              <button onClick={() => setBackdropRatingsMax(null)} className="rounded-xl border border-white/5 bg-[#0a0a0a] px-4 py-2.5 text-xs font-medium text-slate-300 hover:bg-[#121212]">Auto</button>
+            </div>
           </motion.div>
         )}
 

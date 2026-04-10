@@ -44,6 +44,7 @@ type HomePageViewState = {
   tmdbKey: string;
   mdblistKey: string;
   simklClientId: string;
+  fanartKey: string;
   proxyManifestUrl: string;
   proxyCatalogs: ProxyCatalogDescriptor[];
   proxyCatalogNames: Record<string, string>;
@@ -68,6 +69,7 @@ type HomePageViewState = {
   logoCustomSecondary: string;
   logoCustomOutline: string;
   backdropRatingsLayout: BackdropRatingLayout;
+  backdropRatingsMax: number | null;
   backdropRatingsSize: BackdropRatingsSize;
   thumbnailRatingsLayout: ThumbnailRatingLayout;
   posterVerticalBadgeContent: VerticalBadgeContent;
@@ -131,6 +133,7 @@ type HomePageViewActions = {
   setTmdbKey: Dispatch<SetStateAction<string>>;
   setMdblistKey: Dispatch<SetStateAction<string>>;
   setSimklClientId: Dispatch<SetStateAction<string>>;
+  setFanartKey: Dispatch<SetStateAction<string>>;
   setPosterRatingsLayout: Dispatch<SetStateAction<PosterRatingLayout>>;
   setPosterRatingsMaxPerSide: Dispatch<SetStateAction<number | null>>;
   setLogoRatingsMax: Dispatch<SetStateAction<number | null>>;
@@ -140,6 +143,7 @@ type HomePageViewActions = {
   setLogoCustomSecondary: Dispatch<SetStateAction<string>>;
   setLogoCustomOutline: Dispatch<SetStateAction<string>>;
   setBackdropRatingsLayout: Dispatch<SetStateAction<BackdropRatingLayout>>;
+  setBackdropRatingsMax: Dispatch<SetStateAction<number | null>>;
   setBackdropRatingsSize: Dispatch<SetStateAction<BackdropRatingsSize>>;
   setThumbnailRatingsLayout: Dispatch<SetStateAction<ThumbnailRatingLayout>>;
   setPosterVerticalBadgeContent: Dispatch<SetStateAction<VerticalBadgeContent>>;

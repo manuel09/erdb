@@ -60,6 +60,10 @@ import {
   normalizeLogoRatingsMax,
 } from '@/lib/logoRatingsMax';
 import {
+  DEFAULT_BACKDROP_RATINGS_MAX,
+  normalizeBackdropRatingsMax,
+} from '@/lib/backdropRatingsMax';
+import {
   DEFAULT_LOGO_MODE,
   isLogoMode,
   normalizeLogoMode,
@@ -137,6 +141,7 @@ const POSTER_QUALITY_BADGE_POSITION_OPTIONS: Array<{
 const TMDB_KEY_STORAGE_KEY = 'erdb_tmdb_key';
 const MDBLIST_KEY_STORAGE_KEY = 'erdb_mdblist_key';
 const SIMKL_CLIENT_ID_STORAGE_KEY = 'erdb_simkl_client_id';
+const FANART_KEY_STORAGE_KEY = 'erdb_fanart_key';
 const ERDB_TOKEN_STORAGE_KEY = 'erdb_active_token';
 const PREVIEW_CONFIG_STORAGE_KEY = 'erdb_preview_config';
 const EXPORT_CONFIG_VERSION = 1;
@@ -337,6 +342,7 @@ const buildAiometadataPattern = (options: {
   tmdbKey: string;
   mdblistKey: string;
   simklClientId: string;
+  fanartKey: string;
   lang: string;
   posterLang: string;
   posterAnimeLang: string;
@@ -373,6 +379,7 @@ const buildAiometadataPattern = (options: {
   posterRatingsLayout: PosterRatingLayout;
   posterRatingsMaxPerSide: number | null;
   backdropRatingsLayout: BackdropRatingLayout;
+  backdropRatingsMax: number | null;
   backdropRatingsSize: BackdropRatingsSize;
   thumbnailRatingsLayout: ThumbnailRatingLayout;
   posterVerticalBadgeContent: VerticalBadgeContent;
@@ -388,6 +395,7 @@ const buildAiometadataPattern = (options: {
     tmdbKey,
     mdblistKey,
     simklClientId,
+    fanartKey,
     lang,
     posterLang,
     posterAnimeLang,
@@ -424,6 +432,7 @@ const buildAiometadataPattern = (options: {
     posterRatingsLayout,
     posterRatingsMaxPerSide,
     backdropRatingsLayout,
+    backdropRatingsMax,
     backdropRatingsSize,
     thumbnailRatingsLayout,
     posterVerticalBadgeContent,
@@ -452,6 +461,9 @@ const buildAiometadataPattern = (options: {
 
   if (simklClientId) {
     params.push(['simklClientId', simklClientId]);
+  }
+  if (fanartKey) {
+    params.push(['fanartKey', fanartKey]);
   }
 
   if (imageType === 'poster') {
@@ -503,6 +515,9 @@ const buildAiometadataPattern = (options: {
     params.push(['imageText', backdropImageText]);
     params.push(['backdropRatingsLayout', backdropRatingsLayout]);
     params.push(['backdropRatingsSize', backdropRatingsSize]);
+    if (backdropRatingsMax !== null) {
+      params.push(['backdropRatingsMax', String(backdropRatingsMax)]);
+    }
     if (backdropRatingsLayout === 'right-vertical' && backdropVerticalBadgeContent !== 'standard') {
       params.push(['backdropVerticalBadgeContent', backdropVerticalBadgeContent]);
     }
@@ -599,6 +614,7 @@ const buildAiometadataPatternBlock = (options: {
   if (options.imageType !== 'thumbnail') {
     pushIfString('mdblistKey');
     pushIfString('simklClientId');
+    pushIfString('fanartKey');
     pushIfString('ratings');
     pushIfString('qualityBadgesSide');
     pushIfString('posterQualityBadgesPosition');
@@ -769,6 +785,7 @@ export default function HomePage({
   const [logoRatingStyle, setLogoRatingStyle] = useState<RatingStyle>('plain');
   const [posterRatingsMaxPerSide, setPosterRatingsMaxPerSide] = useState<number | null>(DEFAULT_POSTER_RATINGS_MAX_PER_SIDE);
   const [logoRatingsMax, setLogoRatingsMax] = useState<number | null>(5);
+  const [backdropRatingsMax, setBackdropRatingsMax] = useState<number | null>(DEFAULT_BACKDROP_RATINGS_MAX);
   const [logoMode, setLogoMode] = useState<LogoMode>(DEFAULT_LOGO_MODE);
   const [logoFontVariant, setLogoFontVariant] = useState<LogoFontVariant>(DEFAULT_LOGO_FONT_VARIANT);
   const [logoCustomPrimary, setLogoCustomPrimary] = useState(DEFAULT_LOGO_CUSTOM_PRIMARY);
@@ -779,6 +796,7 @@ export default function HomePage({
   const [mdblistKey, setMdblistKey] = useState('');
   const [tmdbKey, setTmdbKey] = useState('');
   const [simklClientId, setSimklClientId] = useState('');
+  const [fanartKey, setFanartKey] = useState('');
   const [proxyManifestUrl, setProxyManifestUrl] = useState('');
   const [proxySeriesMetadataProvider, setProxySeriesMetadataProvider] =
     useState<ProxySeriesMetadataProvider>('tmdb');
@@ -801,7 +819,7 @@ export default function HomePage({
   const [showProxyUrl, setShowProxyUrl] = useState(false);
   const [aiometadataCopiedType, setAiometadataCopiedType] = useState<AiometadataPatternType | null>(null);
   const [aiometadataEpisodeProvider, setAiometadataEpisodeProvider] = useState<AiometadataEpisodeProvider>('realimdb');
-  const [currentVersion, setCurrentVersion] = useState('0.3.21');
+  const [currentVersion, setCurrentVersion] = useState('0.3.22');
   const [githubPackageVersion, setGithubPackageVersion] = useState<string | null>(null);
   const [repoUrl, setRepoUrl] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<'idle' | 'with' | 'without'>('idle');
@@ -953,6 +971,7 @@ export default function HomePage({
     const storedTmdbKey = safeLocalStorageGet(TMDB_KEY_STORAGE_KEY);
     const storedMdblistKey = safeLocalStorageGet(MDBLIST_KEY_STORAGE_KEY);
     const storedSimklClientId = safeLocalStorageGet(SIMKL_CLIENT_ID_STORAGE_KEY);
+    const storedFanartKey = safeLocalStorageGet(FANART_KEY_STORAGE_KEY);
     const storedToken = safeLocalStorageGet(ERDB_TOKEN_STORAGE_KEY);
     if (!storedTmdbKey && !storedMdblistKey && !storedSimklClientId && !storedToken) {
       isHydrated.current = true;
@@ -967,6 +986,9 @@ export default function HomePage({
       }
       if (storedSimklClientId) {
         setSimklClientId(storedSimklClientId);
+      }
+      if (storedFanartKey) {
+        setFanartKey(storedFanartKey);
       }
       if (!initialToken && storedToken) {
         setActiveToken(storedToken);
@@ -1011,6 +1033,15 @@ export default function HomePage({
       safeLocalStorageRemove(SIMKL_CLIENT_ID_STORAGE_KEY);
     }
   }, [simklClientId]);
+
+  useEffect(() => {
+    if (!isHydrated.current) return;
+    if (fanartKey) {
+      safeLocalStorageSet(FANART_KEY_STORAGE_KEY, fanartKey);
+    } else {
+      safeLocalStorageRemove(FANART_KEY_STORAGE_KEY);
+    }
+  }, [fanartKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1247,6 +1278,9 @@ export default function HomePage({
       }
       query.set('backdropAnimeImageText', backdropAnimeImageText);
       query.set('backdropRatings', ratingsQuery);
+      if (backdropRatingsMax !== null) {
+        query.set('backdropRatingsMax', String(backdropRatingsMax));
+      }
     } else if (previewType === 'thumbnail') {
       query.set('thumbnailRatings', ratingsQuery);
     } else {
@@ -1296,6 +1330,9 @@ export default function HomePage({
     }
     if (simklClientId) {
       query.set('simklClientId', simklClientId);
+    }
+    if (fanartKey) {
+      query.set('fanartKey', fanartKey);
     }
     if (tmdbKey) {
       query.set('tmdbKey', tmdbKey);
@@ -1374,6 +1411,7 @@ export default function HomePage({
     shouldShowQualityBadgesPosition,
     posterRatingsLayout,
     posterRatingsMaxPerSide,
+    backdropRatingsMax,
     logoRatingsMax,
     logoMode,
     logoFontVariant,
@@ -1398,6 +1436,7 @@ export default function HomePage({
     baseUrl,
     mdblistKey,
     simklClientId,
+    fanartKey,
     tmdbKey,
   ]);
 
@@ -1405,6 +1444,7 @@ export default function HomePage({
     const tmdb = tmdbKey.trim();
     const mdb = mdblistKey.trim();
     const simkl = simklClientId.trim();
+    const fanart = fanartKey.trim();
     if (!baseUrl || !tmdb || !mdb) {
       return '';
     }
@@ -1417,6 +1457,9 @@ export default function HomePage({
     };
     if (simkl) {
       config.simklClientId = simkl;
+    }
+    if (fanart) {
+      config.fanartKey = fanart;
     }
 
     const posterRatingsQuery = stringifyRatingPreferencesAllowEmpty(posterRatingPreferences);
@@ -1507,6 +1550,9 @@ export default function HomePage({
     if (logoRatingsMax !== null) {
       config.logoRatingsMax = logoRatingsMax;
     }
+    if (backdropRatingsMax !== null) {
+      config.backdropRatingsMax = backdropRatingsMax;
+    }
     if (logoMode !== DEFAULT_LOGO_MODE) {
       config.logoMode = logoMode;
     }
@@ -1550,6 +1596,7 @@ export default function HomePage({
     tmdbKey,
     mdblistKey,
     simklClientId,
+    fanartKey,
     posterRatingPreferences,
     backdropRatingPreferences,
     thumbnailRatingPreferences,
@@ -1579,6 +1626,7 @@ export default function HomePage({
     posterRatingsLayout,
     posterRatingsMaxPerSide,
     logoRatingsMax,
+    backdropRatingsMax,
     backdropRatingsLayout,
     backdropRatingsSize,
     thumbnailRatingsLayout,
@@ -1764,6 +1812,9 @@ export default function HomePage({
     if (logoRatingsMax !== null) {
       config.logoRatingsMax = String(logoRatingsMax);
     }
+    if (backdropRatingsMax !== null) {
+      config.backdropRatingsMax = String(backdropRatingsMax);
+    }
     if (backdropRatingsLayout) {
       config.backdropRatingsLayout = backdropRatingsLayout;
     }
@@ -1833,6 +1884,7 @@ export default function HomePage({
     posterRatingsLayout,
     posterRatingsMaxPerSide,
     logoRatingsMax,
+    backdropRatingsMax,
     backdropRatingsLayout,
     backdropRatingsSize,
     thumbnailRatingsLayout,
@@ -2027,6 +2079,7 @@ export default function HomePage({
       logoCustomSecondary,
       logoCustomOutline,
       logoRatingsMax,
+      backdropRatingsMax,
       posterRatingsLayout,
       posterRatingsMaxPerSide,
       backdropRatingsLayout,
@@ -2051,6 +2104,7 @@ export default function HomePage({
       payload.tmdbKey = tmdbKey;
       payload.mdblistKey = mdblistKey;
       payload.simklClientId = simklClientId;
+      payload.fanartKey = fanartKey;
     }
 
     const filename = includeKeys ? 'erdb-config-with-keys.json' : 'erdb-config.json';
@@ -2072,6 +2126,9 @@ export default function HomePage({
     }
     if (typeof payload.simklClientId === 'string') {
       setSimklClientId(payload.simklClientId);
+    }
+    if (typeof payload.fanartKey === 'string') {
+      setFanartKey(payload.fanartKey);
     }
     if (typeof payload.mediaId === 'string') {
       setMediaId(payload.mediaId);
@@ -2206,6 +2263,11 @@ export default function HomePage({
       setLogoRatingsMax(null);
     } else if (typeof payload.logoRatingsMax === 'number' || typeof payload.logoRatingsMax === 'string') {
       setLogoRatingsMax(normalizeLogoRatingsMax(payload.logoRatingsMax));
+    }
+    if (payload.backdropRatingsMax === null) {
+      setBackdropRatingsMax(null);
+    } else if (typeof payload.backdropRatingsMax === 'number' || typeof payload.backdropRatingsMax === 'string') {
+      setBackdropRatingsMax(normalizeBackdropRatingsMax(payload.backdropRatingsMax));
     }
 
     const normalizeRatingArray = (value: unknown) => {
@@ -2413,6 +2475,7 @@ export default function HomePage({
       posterRatingsLayout,
       posterRatingsMaxPerSide,
       backdropRatingsLayout,
+      backdropRatingsMax,
       backdropRatingsSize,
       thumbnailRatingsLayout,
       posterVerticalBadgeContent,
@@ -2461,6 +2524,7 @@ export default function HomePage({
     posterRatingsLayout,
     posterRatingsMaxPerSide,
     logoRatingsMax,
+    backdropRatingsMax,
     backdropRatingsLayout,
     backdropRatingsSize,
     thumbnailRatingsLayout,
@@ -2549,6 +2613,7 @@ export default function HomePage({
       posterRatingsLayout,
       posterRatingsMaxPerSide,
       logoRatingsMax,
+      backdropRatingsMax,
       backdropRatingsLayout,
       backdropRatingsSize,
       thumbnailRatingsLayout,
@@ -2569,6 +2634,7 @@ export default function HomePage({
       tmdbKey,
       mdblistKey,
       simklClientId,
+      fanartKey,
     }),
     [
       effectiveLang,
@@ -2599,6 +2665,7 @@ export default function HomePage({
       posterRatingsLayout,
       posterRatingsMaxPerSide,
       logoRatingsMax,
+      backdropRatingsMax,
       backdropRatingsLayout,
       backdropRatingsSize,
       thumbnailRatingsLayout,
@@ -2703,6 +2770,7 @@ export default function HomePage({
       posterRatingsLayout,
       posterRatingsMaxPerSide,
       logoRatingsMax,
+      backdropRatingsMax,
       backdropRatingsLayout,
       backdropRatingsSize,
       thumbnailRatingsLayout,
@@ -2713,6 +2781,7 @@ export default function HomePage({
       tmdbKey,
       mdblistKey,
       simklClientId,
+      fanartKey,
     ]
   );
 
@@ -2860,6 +2929,7 @@ export default function HomePage({
       tmdbKey,
       mdblistKey,
       simklClientId,
+      fanartKey,
       proxyManifestUrl,
       proxyCatalogs,
       proxyCatalogNames: sanitizedProxyCatalogNames,
@@ -2882,6 +2952,7 @@ export default function HomePage({
       logoCustomSecondary,
       logoCustomOutline,
       backdropRatingsLayout,
+      backdropRatingsMax,
       backdropRatingsSize,
       thumbnailRatingsLayout,
       posterVerticalBadgeContent,
@@ -2945,6 +3016,7 @@ export default function HomePage({
       setTmdbKey,
       setMdblistKey,
       setSimklClientId,
+      setFanartKey,
       setPosterRatingsLayout,
       setPosterRatingsMaxPerSide,
       setLogoRatingsMax,
@@ -2954,6 +3026,7 @@ export default function HomePage({
       setLogoCustomSecondary,
       setLogoCustomOutline,
       setBackdropRatingsLayout,
+      setBackdropRatingsMax,
       setBackdropRatingsSize,
       setThumbnailRatingsLayout,
       setPosterVerticalBadgeContent,
