@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.23](https://github.com/realbestia1/erdb/compare/v0.3.22...v0.3.23) - 2026-04-11
+
+- Bump v0.3.23; add backdrop & fanart configs ([9c26f2b](https://github.com/realbestia1/erdb/commit/9c26f2b1a0e46d1bc67bef96a2e92d3e9317346f))
+  Bump project version to 0.3.23 and update HomePage to reflect the new version. Add backdropRatingsMax to the ratings state usage and include fanartKey in the effect dependency list to enable backdrop rating limits and fanart API key support.
+
 ## [0.3.22](https://github.com/realbestia1/erdb/compare/v0.3.21...v0.3.22) - 2026-04-10
 
 - Add Fanart.tv fallback for textless images ([2a703d3](https://github.com/realbestia1/erdb/commit/2a703d33621f69ca1b008e245d181301c66c58a8))
