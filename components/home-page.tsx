@@ -819,9 +819,10 @@ export default function HomePage({
   const [showProxyUrl, setShowProxyUrl] = useState(false);
   const [aiometadataCopiedType, setAiometadataCopiedType] = useState<AiometadataPatternType | null>(null);
   const [aiometadataEpisodeProvider, setAiometadataEpisodeProvider] = useState<AiometadataEpisodeProvider>('realimdb');
-  const [currentVersion, setCurrentVersion] = useState('0.3.23');
+  const [currentVersion, setCurrentVersion] = useState('0.3.24');
   const [githubPackageVersion, setGithubPackageVersion] = useState<string | null>(null);
   const [repoUrl, setRepoUrl] = useState<string | null>(null);
+  const [userCount, setUserCount] = useState<number | null>(null);
   const [exportStatus, setExportStatus] = useState<'idle' | 'with' | 'without'>('idle');
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [importMessage, setImportMessage] = useState('');
@@ -1060,6 +1061,25 @@ export default function HomePage({
         }
         if (typeof payload.repoUrl === 'string' && payload.repoUrl) {
           setRepoUrl(payload.repoUrl);
+        }
+      })
+      .catch(() => { });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/stats', { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return await response.json();
+      })
+      .then((payload) => {
+        if (cancelled || !payload || typeof payload !== 'object') return;
+        if (typeof payload.userCount === 'number') {
+          setUserCount(payload.userCount);
         }
       })
       .catch(() => { });
@@ -2995,6 +3015,7 @@ export default function HomePage({
       activeStreamBadges,
       activeQualityBadgesStyle,
       aiometadataPatterns,
+      userCount,
     },
     actions: {
       handleAnchorClick,

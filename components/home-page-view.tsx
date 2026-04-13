@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, Dispatch, MouseEvent, RefObject, SetStateAction } from 'react';
 import type { ProxyCatalogDescriptor } from '@/lib/proxyCatalog';
 import type { SupportedLanguage } from '@/lib/tmdbLanguage';
-import { Code2, Settings2, Sparkles, Star, Workflow } from 'lucide-react';
+import { Code2, Settings2, Sparkles, Star, Users, Workflow } from 'lucide-react';
 import type { RatingPreference } from '@/lib/ratingPreferences';
 import type { RatingProviderRow } from '@/lib/ratingRows';
 import type { BackdropRatingLayout } from '@/lib/backdropRatingLayout';
@@ -109,6 +110,7 @@ type HomePageViewDerived = {
   activeStreamBadges: StreamBadgesSetting;
   activeQualityBadgesStyle: RatingStyle;
   aiometadataPatterns: Record<AiometadataPatternType, string>;
+  userCount: number | null;
 };
 
 type HomePageViewActions = {
@@ -186,9 +188,30 @@ export type HomePageViewProps = {
   actions: HomePageViewActions;
 };
 
+function AnimatedCounter({ target }: { target: number }) {
+  const [display, setDisplay] = useState(0);
+  const frameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (target === 0) { setDisplay(0); return; }
+    const duration = 1200;
+    const start = performance.now();
+    const animate = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(ease * target));
+      if (progress < 1) frameRef.current = requestAnimationFrame(animate);
+    };
+    frameRef.current = requestAnimationFrame(animate);
+    return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); };
+  }, [target]);
+
+  return <>{display}</>;
+}
+
 export function HomePageView({ refs, derived }: HomePageViewProps) {
   const { navRef } = refs;
-  const { currentVersion, githubPackageVersion, repoUrl } = derived;
+  const { currentVersion, githubPackageVersion, repoUrl, userCount } = derived;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#06070b] text-slate-200 selection:bg-orange-400/30 font-[var(--font-body)]">
@@ -280,6 +303,25 @@ export function HomePageView({ refs, derived }: HomePageViewProps) {
                   Proxy-ready for addons
                 </div>
               </div>
+
+              {userCount !== null && (
+                <div className="inline-flex items-center gap-3 rounded-2xl border border-teal-400/20 bg-teal-500/[0.06] px-5 py-3 shadow-[0_0_24px_-8px_rgba(20,184,166,0.25)] backdrop-blur-sm">
+                  <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-teal-400/10">
+                    <Users className="h-3.5 w-3.5 text-teal-300" />
+                    <span className="absolute right-0.5 top-0.5 flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400 opacity-60" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-teal-400" />
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.25em] text-teal-400/70">Active Users</div>
+                    <div className="text-lg font-bold leading-tight text-teal-200">
+                      <AnimatedCounter target={userCount} />
+                      <span className="ml-1 text-sm font-normal text-teal-300/60">+</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-4">
