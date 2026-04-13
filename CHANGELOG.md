@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.24](https://github.com/realbestia1/erdb/compare/v0.3.23...v0.3.24) - 2026-04-13
+
+- Add TMDB title search and active-user stats ([6e5395f](https://github.com/realbestia1/erdb/commit/6e5395f4ff5b691d791b393338be79457de88e21))
+  Add server endpoints and UI for TMDB title search and site stats. Introduces /api/search-title to query TMDB (returns TMDB/IMDB ids, poster, year, type) and /api/stats to return active user count from accountsDb. Adds a MediaIdSearch component in the workspace nav with debounce, dropdown results, and TMDB-key driven search; integrates icons and loading state. Home page now fetches /api/stats, exposes userCount to the view, and renders an AnimatedCounter badge showing active users. Also bumps package version to 0.3.24 and updates build info.
+
 ## [0.3.23](https://github.com/realbestia1/erdb/compare/v0.3.22...v0.3.23) - 2026-04-11
 
 - Bump v0.3.23; add backdrop & fanart configs ([9c26f2b](https://github.com/realbestia1/erdb/commit/9c26f2b1a0e46d1bc67bef96a2e92d3e9317346f))
