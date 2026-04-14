@@ -38,11 +38,16 @@ async function saveCredentialsInBrowser(token: string, password: string) {
   }
 }
 
-export function WorkspaceAuthPage() {
+export function WorkspaceAuthPage({
+  requiresWorkspacePassword = false,
+}: {
+  requiresWorkspacePassword?: boolean;
+}) {
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>('login');
   const [token, setToken] = useState('');
   const [password, setPassword] = useState('');
+  const [accessPassword, setAccessPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [generatedToken, setGeneratedToken] = useState('');
   const [hasSavedCredentials, setHasSavedCredentials] = useState(false);
@@ -50,6 +55,22 @@ export function WorkspaceAuthPage() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const attemptedStoredLoginRef = useRef(false);
+
+  const verifyWorkspaceAccess = async () => {
+    if (!requiresWorkspacePassword) {
+      return;
+    }
+
+    const accessResponse = await fetch('/api/workspace-auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'verify-access', accessPassword }),
+    });
+    const accessData = await accessResponse.json();
+    if (!accessResponse.ok) {
+      throw new Error(accessData.error || 'Configurator password check failed');
+    }
+  };
 
   const resetRegisterState = () => {
     setGeneratedToken('');
@@ -142,6 +163,12 @@ export function WorkspaceAuthPage() {
       return;
     }
 
+    if (requiresWorkspacePassword && !accessPassword) {
+      setStatus('error');
+      setMessage('Enter the configurator password first.');
+      return;
+    }
+
     if (mode === 'register' && !generatedToken) {
       setStatus('error');
       setMessage('Generate a token first.');
@@ -155,6 +182,8 @@ export function WorkspaceAuthPage() {
     }
 
     try {
+      await verifyWorkspaceAccess();
+
       const response = await fetch('/api/workspace-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -183,6 +212,26 @@ export function WorkspaceAuthPage() {
     }
   };
 
+  const handleGuestAccess = async () => {
+    setStatus('loading');
+    setMessage('');
+
+    try {
+      if (requiresWorkspacePassword && !accessPassword) {
+        throw new Error('Enter the configurator password first.');
+      }
+
+      await verifyWorkspaceAccess();
+      router.push('/configurator?guest=1');
+      router.refresh();
+    } catch (error: any) {
+      setStatus('error');
+      setMessage(error?.message || 'Unable to open guest mode');
+    } finally {
+      setStatus((current) => (current === 'error' ? 'error' : 'idle'));
+    }
+  };
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050505] text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.16),transparent_28%)]" />
@@ -198,6 +247,11 @@ export function WorkspaceAuthPage() {
             <p className="mt-4 max-w-xl text-sm leading-7 text-slate-300">
               Sign in with a token to unlock the full workspace experience — or continue as a guest using query-string URLs like before.
             </p>
+            {requiresWorkspacePassword && (
+              <div className="mt-6 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100">
+                This configurator is protected by a global password. Enter it below before login, register, or guest access.
+              </div>
+            )}
 
             {/* Key benefit highlight */}
             <div className="mt-6 rounded-2xl border border-orange-400/20 bg-orange-500/[0.07] p-4">
@@ -231,13 +285,25 @@ export function WorkspaceAuthPage() {
               </div>
             </div>
             <div className="mt-6">
-              <Link
-                href="/configurator?guest=1"
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/[0.08]"
-              >
-                <KeyRound className="h-4 w-4" />
-                <span>Continue Without Token</span>
-              </Link>
+              {requiresWorkspacePassword ? (
+                <button
+                  type="button"
+                  onClick={handleGuestAccess}
+                  disabled={status === 'loading'}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <KeyRound className="h-4 w-4" />
+                  <span>Unlock And Continue As Guest</span>
+                </button>
+              ) : (
+                <Link
+                  href="/configurator?guest=1"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/[0.08]"
+                >
+                  <KeyRound className="h-4 w-4" />
+                  <span>Continue Without Token</span>
+                </Link>
+              )}
               <p className="mt-2 text-xs leading-6 text-slate-500">
                 Settings are encoded in the URL. You will need to reinstall the addon whenever you change your configuration.
               </p>
@@ -272,6 +338,26 @@ export function WorkspaceAuthPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              {requiresWorkspacePassword && (
+                <label className="block">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Configurator Password
+                  </span>
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                    <input
+                      type="password"
+                      name="configurator-password"
+                      autoComplete="off"
+                      value={accessPassword}
+                      onChange={(event) => setAccessPassword(event.target.value)}
+                      placeholder="Global access password"
+                      className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3 pl-11 pr-4 text-sm text-white outline-none transition focus:border-amber-400/50"
+                    />
+                  </div>
+                </label>
+              )}
+
               {mode === 'login' && (
                 <label className="block">
                   <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
@@ -279,6 +365,7 @@ export function WorkspaceAuthPage() {
                   </span>
                   <input
                     type="text"
+                    name="token"
                     autoComplete="username"
                     value={token}
                     onChange={(event) => setToken(event.target.value)}
@@ -297,6 +384,7 @@ export function WorkspaceAuthPage() {
                     <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                     <input
                       type="password"
+                      name="token-password"
                       autoComplete="current-password"
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
@@ -346,6 +434,7 @@ export function WorkspaceAuthPage() {
                       <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                       <input
                         type="password"
+                        name="new-token-password"
                         autoComplete="new-password"
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
@@ -361,6 +450,7 @@ export function WorkspaceAuthPage() {
                     </span>
                     <input
                       type="password"
+                      name="confirm-new-token-password"
                       autoComplete="new-password"
                       value={confirmPassword}
                       onChange={(event) => setConfirmPassword(event.target.value)}

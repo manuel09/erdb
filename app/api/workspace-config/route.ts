@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTokenConfig, updateTokenConfigWithoutPassword } from '@/lib/tokens';
+import { readWorkspaceAccess } from '@/lib/workspaceAccess';
 import { readWorkspaceSession } from '@/lib/workspaceSession';
 
 export async function GET() {
+  if (!(await readWorkspaceAccess())) {
+    return NextResponse.json({ error: 'Configurator password required' }, { status: 401 });
+  }
+
   const session = await readWorkspaceSession();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -17,6 +22,10 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  if (!(await readWorkspaceAccess())) {
+    return NextResponse.json({ error: 'Configurator password required' }, { status: 401 });
+  }
+
   const session = await readWorkspaceSession();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

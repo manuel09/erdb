@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import HomePage from '@/components/home-page';
 import { WorkspaceAuthPage } from '@/components/workspace-auth-page';
 import { getTokenConfig } from '@/lib/tokens';
+import { isWorkspacePasswordEnabled, readWorkspaceAccess } from '@/lib/workspaceAccess';
 import { readWorkspaceSession } from '@/lib/workspaceSession';
 
 export const metadata: Metadata = {
@@ -16,6 +17,12 @@ export default async function ConfiguratorPage({
 }) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const guestMode = resolvedSearchParams?.guest === '1';
+  const requiresWorkspacePassword = isWorkspacePasswordEnabled();
+  const hasWorkspaceAccess = await readWorkspaceAccess();
+
+  if (requiresWorkspacePassword && !hasWorkspaceAccess) {
+    return <WorkspaceAuthPage requiresWorkspacePassword />;
+  }
 
   if (guestMode) {
     return <HomePage mode="workspace" />;
@@ -24,12 +31,12 @@ export default async function ConfiguratorPage({
   const session = await readWorkspaceSession();
 
   if (!session) {
-    return <WorkspaceAuthPage />;
+    return <WorkspaceAuthPage requiresWorkspacePassword={requiresWorkspacePassword} />;
   }
 
   const tokenConfig = getTokenConfig(session.token);
   if (!tokenConfig) {
-    return <WorkspaceAuthPage />;
+    return <WorkspaceAuthPage requiresWorkspacePassword={requiresWorkspacePassword} />;
   }
 
   return <HomePage mode="workspace" initialToken={session.token} initialConfig={tokenConfig.config} />;

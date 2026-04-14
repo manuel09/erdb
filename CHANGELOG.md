@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.25](https://github.com/realbestia1/erdb/compare/v0.3.24...v0.3.25) - 2026-04-14
+
+- Add workspace configurator password protection ([06ff2b0](https://github.com/realbestia1/erdb/commit/06ff2b05080b8cc57537d76c7d65ec918a355a2c))
+  Introduce a global configurator password and cookie-based access gating.
+
+  - Add lib/workspaceAccess.ts to manage a signed, time-limited workspace access cookie and helper functions (enable check, verify, grant, clear).
+  - Require workspace access in API routes (token and workspace-config endpoints) and add access checks to workspace-auth route (gate-status, verify-access actions, and clear access on logout).
+  - Update configurator and auth UI to prompt for and verify the global password before allowing token operations, login/register, or guest access. Adds form fields and client flows to unlock the configurator.
+  - Update .env.example with environment variables for WORKSPACE_SESSION_SECRET, WORKSPACE_SESSION_SECURE, and ERDB_CONFIGURATOR_PASSWORD and guidance.
+  - Bump app version to 0.3.25 in package.json (and lockfile).
+
+  This change protects workspace configuration and token management behind an optional global password while preserving guest mode when unlocked.
+
 ## [0.3.24](https://github.com/realbestia1/erdb/compare/v0.3.23...v0.3.24) - 2026-04-13
 
 - Add TMDB title search and active-user stats ([6e5395f](https://github.com/realbestia1/erdb/commit/6e5395f4ff5b691d791b393338be79457de88e21))

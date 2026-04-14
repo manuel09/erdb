@@ -5,11 +5,54 @@ import {
   createWorkspaceSession,
   readWorkspaceSession,
 } from '@/lib/workspaceSession';
+import {
+  clearWorkspaceAccess,
+  grantWorkspaceAccess,
+  isWorkspacePasswordEnabled,
+  readWorkspaceAccess,
+  verifyWorkspacePassword,
+} from '@/lib/workspaceAccess';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const action = body?.action;
+
+    if (action === 'gate-status') {
+      return NextResponse.json({
+        enabled: isWorkspacePasswordEnabled(),
+        unlocked: await readWorkspaceAccess(),
+      });
+    }
+
+    if (action === 'verify-access') {
+      const password = typeof body?.accessPassword === 'string' ? body.accessPassword : '';
+
+      if (!isWorkspacePasswordEnabled()) {
+        return NextResponse.json({ success: true, enabled: false, unlocked: true });
+      }
+
+      if (!password) {
+        return NextResponse.json({ error: 'Configurator password is required' }, { status: 400 });
+      }
+
+      if (!verifyWorkspacePassword(password)) {
+        return NextResponse.json({ error: 'Invalid configurator password' }, { status: 401 });
+      }
+
+      await grantWorkspaceAccess();
+      return NextResponse.json({ success: true, enabled: true, unlocked: true });
+    }
+
+    const requiresAccess =
+      action === 'generate-token' ||
+      action === 'register' ||
+      action === 'login' ||
+      action === 'rotate-token';
+
+    if (requiresAccess && !(await readWorkspaceAccess())) {
+      return NextResponse.json({ error: 'Configurator password required' }, { status: 401 });
+    }
 
     if (action === 'generate-token') {
       return NextResponse.json({ success: true, token: generateRandomToken() });
@@ -76,6 +119,7 @@ export async function POST(request: NextRequest) {
 
     if (action === 'logout') {
       await clearWorkspaceSession();
+      await clearWorkspaceAccess();
       return NextResponse.json({ success: true });
     }
 

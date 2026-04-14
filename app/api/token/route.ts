@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createToken, getTokenConfig, updateToken } from '@/lib/tokens';
+import { readWorkspaceAccess } from '@/lib/workspaceAccess';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -20,6 +21,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!(await readWorkspaceAccess())) {
+      return NextResponse.json({ error: 'Configurator password required' }, { status: 401 });
+    }
+
     const { password, config } = await request.json();
 
     if (!password || !config) {
@@ -35,6 +40,10 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    if (!(await readWorkspaceAccess())) {
+      return NextResponse.json({ error: 'Configurator password required' }, { status: 401 });
+    }
+
     const { token, password, config } = await request.json();
 
     if (!token || !password || !config) {
