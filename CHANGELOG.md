@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.28](https://github.com/realbestia1/erdb/compare/v0.3.27...v0.3.28) - 2026-04-14
+
+- Use Filmweb API for ID lookup ([701fe21](https://github.com/realbestia1/erdb/commit/701fe21e028a95a3a5f20cb4addfcac37bbf05f2))
+  Replace DuckDuckGo HTML scraping with Filmweb's live search API to find film/serial IDs. Use fetchJsonCached and a new cache key namespace (filmweb:search:v1), filter searchHits by type, and fetch per-title info (/api/v1/title/:id/info) to verify year and title/originalTitle before returning an ID. Remove the regex-based extractFilmwebIdFromText helper and adjust request headers and variable names. Also bump package version to 0.3.28.
+
+## [0.3.27](https://github.com/realbestia1/erdb/compare/v0.3.26...v0.3.27) - 2026-04-14
+
+- Refactor preview image, adjust counters & props, bump v0.3.27 ([600fcbf](https://github.com/realbestia1/erdb/commit/600fcbf5d90c4df371d65dba80ce7b652f721e7f))
+  Extract preview image UI into a PreviewImage component in workspace-preview-panel (manages its own loading state and shimmer/animation), remove unused useEffect import, and simplify preview rendering. Tweak AnimatedCounter to avoid setting state when target is 0 and render 0 directly. Expand HomePage props and hooks to include anime/backdrop/logo language variants and additional rating/thumbnail options; adjust several useMemo dependency arrays and include fanartKey in dependencies. Bump package version to 0.3.27.
+
+## [0.3.26](https://github.com/realbestia1/erdb/compare/v0.3.25...v0.3.26) - 2026-04-14
+
+- Install dev deps and add prod-deps pruning stage ([52bdbd8](https://github.com/realbestia1/erdb/commit/52bdbd8204d4bb4aff01b18df08240fe7e16ab50))
+  Set NODE_ENV=development and install devDependencies in the deps stage (npm ci --include=dev). Add a prod-deps stage that copies package*.json and node_modules from deps and runs npm prune --omit=dev to strip devDependencies for the runtime image. Update the runner to copy node_modules from prod-deps so builds have dev deps but the final image is smaller and production-only.
+
 ## [0.3.25](https://github.com/realbestia1/erdb/compare/v0.3.24...v0.3.25) - 2026-04-14
 
 - Add workspace configurator password protection ([06ff2b0](https://github.com/realbestia1/erdb/commit/06ff2b05080b8cc57537d76c7d65ec918a355a2c))

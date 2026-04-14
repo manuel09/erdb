@@ -1287,13 +1287,6 @@ const fetchFilmwebCriticsRating = async ({
   return rating && !isNegativeRatingValue(rating) ? rating : null;
 };
 
-const extractFilmwebIdFromText = (value: string) => {
-  const match = value.match(/filmweb\.pl\/(?:film|serial)\/[^"'`\s<>]*-(\d+)|\/(?:film|serial)\/[^"'`\s<>]*-(\d+)/i);
-  if (!match) return null;
-  const candidate = match[1] || match[2] || '';
-  return /^\d+$/.test(candidate) ? candidate : null;
-};
-
 const fetchFilmwebIdBySearch = async ({
   title,
   originalTitle,
@@ -1310,7 +1303,6 @@ const fetchFilmwebIdBySearch = async ({
   const normalizedTitle = String(title || '').trim();
   const normalizedOriginalTitle = String(originalTitle || '').trim();
   const normalizedYear = String(year || '').trim().slice(0, 4);
-  const siteType = mediaType === 'tv' ? 'serial' : 'film';
 
   const queryCandidates = [
     [normalizedOriginalTitle, normalizedYear].filter(Boolean).join(' '),
@@ -1321,10 +1313,11 @@ const fetchFilmwebIdBySearch = async ({
     .map((candidate) => candidate.trim())
     .filter(Boolean);
 
-  for (const queryCandidate of [...new Set(queryCandidates)]) {
-    const cacheKey = `filmweb:search:${mediaType}:${sha1Hex(queryCandidate.toLowerCase())}`;
-    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(`site:filmweb.pl/${siteType} ${queryCandidate}`)}`;
-    const response = await fetchTextCached(
+  for (const query of [...new Set(queryCandidates)]) {
+    const cacheKey = `filmweb:search:v1:${mediaType}:${sha1Hex(query.toLowerCase())}`;
+    const url = `https://www.filmweb.pl/api/v1/live/search?query=${encodeURIComponent(query)}&pageSize=12`;
+
+    const response = await fetchJsonCached(
       cacheKey,
       url,
       FILMWEB_CACHE_TTL_MS,
@@ -1332,22 +1325,55 @@ const fetchFilmwebIdBySearch = async ({
       'mdb',
       {
         headers: {
+          'Accept': 'application/json',
           'User-Agent': 'Mozilla/5.0',
         },
       }
     );
 
-    if (!response.ok || !response.data) continue;
+    if (!response.ok || !Array.isArray(response.data?.searchHits)) continue;
 
-    const matches = [
-      ...response.data.matchAll(/https?:\/\/www\.filmweb\.pl\/(?:film|serial)\/[^"'`\s<>]+/gi),
-      ...response.data.matchAll(/\/\/www\.filmweb\.pl\/(?:film|serial)\/[^"'`\s<>]+/gi),
-      ...response.data.matchAll(/\/(?:film|serial)\/[^"'`\s<>]+-\d+/gi),
-    ];
+    const hits = response.data.searchHits.filter((hit: any) => hit.type === 'film' || hit.type === 'serial');
 
-    for (const match of matches) {
-      const candidateId = extractFilmwebIdFromText(match[0]);
-      if (candidateId) return candidateId;
+    for (const hit of hits.slice(0, 5)) {
+      const infoUrl = `https://www.filmweb.pl/api/v1/title/${hit.id}/info`;
+      const infoCacheKey = `filmweb:title:info:v1:${hit.id}`;
+
+      const infoResponse = await fetchJsonCached(
+        infoCacheKey,
+        infoUrl,
+        FILMWEB_CACHE_TTL_MS,
+        phases,
+        'mdb',
+        {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0',
+          },
+        }
+      );
+
+      if (!infoResponse.ok || !infoResponse.data) continue;
+
+      const info = infoResponse.data;
+      const infoYear = String(info.year || '').trim();
+      const yearMatch = !normalizedYear || infoYear === normalizedYear;
+
+      if (!yearMatch) continue;
+
+      const infoTitles = [
+        String(info.title || '').trim().toLowerCase(),
+        String(info.originalTitle || '').trim().toLowerCase(),
+      ].filter(Boolean);
+
+      const targetNames = [
+        normalizedTitle.toLowerCase(),
+        normalizedOriginalTitle.toLowerCase(),
+      ].filter(Boolean);
+
+      if (targetNames.some((t) => infoTitles.includes(t))) {
+        return String(hit.id);
+      }
     }
   }
 
