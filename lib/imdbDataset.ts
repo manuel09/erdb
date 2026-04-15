@@ -144,3 +144,21 @@ export const findImdbEpisodeBySeriesSeasonEpisode = (
     return null;
   }
 };
+export const isImdbSeriesFromDataset = (imdbId: string): boolean => {
+  const normalized = String(imdbId || '').trim();
+  if (!isImdbId(normalized)) return false;
+
+  refreshTableAvailability();
+  if (!tableAvailability.hasEpisodes) return false;
+
+  ensureDbInitialized();
+  const db = getDb();
+  try {
+    const row = db
+      .prepare('SELECT 1 FROM imdb_episodes WHERE parent_tconst = ? LIMIT 1')
+      .get(normalized);
+    return Boolean(row);
+  } catch {
+    return false;
+  }
+};

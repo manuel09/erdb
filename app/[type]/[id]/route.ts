@@ -57,7 +57,7 @@ import {
   getTmdbLanguageBase,
   normalizeTmdbLanguageCode,
 } from '@/lib/tmdbLanguage';
-import { findImdbEpisodeBySeriesSeasonEpisode, getImdbEpisodeFromDataset, getImdbRatingFromDataset } from '@/lib/imdbDataset';
+import { findImdbEpisodeBySeriesSeasonEpisode, getImdbEpisodeFromDataset, getImdbRatingFromDataset, isImdbSeriesFromDataset } from '@/lib/imdbDataset';
 import { scheduleImdbDatasetSync } from '@/lib/imdbDatasetSync';
 // Removed mdblistRequestLogs import
 
@@ -6738,49 +6738,96 @@ export async function GET(
             }
           }
 
-          if (!media) {
-          const findResponse = await fetchJsonCached(
-            `tmdb:find:${rawImdbSeriesId}`,
-            `https://api.themoviedb.org/3/find/${rawImdbSeriesId}?api_key=${tmdbKey}&external_source=imdb_id`,
-            TMDB_CACHE_TTL_MS,
-            phases,
-            'tmdb'
-          );
-          const findData = findResponse.data || {};
-          const episodeResult = findData.tv_episode_results?.[0] || null;
+          // 1. Dataset Check (Local)
           const prefersTvResult =
             imageType === 'thumbnail' ||
             (typeof season === 'string' && season.length > 0) ||
-            (typeof episode === 'string' && episode.length > 0);
-          if (episodeResult?.show_id) {
-            mediaId = String(episodeResult.show_id);
-            season = Number.isFinite(Number(episodeResult.season_number)) ? String(episodeResult.season_number) : season;
-            episode = Number.isFinite(Number(episodeResult.episode_number)) ? String(episodeResult.episode_number) : episode;
+            (typeof episode === 'string' && episode.length > 0) ||
+            isImdbSeriesFromDataset(rawImdbSeriesId);
 
-            const showResponse = await fetchJsonCached(
-              `tmdb:tv:${mediaId}`,
-              `https://api.themoviedb.org/3/tv/${mediaId}?api_key=${tmdbKey}`,
+          // 2. MDBList Resolution (Remote)
+          if (!media && mdblistKey) {
+            const mdbListRes = await fetchJsonCached(
+              `mdblist:resolve:${rawImdbSeriesId}`,
+              `https://mdblist.com/api/?apikey=${encodeURIComponent(mdblistKey)}&i=${encodeURIComponent(rawImdbSeriesId)}`,
               TMDB_CACHE_TTL_MS,
               phases,
               'tmdb'
             );
-            if (showResponse.ok) {
-              media = showResponse.data;
-              mediaType = 'tv';
+            if (mdbListRes.ok && mdbListRes.data?.tmdbid) {
+              const mdbResolvedType: 'movie' | 'tv' = mdbListRes.data.type === 'movie' ? 'movie' : 'tv';
+              const mdbTmdbId = String(mdbListRes.data.tmdbid);
+              const mdbMediaRes = await fetchJsonCached(
+                `tmdb:${mdbResolvedType}:${mdbTmdbId}`,
+                `https://api.themoviedb.org/3/${mdbResolvedType}/${mdbTmdbId}?api_key=${tmdbKey}`,
+                TMDB_CACHE_TTL_MS,
+                phases,
+                'tmdb'
+              );
+              if (mdbMediaRes.ok) {
+                media = mdbMediaRes.data;
+                mediaType = mdbResolvedType;
+              }
             }
           }
 
+          // 3. TMDB Find (Fallback with smart heuristics)
           if (!media) {
-            media = prefersTvResult
-              ? findData.tv_results?.[0] || findData.movie_results?.[0]
-              : findData.movie_results?.[0] || findData.tv_results?.[0];
-            mediaType = media
-              ? findData.tv_results?.[0] && media === findData.tv_results[0]
-                ? 'tv'
-                : 'movie'
-              : null;
+            const findResponse = await fetchJsonCached(
+              `tmdb:find:${rawImdbSeriesId}`,
+              `https://api.themoviedb.org/3/find/${rawImdbSeriesId}?api_key=${tmdbKey}&external_source=imdb_id`,
+              TMDB_CACHE_TTL_MS,
+              phases,
+              'tmdb'
+            );
+            const findData = findResponse.data || {};
+            const episodeResult = findData.tv_episode_results?.[0] || null;
+
+            if (episodeResult?.show_id) {
+              mediaId = String(episodeResult.show_id);
+              season = Number.isFinite(Number(episodeResult.season_number)) ? String(episodeResult.season_number) : season;
+              episode = Number.isFinite(Number(episodeResult.episode_number)) ? String(episodeResult.episode_number) : episode;
+
+              const showResponse = await fetchJsonCached(
+                `tmdb:tv:${mediaId}`,
+                `https://api.themoviedb.org/3/tv/${mediaId}?api_key=${tmdbKey}`,
+                TMDB_CACHE_TTL_MS,
+                phases,
+                'tmdb'
+              );
+              if (showResponse.ok) {
+                media = showResponse.data;
+                mediaType = 'tv';
+              }
+            }
+
+            if (!media) {
+              const movieCandidate = findData.movie_results?.[0] || null;
+              const tvCandidate = findData.tv_results?.[0] || null;
+
+              if (prefersTvResult) {
+                media = tvCandidate || movieCandidate;
+              } else {
+                if (
+                  movieCandidate &&
+                  !movieCandidate.poster_path &&
+                  !movieCandidate.backdrop_path &&
+                  tvCandidate &&
+                  (tvCandidate.poster_path || tvCandidate.backdrop_path)
+                ) {
+                  media = tvCandidate;
+                } else {
+                  media = movieCandidate || tvCandidate;
+                }
+              }
+
+              mediaType = media
+                ? tvCandidate && media === tvCandidate
+                  ? 'tv'
+                  : 'movie'
+                : null;
+            }
           }
-        }
       }
       }
 

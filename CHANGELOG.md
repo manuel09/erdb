@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.29](https://github.com/realbestia1/erdb/compare/v0.3.28...v0.3.29) - 2026-04-15
+
+- Prefer local IMDB dataset; add MDList fallback ([a1d65fc](https://github.com/realbestia1/erdb/commit/a1d65fc86820370f2a850ac72ac2d5312584f856))
+  Prioritize local IMDB dataset when resolving series/episodes and add a MDList remote resolution step before falling back to TMDB. Introduces isImdbSeriesFromDataset in lib/imdbDataset to detect series with episodes in the local DB. Reworks app/[type]/[id]/route.ts to: 1) prefer dataset-derived TV detection, 2) resolve via mdblist.com when available, and 3) use TMDB find as a fallback with improved heuristics for choosing movie vs TV and handling episode/show IDs. Also update aiometadata id patterns in components/home-page.tsx to use 'tmdb:{type}:{tmdb_id}' and bump package.json version to 0.3.29.
+
 ## [0.3.28](https://github.com/realbestia1/erdb/compare/v0.3.27...v0.3.28) - 2026-04-14
 
 - Use Filmweb API for ID lookup ([701fe21](https://github.com/realbestia1/erdb/commit/701fe21e028a95a3a5f20cb4addfcac37bbf05f2))

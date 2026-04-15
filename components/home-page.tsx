@@ -819,7 +819,7 @@ export default function HomePage({
   const [showProxyUrl, setShowProxyUrl] = useState(false);
   const [aiometadataCopiedType, setAiometadataCopiedType] = useState<AiometadataPatternType | null>(null);
   const [aiometadataEpisodeProvider, setAiometadataEpisodeProvider] = useState<AiometadataEpisodeProvider>('realimdb');
-  const [currentVersion, setCurrentVersion] = useState('0.3.28');
+  const [currentVersion, setCurrentVersion] = useState('0.3.29');
   const [githubPackageVersion, setGithubPackageVersion] = useState<string | null>(null);
   const [repoUrl, setRepoUrl] = useState<string | null>(null);
   const [userCount, setUserCount] = useState<number | null>(null);
@@ -1963,21 +1963,21 @@ export default function HomePage({
         activeToken,
         imageType: 'poster',
         configString,
-        idPattern: '{imdb_id}',
+        idPattern: 'tmdb:{type}:{tmdb_id}',
       }),
       background: buildAiometadataPatternBlock({
         baseUrl,
         activeToken,
         imageType: 'backdrop',
         configString,
-        idPattern: '{imdb_id}',
+        idPattern: 'tmdb:{type}:{tmdb_id}',
       }),
       logo: buildAiometadataPatternBlock({
         baseUrl,
         activeToken,
         imageType: 'logo',
         configString,
-        idPattern: '{imdb_id}',
+        idPattern: 'tmdb:{type}:{tmdb_id}',
       }),
       episodeThumbnail: episodePattern,
     };
