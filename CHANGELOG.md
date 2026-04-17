@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.30](https://github.com/realbestia1/erdb/compare/v0.3.29...v0.3.30) - 2026-04-16
+
+- Require token password and validate manifest URLs ([34bf868](https://github.com/realbestia1/erdb/commit/34bf8683772e4f9bac673a0378d585b4cece2385))
+  Security and API updates: require a password for GET /api/token and verify it against stored password_hash (uses accountsDb and verifyPassword) before returning token config; add isSafeUrl checks in proxy manifest parsing to block localhost, private IP ranges, and cloud metadata addresses to mitigate SSRF; update docs page to reflect the new GET /api/token?password requirement; bump package version to 0.3.30.
+
 ## [0.3.29](https://github.com/realbestia1/erdb/compare/v0.3.28...v0.3.29) - 2026-04-15
 
 - Prefer local IMDB dataset; add MDList fallback ([a1d65fc](https://github.com/realbestia1/erdb/commit/a1d65fc86820370f2a850ac72ac2d5312584f856))

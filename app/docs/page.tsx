@@ -128,7 +128,7 @@ export default function DocsPage() {
                 [<Code key="3">POST</Code>, <Code key="4">/api/workspace-auth</Code>, 'Login, register, and logout for the workspace.', 'Cookie-based session for /configurator.'],
                 [<Code key="5">POST</Code>, <Code key="6">/api/token</Code>, 'Create a new token with the current settings.', 'Used by the workspace.'],
                 [<Code key="7">PUT</Code>, <Code key="8">/api/token</Code>, 'Update settings for an existing token.', 'Requires matching password.'],
-                [<Code key="9">GET</Code>, <Code key="10">/api/token?token=...</Code>, 'Fetch settings for a token.', 'Used by the workspace and loaders.'],
+                [<Code key="9">GET</Code>, <Code key="10">/api/token?token=...&password=...</Code>, 'Fetch settings for a token.', 'Requires the token password. Used by loaders.'],
                 [<Code key="11">GET</Code>, <Code key="12">/api/version</Code>, 'Returns currentVersion, githubPackageVersion, repoUrl.', 'Useful for self-hosted version checks.'],
               ]}
             />

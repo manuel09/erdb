@@ -1,21 +1,32 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createToken, getTokenConfig, updateToken } from '@/lib/tokens';
+import { createToken, getTokenConfig, updateToken, verifyPassword } from '@/lib/tokens';
 import { readWorkspaceAccess } from '@/lib/workspaceAccess';
+import { accountsDb } from '@/lib/accountsDb';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const token = searchParams.get('token');
+  const password = searchParams.get('password');
 
   if (!token || !token.startsWith('Tk-')) {
     return NextResponse.json({ error: 'Invalid token' }, { status: 400 });
   }
 
-  const config = getTokenConfig(token);
-  if (!config) {
+  if (!password) {
+    return NextResponse.json({ error: 'Password is required' }, { status: 401 });
+  }
+
+  const row = accountsDb.prepare('SELECT password_hash FROM tokens WHERE token = ?').get(token) as { password_hash: string } | undefined;
+  if (!row) {
     return NextResponse.json({ error: 'Token not found' }, { status: 404 });
   }
 
+  if (!verifyPassword(password, row.password_hash)) {
+    return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
+  }
+
+  const config = getTokenConfig(token);
   return NextResponse.json({ config });
 }
 
