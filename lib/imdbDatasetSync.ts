@@ -1,4 +1,5 @@
 import { createReadStream, createWriteStream, existsSync, mkdirSync, renameSync, statSync, unlinkSync } from 'node:fs';
+import cluster from 'node:cluster';
 import { join, dirname } from 'node:path';
 import { createInterface } from 'node:readline';
 import { Readable } from 'node:stream';
@@ -243,6 +244,13 @@ let lastCheckAt = 0;
 
 export const scheduleImdbDatasetSync = () => {
   if (!AUTO_DOWNLOAD && !AUTO_IMPORT) return;
+  
+  // In cluster mode, only allow the first worker to handle the sync.
+  // This avoids redundant work and memory spikes across all workers.
+  if (cluster.isWorker && cluster.worker?.id !== 1) {
+    return;
+  }
+
   const now = Date.now();
   if (syncInFlight) return;
   if (now - lastCheckAt < CHECK_INTERVAL_MS) return;

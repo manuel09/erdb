@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.31](https://github.com/realbestia1/erdb/compare/v0.3.30...v0.3.31) - 2026-05-08
+
+- Bump package version to 0.3.31 ([0d46e38](https://github.com/realbestia1/erdb/commit/0d46e383dd8d4116ac8be94bdab0b009390f626f))
+  Update package.json and package-lock.json to version 0.3.31 for a patch release. No functional code changes; the lockfile was updated to reflect the new package version.
+- Limit dataset sync to first worker; add monitoring ([2d3c93c](https://github.com/realbestia1/erdb/commit/2d3c93caf75d89a8ea474f619c5eb1d46ec63f6a))
+  Prevent redundant dataset syncs by importing cluster in lib/imdbDatasetSync.ts and skipping sync in workers except the first (worker id 1), avoiding duplicate work and memory spikes. In scripts/start-server.js, introduce a workers map and spawnWorker helper to track forks and respawn workers on exit, and add a memory monitor that requests per-worker memory via IPC (logs primary and worker memory every 5 minutes, with an initial log after 30s). Also add a worker-side IPC handler to respond with process.memoryUsage() when requested.
+
 ## [0.3.30](https://github.com/realbestia1/erdb/compare/v0.3.29...v0.3.30) - 2026-04-16
 
 - Require token password and validate manifest URLs ([34bf868](https://github.com/realbestia1/erdb/commit/34bf8683772e4f9bac673a0378d585b4cece2385))

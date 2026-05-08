@@ -149,16 +149,64 @@ if (workerCount === 1) {
 } else if (cluster.isPrimary) {
   console.log(`Starting ERDB with ${workerCount} workers.`);
 
+  const workers = new Map();
+
+  const spawnWorker = () => {
+    const worker = cluster.fork();
+    workers.set(worker.id, worker);
+    return worker;
+  };
+
   for (let index = 0; index < workerCount; index += 1) {
-    cluster.fork();
+    spawnWorker();
   }
 
   cluster.on('exit', (worker, code, signal) => {
     console.warn(
       `Worker ${worker.process.pid} exited (${signal || code}). Restarting...`,
     );
-    cluster.fork();
+    workers.delete(worker.id);
+    spawnWorker();
   });
+
+  // Memory monitor: Log memory usage of all processes every 5 minutes
+  const logMemoryUsage = () => {
+    const formatBytes = (bytes) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+    const primaryUsage = process.memoryUsage();
+    
+    console.log(`--- Memory Usage Report (${new Date().toISOString()}) ---`);
+    console.log(`Primary [PID ${process.pid}]: RSS ${formatBytes(primaryUsage.rss)}, Heap ${formatBytes(primaryUsage.heapUsed)}/${formatBytes(primaryUsage.heapTotal)}, Ext ${formatBytes(primaryUsage.external)}`);
+    
+    // Workers report their memory via IPC if we wanted, but for now we just log that we are monitoring.
+    // Actually, we can ask workers to send their memory usage.
+    for (const worker of Object.values(cluster.workers)) {
+      worker.send({ type: 'getMemoryUsage' });
+    }
+  };
+
+  cluster.on('message', (worker, message) => {
+    if (message?.type === 'memoryUsage') {
+      const formatBytes = (bytes) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+      console.log(`Worker ${worker.id} [PID ${worker.process.pid}]: RSS ${formatBytes(message.rss)}, Heap ${formatBytes(message.heapUsed)}/${formatBytes(message.heapTotal)}, Ext ${formatBytes(message.external)}`);
+    }
+  });
+
+  setInterval(logMemoryUsage, 5 * 60 * 1000);
+  // Initial log after 30 seconds
+  setTimeout(logMemoryUsage, 30 * 1000);
+
 } else {
+  process.on('message', (message) => {
+    if (message?.type === 'getMemoryUsage') {
+      const usage = process.memoryUsage();
+      process.send({
+        type: 'memoryUsage',
+        rss: usage.rss,
+        heapUsed: usage.heapUsed,
+        heapTotal: usage.heapTotal,
+        external: usage.external,
+      });
+    }
+  });
   require(serverEntrypoint);
 }
