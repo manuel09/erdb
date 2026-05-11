@@ -23,6 +23,7 @@ type ProxyEnabledTypes = Record<ProxyType, boolean>;
 type StreamBadgesSetting = 'auto' | 'on' | 'off';
 type QualityBadgesSide = 'left' | 'right';
 type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide;
+type PosterConfiguratorPreset = 'simple' | 'advanced';
 type AiometadataPatternType = 'poster' | 'background' | 'logo' | 'episodeThumbnail';
 type AiometadataEpisodeProvider = 'tvdb' | 'realimdb';
 type ProxySeriesMetadataProvider = 'tmdb' | 'imdb';
@@ -77,6 +78,9 @@ type HomePageViewState = {
   backdropVerticalBadgeContent: VerticalBadgeContent;
   thumbnailVerticalBadgeContent: VerticalBadgeContent;
   thumbnailSize: ThumbnailSize;
+  posterConfiguratorPreset: PosterConfiguratorPreset;
+  posterAverageRatingsEnabled: boolean;
+  posterSimpleRatingSource: 'average' | import('@/lib/ratingPreferences').RatingPreference;
   qualityBadgesSide: QualityBadgesSide;
   posterQualityBadgesPosition: PosterQualityBadgesPosition;
   proxyCopied: boolean;
@@ -152,6 +156,9 @@ type HomePageViewActions = {
   setBackdropVerticalBadgeContent: Dispatch<SetStateAction<VerticalBadgeContent>>;
   setThumbnailVerticalBadgeContent: Dispatch<SetStateAction<VerticalBadgeContent>>;
   setThumbnailSize: Dispatch<SetStateAction<ThumbnailSize>>;
+  setPosterConfiguratorPreset: (value: PosterConfiguratorPreset) => void;
+  setPosterAverageRatingsEnabled: Dispatch<SetStateAction<boolean>>;
+  setPosterSimpleRatingSource: Dispatch<SetStateAction<'average' | import('@/lib/ratingPreferences').RatingPreference>>;
   setAiometadataEpisodeProvider: Dispatch<SetStateAction<AiometadataEpisodeProvider>>;
   setProxySeriesMetadataProvider: Dispatch<SetStateAction<ProxySeriesMetadataProvider>>;
   setProxyAiometadataProvider: Dispatch<SetStateAction<ProxyEpisodeProvider>>;

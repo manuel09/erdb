@@ -15,6 +15,7 @@ import { LOGO_FONT_VARIANT_OPTIONS } from '@/lib/logoFontVariant';
 import { DEFAULT_LOGO_CUSTOM_PRIMARY, DEFAULT_LOGO_CUSTOM_SECONDARY, DEFAULT_LOGO_CUSTOM_OUTLINE } from '@/lib/logoCustomColors';
 import { LOGO_COLOR_PRESETS } from '@/lib/logoColorPresets';
 import { POSTER_RATING_LAYOUT_OPTIONS } from '@/lib/posterRatingLayout';
+import { RATING_PROVIDER_OPTIONS } from '@/lib/ratingPreferences';
 import {
   STREAM_BADGE_OPTIONS,
   POSTER_QUALITY_BADGE_POSITION_OPTIONS,
@@ -62,6 +63,9 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     posterVerticalBadgeContent,
     thumbnailVerticalBadgeContent,
     backdropVerticalBadgeContent,
+    posterConfiguratorPreset,
+    posterAverageRatingsEnabled,
+    posterSimpleRatingSource,
     qualityBadgesSide,
     posterQualityBadgesPosition,
   } = state;
@@ -105,6 +109,9 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     setThumbnailRatingsLayout,
     setThumbnailSize,
     setThumbnailVerticalBadgeContent,
+    setPosterConfiguratorPreset,
+    setPosterAverageRatingsEnabled,
+    setPosterSimpleRatingSource,
     setLogoMode,
     setLogoFontVariant,
     setLogoCustomPrimary,
@@ -187,8 +194,53 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
           </div>
         </div>
 
+        {previewType === 'poster' && (
+          <motion.div layout className={`${INNER_PANEL_CLASS} p-5 space-y-4`}>
+            <h3 className="text-xs font-medium text-slate-300">Poster Preset</h3>
+            <div className={SEGMENT_CLASS + " bg-black/40 inline-flex flex-wrap"}>
+              {(['simple', 'advanced'] as const).map(option => (
+                <button key={option} onClick={() => setPosterConfiguratorPreset(option)} className={`px-4 py-2.5 rounded-lg text-xs font-semibold transition-all ${posterConfiguratorPreset === option ? 'bg-orange-500/20 text-orange-200' : 'text-slate-400 hover:text-slate-200'}`}>
+                  {option.charAt(0).toUpperCase() + option.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            {posterConfiguratorPreset === 'simple' && (
+              <div className="space-y-3 pt-1">
+                <h3 className="text-xs font-medium text-slate-300">Rating Source</h3>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setPosterSimpleRatingSource('average')}
+                    className={`rounded-xl px-4 py-2.5 text-xs font-semibold transition-all shadow-sm ${
+                      posterSimpleRatingSource === 'average'
+                        ? 'border border-orange-500/30 bg-orange-500/15 text-white'
+                        : 'border border-white/5 bg-[#0a0a0a] text-slate-400 hover:bg-[#121212] hover:text-slate-200'
+                    }`}
+                  >
+                    Average
+                  </button>
+                  {RATING_PROVIDER_OPTIONS.map((provider) => (
+                    <button
+                      key={provider.id}
+                      onClick={() => setPosterSimpleRatingSource(provider.id)}
+                      className={`flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all shadow-sm ${
+                        posterSimpleRatingSource === provider.id
+                          ? 'border border-orange-500/30 bg-orange-500/15 text-white'
+                          : 'border border-white/5 bg-[#0a0a0a] text-slate-400 hover:bg-[#121212] hover:text-slate-200'
+                      }`}
+                    >
+                      <img src={provider.iconUrl} alt={provider.label} className="h-3.5 w-3.5 rounded-sm object-contain" />
+                      {provider.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+
         <AnimatePresence mode="popLayout">
-          {previewType === 'poster' && tmdbKey && (
+          {previewType === 'poster' && tmdbKey && posterConfiguratorPreset !== 'simple' && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className={`${INNER_PANEL_CLASS} p-5 space-y-5 overflow-hidden`}>
               <div>
                 <h3 className="text-xs font-medium text-slate-300 mb-3">Poster Language</h3>
@@ -229,59 +281,61 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
         </AnimatePresence>
 
         {/* STYLES AND TEXTS BLOCK */}
-        <motion.div layout className={`${INNER_PANEL_CLASS} p-5 space-y-5`}>
-          <div>
-            <h3 className="text-xs font-medium text-slate-300 mb-3">{styleLabel}</h3>
-            <div className={SEGMENT_CLASS + " bg-black/40 inline-flex flex-wrap"}>
-              {RATING_STYLE_OPTIONS.map(opt => (
-                <button key={opt.id} onClick={() => setRatingStyleForType(opt.id as RatingStyle)} className={`px-4 py-2.5 rounded-lg text-xs font-semibold transition-all ${activeRatingStyle === opt.id ? 'bg-orange-500/20 text-orange-200' : 'text-slate-400 hover:text-slate-200'}`}>
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {previewType !== 'logo' && previewType !== 'thumbnail' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
-              <div>
-                <h3 className="text-xs font-medium text-slate-300 mb-3">{textLabel}</h3>
-                <div className={SEGMENT_CLASS + " bg-black/40 inline-flex flex-wrap"}>
-                  {(['default', 'clean', 'alternative'] as const).map(option => (
-                    <button key={option} onClick={() => setImageTextForType(option)} className={`px-4 py-2.5 rounded-lg text-xs font-semibold transition-all ${activeImageText === option ? 'bg-orange-500/20 text-orange-200' : 'text-slate-400 hover:text-slate-200'}`}>
-                      {option.charAt(0).toUpperCase() + option.slice(1)}
-                    </button>
-                  ))}
-                </div>
+        {!(previewType === 'poster' && posterConfiguratorPreset === 'simple') && (
+          <motion.div layout className={`${INNER_PANEL_CLASS} p-5 space-y-5`}>
+            <div>
+              <h3 className="text-xs font-medium text-slate-300 mb-3">{styleLabel}</h3>
+              <div className={SEGMENT_CLASS + " bg-black/40 inline-flex flex-wrap"}>
+                {RATING_STYLE_OPTIONS.map(opt => (
+                  <button key={opt.id} onClick={() => setRatingStyleForType(opt.id as RatingStyle)} className={`px-4 py-2.5 rounded-lg text-xs font-semibold transition-all ${activeRatingStyle === opt.id ? 'bg-orange-500/20 text-orange-200' : 'text-slate-400 hover:text-slate-200'}`}>
+                    {opt.label}
+                  </button>
+                ))}
               </div>
-              {previewType === 'poster' && (
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-                  <h3 className="text-xs font-medium text-slate-300 mb-3">Poster Text (Anime)</h3>
-                  <div className={SEGMENT_CLASS + " bg-black/40 inline-flex flex-wrap"}>
-                    {(['default', 'clean', 'alternative'] as const).map(option => (
-                      <button key={option} onClick={() => setPosterAnimeImageText(option)} className={`px-4 py-2.5 rounded-lg text-xs font-semibold transition-all ${posterAnimeImageText === option ? 'bg-orange-500/20 text-orange-200' : 'text-slate-400 hover:text-slate-200'}`}>
-                        {option.charAt(0).toUpperCase() + option.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-              {previewType === 'backdrop' && (
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-                  <h3 className="text-xs font-medium text-slate-300 mb-3">Backdrop Text (Anime)</h3>
-                  <div className={SEGMENT_CLASS + " bg-black/40 inline-flex flex-wrap"}>
-                    {(['default', 'clean', 'alternative'] as const).map(option => (
-                      <button key={option} onClick={() => setBackdropAnimeImageText(option)} className={`px-4 py-2.5 rounded-lg text-xs font-semibold transition-all ${backdropAnimeImageText === option ? 'bg-orange-500/20 text-orange-200' : 'text-slate-400 hover:text-slate-200'}`}>
-                        {option.charAt(0).toUpperCase() + option.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
-        </motion.div>
+            </div>
 
-        {previewType === 'poster' && (
+            {previewType !== 'logo' && previewType !== 'thumbnail' && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
+                <div>
+                  <h3 className="text-xs font-medium text-slate-300 mb-3">{textLabel}</h3>
+                  <div className={SEGMENT_CLASS + " bg-black/40 inline-flex flex-wrap"}>
+                    {(['default', 'clean', 'alternative'] as const).map(option => (
+                      <button key={option} onClick={() => setImageTextForType(option)} className={`px-4 py-2.5 rounded-lg text-xs font-semibold transition-all ${activeImageText === option ? 'bg-orange-500/20 text-orange-200' : 'text-slate-400 hover:text-slate-200'}`}>
+                        {option.charAt(0).toUpperCase() + option.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {previewType === 'poster' && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+                    <h3 className="text-xs font-medium text-slate-300 mb-3">Poster Text (Anime)</h3>
+                    <div className={SEGMENT_CLASS + " bg-black/40 inline-flex flex-wrap"}>
+                      {(['default', 'clean', 'alternative'] as const).map(option => (
+                        <button key={option} onClick={() => setPosterAnimeImageText(option)} className={`px-4 py-2.5 rounded-lg text-xs font-semibold transition-all ${posterAnimeImageText === option ? 'bg-orange-500/20 text-orange-200' : 'text-slate-400 hover:text-slate-200'}`}>
+                          {option.charAt(0).toUpperCase() + option.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+                {previewType === 'backdrop' && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+                    <h3 className="text-xs font-medium text-slate-300 mb-3">Backdrop Text (Anime)</h3>
+                    <div className={SEGMENT_CLASS + " bg-black/40 inline-flex flex-wrap"}>
+                      {(['default', 'clean', 'alternative'] as const).map(option => (
+                        <button key={option} onClick={() => setBackdropAnimeImageText(option)} className={`px-4 py-2.5 rounded-lg text-xs font-semibold transition-all ${backdropAnimeImageText === option ? 'bg-orange-500/20 text-orange-200' : 'text-slate-400 hover:text-slate-200'}`}>
+                          {option.charAt(0).toUpperCase() + option.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+
+        {previewType === 'poster' && posterConfiguratorPreset !== 'simple' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={`${INNER_PANEL_CLASS} p-5 space-y-4`}>
             <h3 className="text-xs font-medium text-slate-300">Poster Layout</h3>
             <div className="flex flex-wrap gap-2">
@@ -462,7 +516,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
         )}
 
         {/* QUALITY BADGES */}
-        {previewType !== 'logo' && previewType !== 'thumbnail' && (
+        {previewType !== 'logo' && previewType !== 'thumbnail' && !(previewType === 'poster' && posterConfiguratorPreset === 'simple') && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={`${INNER_PANEL_CLASS} p-5 space-y-4`}>
             <h3 className="text-xs font-medium text-slate-300">Quality Badges ({qualityBadgeTypeLabel})</h3>
             <div className={SEGMENT_CLASS + " bg-black/40 inline-flex flex-wrap"}>
@@ -513,11 +567,25 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
         )}
 
         {/* PROVIDERS */}
+        {!(previewType === 'poster' && posterConfiguratorPreset === 'simple') && (
         <motion.div layout className={`${INNER_PANEL_CLASS} p-5 space-y-4`}>
           <div className="flex flex-col gap-1 mb-4">
             <h3 className="text-xs font-medium text-slate-300">{providersLabel}</h3>
             <p className="text-xs text-slate-500">Drag the grips to reorder providers. Order flows top to bottom.</p>
           </div>
+          {previewType === 'poster' && posterConfiguratorPreset === 'advanced' && (
+            <label className="mb-4 flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-[#0a0a0a] px-4 py-3">
+              <span className="text-xs font-medium text-slate-300">Average rating</span>
+              <button
+                type="button"
+                onClick={() => setPosterAverageRatingsEnabled((value) => !value)}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-1 transition-colors ${posterAverageRatingsEnabled ? 'bg-orange-500/80' : 'bg-white/10'}`}
+                aria-pressed={posterAverageRatingsEnabled}
+              >
+               <span className={`block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${posterAverageRatingsEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
+            </label>
+          )}
           <div className="flex gap-2 mb-4">
             <button onClick={enableAllRatingPreferences} className="rounded-xl border border-white/5 bg-[#0a0a0a] px-4 py-2 text-xs font-medium text-slate-300 hover:bg-[#121212] transition-colors shadow-sm">
               Enable All
@@ -534,6 +602,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
             singleColumnOnMobile
           />
         </motion.div>
+        )}
 
       </div>
     </div>

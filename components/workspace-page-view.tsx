@@ -86,6 +86,7 @@ export type ProxyEnabledTypes = Record<ProxyType, boolean>;
 export type StreamBadgesSetting = 'auto' | 'on' | 'off';
 export type QualityBadgesSide = 'left' | 'right';
 export type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide;
+export type PosterConfiguratorPreset = 'simple' | 'advanced';
 export type AiometadataPatternType = 'poster' | 'background' | 'logo' | 'episodeThumbnail';
 export type AiometadataEpisodeProvider = 'tvdb' | 'realimdb';
 export type ProxySeriesMetadataProvider = 'tmdb' | 'imdb';
@@ -140,6 +141,9 @@ type HomePageViewState = {
   backdropVerticalBadgeContent: VerticalBadgeContent;
   thumbnailVerticalBadgeContent: VerticalBadgeContent;
   thumbnailSize: ThumbnailSize;
+  posterConfiguratorPreset: PosterConfiguratorPreset;
+  posterAverageRatingsEnabled: boolean;
+  posterSimpleRatingSource: 'average' | import('@/lib/ratingPreferences').RatingPreference;
   qualityBadgesSide: QualityBadgesSide;
   posterQualityBadgesPosition: PosterQualityBadgesPosition;
   proxyCopied: boolean;
@@ -214,6 +218,9 @@ type HomePageViewActions = {
   setBackdropVerticalBadgeContent: Dispatch<SetStateAction<VerticalBadgeContent>>;
   setThumbnailVerticalBadgeContent: Dispatch<SetStateAction<VerticalBadgeContent>>;
   setThumbnailSize: Dispatch<SetStateAction<ThumbnailSize>>;
+  setPosterConfiguratorPreset: (value: PosterConfiguratorPreset) => void;
+  setPosterAverageRatingsEnabled: Dispatch<SetStateAction<boolean>>;
+  setPosterSimpleRatingSource: Dispatch<SetStateAction<'average' | import('@/lib/ratingPreferences').RatingPreference>>;
   setAiometadataEpisodeProvider: Dispatch<SetStateAction<AiometadataEpisodeProvider>>;
   setProxySeriesMetadataProvider: Dispatch<SetStateAction<ProxySeriesMetadataProvider>>;
   setProxyAiometadataProvider: Dispatch<SetStateAction<ProxyEpisodeProvider>>;
@@ -488,51 +495,51 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
 
   return (
     <>
-    <div className="relative min-h-screen bg-[#06070b] text-slate-200 selection:bg-orange-400/30 font-[var(--font-body)] xl:h-screen xl:overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-32 left-1/2 h-[520px] w-[760px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_top,_rgba(249,115,22,0.12),_transparent_60%)] blur-3xl" />
-        <div className="absolute right-[-220px] top-40 h-[420px] w-[520px] rounded-full bg-[radial-gradient(circle,_rgba(14,165,233,0.12),_transparent_60%)] blur-3xl" />
-        <div className="absolute left-[-180px] bottom-[-140px] h-[420px] w-[520px] rounded-full bg-[radial-gradient(circle,_rgba(20,184,166,0.12),_transparent_60%)] blur-3xl" />
-        <div className="absolute inset-0 bg-[linear-gradient(120deg,_rgba(255,255,255,0.025),_rgba(255,255,255,0)_40%,_rgba(255,255,255,0.02)_100%)]" />
-      </div>
+      <div className="relative min-h-screen bg-[#06070b] text-slate-200 selection:bg-orange-400/30 font-[var(--font-body)] xl:h-screen xl:overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-32 left-1/2 h-[520px] w-[760px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_top,_rgba(249,115,22,0.12),_transparent_60%)] blur-3xl" />
+          <div className="absolute right-[-220px] top-40 h-[420px] w-[520px] rounded-full bg-[radial-gradient(circle,_rgba(14,165,233,0.12),_transparent_60%)] blur-3xl" />
+          <div className="absolute left-[-180px] bottom-[-140px] h-[420px] w-[520px] rounded-full bg-[radial-gradient(circle,_rgba(20,184,166,0.12),_transparent_60%)] blur-3xl" />
+          <div className="absolute inset-0 bg-[linear-gradient(120deg,_rgba(255,255,255,0.025),_rgba(255,255,255,0)_40%,_rgba(255,255,255,0.02)_100%)]" />
+        </div>
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[1840px] flex-col px-3 py-3 sm:px-4 sm:py-4 xl:h-full xl:min-h-0">
-        <WorkspaceNav refs={refs} state={state} derived={derived} actions={actions} onOpenRotateModal={() => setIsRotateModalOpen(true)} />
+        <div className="relative mx-auto flex min-h-screen w-full max-w-[1840px] flex-col px-3 py-3 sm:px-4 sm:py-4 xl:h-full xl:min-h-0">
+          <WorkspaceNav refs={refs} state={state} derived={derived} actions={actions} onOpenRotateModal={() => setIsRotateModalOpen(true)} />
 
-        <main className="mx-auto flex w-full flex-col pb-6 pt-3 xl:flex-1 xl:min-h-0 xl:overflow-hidden xl:pb-0">
-          <section id="preview" className="relative flex flex-col overflow-visible xl:min-h-0 xl:flex-1 xl:overflow-hidden">
-            <div className="relative z-10 grid grid-cols-1 gap-4 xl:premium-scrollbar xl:min-h-0 xl:flex-1 xl:overflow-hidden xl:grid-cols-[minmax(0,1.08fr)_minmax(0,1.28fr)_minmax(0,0.88fr)] xl:items-stretch">
-              <WorkspaceControlsPanel state={state} derived={derived} actions={actions} />
-              <WorkspacePreviewPanel state={state} derived={derived} />
-              <WorkspaceProxyPanel state={state} derived={derived} actions={actions} onOpenAiometadataModal={() => setIsAiometadataModalOpen(true)} onOpenCatalogModal={() => setIsCatalogModalOpen(true)} />
+          <main className="mx-auto flex w-full flex-col pb-6 pt-3 xl:flex-1 xl:min-h-0 xl:overflow-hidden xl:pb-0">
+            <section id="preview" className="relative flex flex-col overflow-visible xl:min-h-0 xl:flex-1 xl:overflow-hidden">
+              <div className="relative z-10 grid grid-cols-1 gap-4 xl:premium-scrollbar xl:min-h-0 xl:flex-1 xl:overflow-hidden xl:grid-cols-[minmax(0,1.08fr)_minmax(0,1.28fr)_minmax(0,0.88fr)] xl:items-stretch">
+                <WorkspaceControlsPanel state={state} derived={derived} actions={actions} />
+                <WorkspacePreviewPanel state={state} derived={derived} />
+                <WorkspaceProxyPanel state={state} derived={derived} actions={actions} onOpenAiometadataModal={() => setIsAiometadataModalOpen(true)} onOpenCatalogModal={() => setIsCatalogModalOpen(true)} />
+              </div>
+            </section>
+          </main>
+
+          <footer className="hidden border-t border-white/5 py-8 bg-[#080808]">
+            <div className="w-full mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-slate-500">
+                <Star className="w-4 h-4" />
+                <span className="text-sm font-[var(--font-display)] tracking-tight text-white">ERDB Stateless Engine</span>
+              </div>
+              <p className="text-sm text-slate-500">
+                (c) 2026 ERDB Project. Modern imagery for modern addons.
+              </p>
             </div>
-          </section>
-        </main>
-
-        <footer className="hidden border-t border-white/5 py-8 bg-[#080808]">
-          <div className="w-full mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-slate-500">
-              <Star className="w-4 h-4" />
-              <span className="text-sm font-[var(--font-display)] tracking-tight text-white">ERDB Stateless Engine</span>
-            </div>
-            <p className="text-sm text-slate-500">
-              (c) 2026 ERDB Project. Modern imagery for modern addons.
-            </p>
-          </div>
-        </footer>
-        <WorkspaceModals 
-          state={state} 
-          actions={actions} 
-          derived={derived} 
-          isCatalogModalOpen={isCatalogModalOpen} 
-          setIsCatalogModalOpen={setIsCatalogModalOpen} 
-          isAiometadataModalOpen={isAiometadataModalOpen} 
-          setIsAiometadataModalOpen={setIsAiometadataModalOpen} 
-          isRotateModalOpen={isRotateModalOpen} 
-          setIsRotateModalOpen={setIsRotateModalOpen} 
-        />
+          </footer>
+          <WorkspaceModals
+            state={state}
+            actions={actions}
+            derived={derived}
+            isCatalogModalOpen={isCatalogModalOpen}
+            setIsCatalogModalOpen={setIsCatalogModalOpen}
+            isAiometadataModalOpen={isAiometadataModalOpen}
+            setIsAiometadataModalOpen={setIsAiometadataModalOpen}
+            isRotateModalOpen={isRotateModalOpen}
+            setIsRotateModalOpen={setIsRotateModalOpen}
+          />
+        </div>
       </div>
-    </div>
     </>
   );
 }

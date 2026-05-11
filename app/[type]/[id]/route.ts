@@ -80,7 +80,7 @@ type RenderImageType = 'poster' | 'backdrop' | 'logo' | 'thumbnail';
 type AnimeMappingProvider = 'mal' | 'anilist' | 'imdb' | 'tmdb' | 'anidb';
 type AiometadataEpisodeProvider = 'tvdb' | 'realimdb';
 type StreamBadgeKey = '4k' | 'hdr' | 'dolbyvision' | 'dolbyatmos' | 'remux';
-type BadgeKey = RatingPreference | StreamBadgeKey;
+type BadgeKey = RatingPreference | StreamBadgeKey | 'average';
 type QualityBadgesSide = 'left' | 'right';
 type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide;
 type StreamQualityFlags = {
@@ -179,7 +179,7 @@ const resolveOriginalAwareImageLanguage = (input: {
   ) ||
   normalizeTmdbLanguageCode(input.requestLanguage) ||
   input.fallbackLanguage;
-const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v63';
+const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v86';
 const TMDB_CACHE_TTL_MS = parseCacheTtlMs(
   process.env.ERDB_TMDB_CACHE_TTL_MS,
   3 * 24 * 60 * 60 * 1000,
@@ -263,6 +263,48 @@ const METADATA_CACHE_MAX_ENTRIES = 2000;
 const PROVIDER_ICON_CACHE_MAX_ENTRIES = 64;
 const GENERATED_LOGO_VARIANT_CACHE_MAX_ENTRIES = 256;
 const TMDB_ANIMATION_GENRE_ID = 16;
+const TMDB_MOVIE_GENRE_NAMES = new Map<number, string>([
+  [28, 'Action'],
+  [12, 'Adventure'],
+  [16, 'Animation'],
+  [35, 'Comedy'],
+  [80, 'Crime'],
+  [99, 'Documentary'],
+  [18, 'Drama'],
+  [10751, 'Family'],
+  [14, 'Fantasy'],
+  [36, 'History'],
+  [27, 'Horror'],
+  [10402, 'Music'],
+  [9648, 'Mystery'],
+  [10749, 'Romance'],
+  [878, 'Sci-Fi'],
+  [10770, 'TV Movie'],
+  [53, 'Thriller'],
+  [10752, 'War'],
+  [37, 'Western'],
+]);
+const TMDB_TV_GENRE_NAMES = new Map<number, string>([
+  [10759, 'Action'],
+  [16, 'Animation'],
+  [35, 'Comedy'],
+  [80, 'Crime'],
+  [99, 'Documentary'],
+  [18, 'Drama'],
+  [10751, 'Family'],
+  [10762, 'Kids'],
+  [9648, 'Mystery'],
+  [10763, 'News'],
+  [10764, 'Reality'],
+  [10765, 'Sci-Fi'],
+  [10766, 'Soap'],
+  [10767, 'Talk'],
+  [10768, 'War'],
+  [37, 'Western'],
+]);
+const STAR_RATING_ICON = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path fill="#ffffff" d="M32 5.6 39.7 22l17.8 2.7-12.9 12.7 3 17.9L32 46.8 16.4 55.3l3-17.9L6.5 24.7 24.3 22 32 5.6Z"/></svg>'
+)}`;
 const MDBLIST_API_KEYS = parseApiKeyList(process.env.MDBLIST_API_KEYS, process.env.MDBLIST_API_KEY);
 const SIMKL_CLIENT_ID =
   process.env.SIMKL_CLIENT_ID ||
@@ -824,6 +866,16 @@ const formatDisplayRatingValue = (
   return baseValue;
 };
 
+const parseDisplayRatingValue = (value: string) => {
+  const numericCandidate = value
+    .replace('%', '')
+    .split('/')[0]
+    .replace(',', '.')
+    .trim();
+  const numericValue = Number(numericCandidate);
+  return Number.isFinite(numericValue) ? numericValue : null;
+};
+
 const shouldRenderRatingValue = (value: string | null | undefined) => {
   if (!value) return false;
   const normalized = value.trim();
@@ -873,6 +925,27 @@ const isTmdbAnimationTitle = (media: any) => {
 
     return String(genre?.name || '').trim().toLowerCase() === 'animation';
   });
+};
+
+const getFirstTmdbGenreName = (media: any, mediaType: 'movie' | 'tv' | null) => {
+  const genres = Array.isArray(media?.genres) ? media.genres : [];
+  for (const genre of genres) {
+    const name = String(genre?.name || '').trim();
+    if (name) return name;
+  }
+
+  const genreIds = Array.isArray(media?.genre_ids) ? media.genre_ids : [];
+  for (const genreId of genreIds) {
+    const numericGenreId = Number(genreId);
+    if (!Number.isFinite(numericGenreId)) continue;
+    const mappedGenre =
+      mediaType === 'tv'
+        ? TMDB_TV_GENRE_NAMES.get(numericGenreId)
+        : TMDB_MOVIE_GENRE_NAMES.get(numericGenreId);
+    if (mappedGenre) return mappedGenre;
+  }
+
+  return null;
 };
 
 const normalizeRatingValue = (value: unknown): string | null => {
@@ -3717,7 +3790,8 @@ const getBadgeTextRightInset = (
 const estimateBadgeTextWidth = (
   value: string,
   fontSize: number,
-  compactText = false
+  compactText = false,
+  noMinWidth = false
 ) => {
   const normalized = value.trim();
   if (!normalized) {
@@ -3729,6 +3803,9 @@ const estimateBadgeTextWidth = (
     if (ch === '/' || ch === '|') return fontSize * (compactText ? 0.34 : 0.40);
     if (ch === '.' || ch === ',' || ch === ':') return fontSize * (compactText ? 0.22 : 0.28);
     if (ch === ' ') return fontSize * (compactText ? 0.24 : 0.30);
+    if (ch === ' ' || ch === ' ') return fontSize * (compactText ? 0.14 : 0.18); // thin / narrow no-break space
+    if (ch === '★') return fontSize * 0.88;
+    if (ch === '•') return fontSize * (compactText ? 0.34 : 0.40);
     return fontSize * (compactText ? 0.54 : 0.58);
   };
   const measuredTextWidth = [...normalized].reduce((acc, ch) => acc + measureChar(ch), 0);
@@ -3742,7 +3819,7 @@ const estimateBadgeTextWidth = (
     )
   );
   const structureWidth = Math.round(normalized.length * fontSize * (compactText ? 0.38 : 0.44));
-  const isShortDecimalValue = /^\d+(?:[.,]\d)?$/.test(normalized) && !normalized.includes('/');
+  const isShortDecimalValue = !noMinWidth && /^\d+(?:[.,]\d)?$/.test(normalized) && !normalized.includes('/');
   const shortDecimalMinWidth = isShortDecimalValue
     ? Math.round(fontSize * (compactText ? 1.52 : 1.68))
     : 0;
@@ -3763,7 +3840,10 @@ const estimateBadgeWidth = (
   compactText = false,
   contentLayout: 'standard' | 'stacked' = 'standard'
 ) => {
-  const textWidth = estimateBadgeTextWidth(value, fontSize, compactText);
+  const isStacked = contentLayout === 'stacked';
+  const isStackedStarPromotion = isStacked && value.includes('★');
+  const displayValue = isStackedStarPromotion ? value.replace('★ ', '').replace('★', '').trim() : value;
+  const textWidth = estimateBadgeTextWidth(displayValue, fontSize, compactText, isStacked);
   const outerPadding = Math.max(6, Math.round(paddingX * 0.7));
   const innerGap = outerPadding;
   if (contentLayout === 'stacked') {
@@ -3773,9 +3853,10 @@ const estimateBadgeWidth = (
       outerPadding * 2 + Math.round(fontSize * (compactText ? 1.12 : 1.25))
     );
   }
+  const effectiveGap = iconSize > 0 ? innerGap : 0;
   return Math.max(
-    outerPadding + iconSize + innerGap + textWidth + outerPadding,
-    outerPadding + iconSize + innerGap + outerPadding + Math.round(fontSize * (compactText ? 1.12 : 1.25))
+    outerPadding + iconSize + effectiveGap + textWidth + outerPadding,
+    outerPadding + iconSize + effectiveGap + outerPadding + Math.round(fontSize * (compactText ? 1.12 : 1.25))
   );
 };
 const estimateBadgeHeight = (
@@ -4181,6 +4262,7 @@ const buildQualityBadgeSvg = (
   style: RatingStyle = DEFAULT_QUALITY_BADGES_STYLE
 ) => {
   const h = Math.max(32, Math.round(height * 0.9));
+  const isReferencePlain = style === 'plain';
   const radius = style === 'glass' ? Math.round(h / 2) : Math.round(h * 0.18);
   const strokeWidth =
     style === 'glass'
@@ -4189,7 +4271,7 @@ const buildQualityBadgeSvg = (
         ? Math.max(1, Math.round(h * 0.05))
         : Math.max(2, Math.round(h * 0.08));
   const innerPadding = Math.max(10, Math.round(h * 0.16));
-  const fontFamily = `'Noto Sans','DejaVu Sans',Arial,sans-serif`;
+  const fontFamily = `'Noto Sans','DejaVu Sans','Arial Black',Arial,sans-serif`;
   const baseRect = (width: number, stroke: string, fill: string, extra = '') =>
     `<rect x="${strokeWidth / 2}" y="${strokeWidth / 2}" width="${Math.max(0, width - strokeWidth)}" height="${Math.max(0, h - strokeWidth)}" rx="${radius}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" ${extra}/>`;
   const resolveChrome = (accentColor: string) => {
@@ -4209,9 +4291,22 @@ const buildQualityBadgeSvg = (
     const chromeExtra = chrome.strokeOpacity ? `${extra} stroke-opacity="${chrome.strokeOpacity}"` : extra;
     return baseRect(width, chrome.stroke, chrome.fill, chromeExtra);
   };
+  const plainDefs = isReferencePlain
+    ? `<defs><filter id="text-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1" stdDeviation="3.6" flood-color="#000000" flood-opacity="0.90" /></filter></defs>`
+    : '';
+  const filterAttr = isReferencePlain ? ' filter="url(#text-shadow)"' : '';
 
   if (key === '4k') {
     const width = widthOverride ?? Math.round(h * 1.55);
+    if (isReferencePlain) {
+      const bigSize = Math.round(h * 0.46);
+      const bigY = Math.round(h * 0.64);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
+${plainDefs}
+<text x="${width / 2}" y="${bigY}" font-family="${fontFamily}" font-size="${bigSize}" font-weight="900" text-anchor="middle" fill="#f3f4f6" letter-spacing="0.06em"${filterAttr}>4K</text>
+</svg>`;
+      return { svg, width, height: h };
+    }
     const bigSize = Math.round(h * 0.56);
     const smallSize = Math.round(h * 0.2);
     const bigY = Math.round(h * 0.58);
@@ -4228,6 +4323,15 @@ ${rect}
 
   if (key === 'hdr') {
     const width = widthOverride ?? Math.round(h * 1.6);
+    if (isReferencePlain) {
+      const textSize = Math.round(h * 0.46);
+      const textY = Math.round(h * 0.64);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
+${plainDefs}
+<text x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="900" text-anchor="middle" fill="#f3f4f6" letter-spacing="0.06em"${filterAttr}>HDR</text>
+</svg>`;
+      return { svg, width, height: h };
+    }
     const bigSize = Math.round(h * 0.5);
     const smallSize = Math.round(h * 0.2);
     const bigY = Math.round(h * 0.57);
@@ -4253,6 +4357,19 @@ ${rect}
 
   if (key === 'dolbyvision') {
     const width = widthOverride ?? Math.round(h * 1.95);
+    if (isReferencePlain) {
+      const topSize = Math.round(h * 0.24);
+      const bottomSize = Math.round(h * 0.34);
+      const topY = Math.round(h * 0.35);
+      const bottomY = Math.round(h * 0.78);
+      const textLength = Math.max(40, Math.floor(width - innerPadding * 2));
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
+${plainDefs}
+<text x="${width / 2}" y="${topY}" font-family="${fontFamily}" font-size="${topSize}" font-weight="900" text-anchor="middle" fill="#f3f4f6"${filterAttr}>Dolby</text>
+<text x="${width / 2}" y="${bottomY}" font-family="${fontFamily}" font-size="${bottomSize}" font-weight="900" text-anchor="middle" fill="#f3f4f6" letter-spacing="0.14em" textLength="${textLength}" lengthAdjust="spacingAndGlyphs"${filterAttr}>VISION</text>
+</svg>`;
+      return { svg, width, height: h };
+    }
     const topSize = Math.round(h * 0.22);
     const bottomSize = Math.round(h * 0.42);
     const topY = Math.round(h * 0.36);
@@ -4269,6 +4386,19 @@ ${rect}
 
   if (key === 'dolbyatmos') {
     const width = widthOverride ?? Math.round(h * 1.95);
+    if (isReferencePlain) {
+      const topSize = Math.round(h * 0.24);
+      const bottomSize = Math.round(h * 0.34);
+      const topY = Math.round(h * 0.35);
+      const bottomY = Math.round(h * 0.78);
+      const textLength = Math.max(40, Math.floor(width - innerPadding * 2));
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
+${plainDefs}
+<text x="${width / 2}" y="${topY}" font-family="${fontFamily}" font-size="${topSize}" font-weight="900" text-anchor="middle" fill="#f3f4f6"${filterAttr}>Dolby</text>
+<text x="${width / 2}" y="${bottomY}" font-family="${fontFamily}" font-size="${bottomSize}" font-weight="900" text-anchor="middle" fill="#f3f4f6" letter-spacing="0.14em" textLength="${textLength}" lengthAdjust="spacingAndGlyphs"${filterAttr}>ATMOS</text>
+</svg>`;
+      return { svg, width, height: h };
+    }
     const topSize = Math.round(h * 0.22);
     const bottomSize = Math.round(h * 0.42);
     const topY = Math.round(h * 0.36);
@@ -4285,6 +4415,15 @@ ${rect}
 
   if (key === 'remux') {
     const width = widthOverride ?? Math.round(h * 1.55);
+    if (isReferencePlain) {
+      const textSize = Math.round(h * 0.42);
+      const textY = Math.round(h * 0.63);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
+${plainDefs}
+<text x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="900" text-anchor="middle" fill="#f3f4f6" letter-spacing="0.08em"${filterAttr}>REMUX</text>
+</svg>`;
+      return { svg, width, height: h };
+    }
     const textSize = Math.round(h * 0.42);
     const textY = Math.round(h * 0.63);
     const color = '#ef4444';
@@ -4308,10 +4447,10 @@ const buildBadgeSvg = ({
   gap,
   accentColor,
   monogram,
-  iconDataUri,
+  iconDataUri: initialIconDataUri,
   iconCornerRadius = 0,
   iconScale,
-  value,
+  value: initialValue,
   ratingStyle,
   compactText = false,
   contentLayout = 'standard',
@@ -4332,6 +4471,19 @@ const buildBadgeSvg = ({
   compactText?: boolean;
   contentLayout?: 'standard' | 'stacked';
 }) => {
+  let value = initialValue;
+  let iconDataUri = initialIconDataUri;
+
+  if (
+    contentLayout === 'stacked' &&
+    !iconDataUri &&
+    monogram === '' &&
+    value.includes('★')
+  ) {
+    iconDataUri = STAR_RATING_ICON;
+    value = value.replace('★ ', '').replace('★', '').trim();
+  }
+
   const radius = getBadgeOuterRadius(height, ratingStyle);
   const outerRadius =
     contentLayout === 'stacked' && ratingStyle === 'glass'
@@ -4344,6 +4496,7 @@ const buildBadgeSvg = ({
     contentLayout === 'stacked'
       ? Math.max(outerPadding, Math.round((width - iconSize) / 2))
       : outerPadding;
+  const hideIcon = !iconDataUri && monogram === '';
   const iconY =
     contentLayout === 'stacked'
       ? outerPadding
@@ -4360,7 +4513,11 @@ const buildBadgeSvg = ({
   const iconImageOffset = (baseRenderedIconSize - renderedIconSize) / 2;
   const iconImageX = (ratingStyle === 'plain' ? iconX + 1 : iconX + 1.5) + iconImageOffset;
   const iconImageY = (ratingStyle === 'plain' ? iconY + 1 : iconY + 1.5) + iconImageOffset;
-  const valueX = contentLayout === 'stacked' ? Math.round(width / 2) : iconX + iconSize + innerGap;
+  const valueX = contentLayout === 'stacked'
+    ? Math.round(width / 2)
+    : hideIcon
+      ? Math.round(width / 2)
+      : iconX + iconSize + innerGap;
   const valueY =
     contentLayout === 'stacked'
       ? iconY + iconSize + innerGap + fontSize
@@ -4380,7 +4537,7 @@ const buildBadgeSvg = ({
     : `'Noto Sans','DejaVu Sans',Arial,sans-serif`;
   const valueLetterSpacing = compactText ? ' letter-spacing="-0.04em"' : '';
   const iconShape =
-    ratingStyle === 'plain' || iconDataUri
+    hideIcon || ratingStyle === 'plain' || iconDataUri
       ? ''
       : ratingStyle === 'square'
         ? `<rect x="${iconX + 0.75}" y="${iconY + 0.75}" width="${Math.max(0, iconSize - 1.5)}" height="${Math.max(0, iconSize - 1.5)}" rx="${Math.max(4, iconCornerRadius || iconRadius)}" fill="rgb(10,10,10)" />`
@@ -4392,7 +4549,7 @@ const buildBadgeSvg = ({
         ? `<rect x="${iconX + 1.5}" y="${iconY + 1.5}" width="${Math.max(0, iconSize - 3)}" height="${Math.max(0, iconSize - 3)}" rx="${Math.max(4, iconCornerRadius || iconRadius - 1)}" />`
         : `<circle cx="${iconCx}" cy="${iconCy}" r="${Math.max(1, iconRadius - 1)}" />`;
   const iconBorder =
-    ratingStyle === 'plain' || iconDataUri
+    hideIcon || ratingStyle === 'plain' || iconDataUri
       ? ''
       : ratingStyle === 'square'
         ? iconCornerRadius > 0
@@ -4406,7 +4563,7 @@ const buildBadgeSvg = ({
   const monogramFill = ratingStyle === 'glass' ? 'white' : accentColor;
   const textShadowFilter =
     ratingStyle === 'plain'
-      ? `<defs><filter id="text-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1" stdDeviation="2.4" flood-color="#000000" flood-opacity="0.55" /></filter></defs>`
+      ? `<defs><filter id="text-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1" stdDeviation="3.6" flood-color="#000000" flood-opacity="0.90" /></filter></defs>`
       : '';
   const iconImage =
     !iconDataUri
@@ -4415,20 +4572,49 @@ const buildBadgeSvg = ({
         ? `<image href="${iconDataUri}" x="${iconImageX}" y="${iconImageY}" width="${renderedIconSize}" height="${renderedIconSize}" preserveAspectRatio="xMidYMid meet" />`
         : `<defs><clipPath id="icon-clip">${iconClipPath}</clipPath></defs><image href="${iconDataUri}" x="${iconImageX}" y="${iconImageY}" width="${renderedIconSize}" height="${renderedIconSize}" preserveAspectRatio="xMidYMid meet" clip-path="url(#icon-clip)" />${iconBorder}`;
   const monogramText =
-    iconDataUri
+    iconDataUri || hideIcon
       ? ''
       : `<text x="${iconCx}" y="${Math.round(iconCy + iconFontSize * 0.34)}" font-family="Arial, sans-serif" font-size="${iconFontSize}" font-weight="700" text-anchor="middle" fill="${monogramFill}">${escapeXml(monogram)}</text>${iconBorder}`;
-  const valueFilter = ratingStyle === 'plain' ? ' filter="url(#text-shadow)"' : '';
+  const valueFilter = '';
+  const plainGroupStart = ratingStyle === 'plain' ? '<g filter="url(#text-shadow)">' : '';
+  const plainGroupEnd = ratingStyle === 'plain' ? '</g>' : '';
   const valueNumericStyle =
     ' style="font-variant-numeric: tabular-nums lining-nums; font-feature-settings: \'tnum\' 1, \'lnum\' 1;"';
-  const valueTextAnchor = contentLayout === 'stacked' ? ' text-anchor="middle"' : '';
+  const valueTextAnchor = contentLayout === 'stacked' || hideIcon ? ' text-anchor="middle"' : '';
+  const starRatingMatch = hideIcon ? value.match(/^(?:(.+?)\s+)?★\s+(.+)$/) : null;
+  const valueText =
+    starRatingMatch
+      ? (() => {
+        const genreValue = String(starRatingMatch[1] || '').trim();
+        const ratingValue = starRatingMatch[2];
+        const starFontSize = fontSize;
+        const starWidth = Math.round(starFontSize * 0.9);
+        const genreText = genreValue ? genreValue : '';
+        const genreWidth = genreText ? estimateBadgeTextWidth(genreText, fontSize, compactText) : 0;
+        const ratingWidth = estimateBadgeTextWidth(ratingValue, fontSize, compactText);
+        const starGap = Math.max(4, Math.round(fontSize * 0.18));
+        const genreGap = genreText ? Math.max(6, Math.round(fontSize * 0.20)) : 0;
+        const groupWidth = genreWidth + genreGap + starWidth + starGap + ratingWidth;
+        const groupLeft = Math.round(width / 2 - groupWidth / 2);
+        const genreX = groupLeft;
+        const starX = groupLeft + genreWidth + genreGap + Math.round(starWidth / 2);
+        const ratingX = groupLeft + genreWidth + genreGap + starWidth + starGap;
+        const starY = valueY - Math.round(fontSize * 0.10);
+        const genreSvg = genreText
+          ? `<text x="${genreX}" y="${valueY}" font-family="${valueFontFamily}" font-size="${fontSize}" font-weight="800" fill="white" fill-opacity="0.72"${valueFilter}${valueLetterSpacing}>${escapeXml(genreText)}</text>`
+          : '';
+        return `${genreSvg}<text x="${starX}" y="${starY}" font-family="${valueFontFamily}" font-size="${starFontSize}" font-weight="800" text-anchor="middle" fill="white"${valueFilter}>★</text><text x="${ratingX}" y="${valueY}" font-family="${valueFontFamily}" font-size="${fontSize}" font-weight="800" fill="white"${valueFilter}${valueLetterSpacing}${valueNumericStyle}>${escapeXml(ratingValue)}</text>`;
+      })()
+      : `<text x="${valueX}" y="${valueY}" font-family="${valueFontFamily}" font-size="${fontSize}" font-weight="800" fill="white"${valueFilter}${valueLetterSpacing}${valueTextLength}${valueNumericStyle}${valueTextAnchor}>${escapeXml(value)}</text>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
 ${textShadowFilter}
 ${outerRect}
+${plainGroupStart}
 ${iconShape}
 ${iconImage}
 ${monogramText}
-<text x="${valueX}" y="${valueY}" font-family="${valueFontFamily}" font-size="${fontSize}" font-weight="800" fill="white"${valueFilter}${valueLetterSpacing}${valueTextLength}${valueNumericStyle}${valueTextAnchor}>${escapeXml(value)}</text>
+${valueText}
+${plainGroupEnd}
 </svg>`;
 };
 
@@ -4579,6 +4765,92 @@ const renderWithSharp = async (
         posterLogoSpec = null;
       }
     }
+    if (input.imageType === 'poster' && (posterTitleSpec || posterLogoSpec)) {
+      const blurTopBandHeight = Math.max(110, Math.round(input.outputHeight * 0.22));
+      const blurTopHeight = Math.min(input.outputHeight, blurTopBandHeight);
+      if (blurTopHeight > 0) {
+        const blurredTop = await sharp(resizedImageBuffer)
+          .extract({ left: 0, top: 0, width: input.outputWidth, height: blurTopHeight })
+          .blur(16)
+          .composite([
+            {
+              input: Buffer.from(
+                `<svg xmlns="http://www.w3.org/2000/svg" width="${input.outputWidth}" height="${blurTopHeight}" viewBox="0 0 ${input.outputWidth} ${blurTopHeight}">
+                  <defs>
+                    <linearGradient id="poster-top-darken" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#000000" stop-opacity="0.62"/>
+                      <stop offset="0.55" stop-color="#000000" stop-opacity="0.22"/>
+                      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="100%" height="100%" fill="url(#poster-top-darken)"/>
+                </svg>`
+              ),
+            },
+            {
+              input: Buffer.from(
+                `<svg xmlns="http://www.w3.org/2000/svg" width="${input.outputWidth}" height="${blurTopHeight}" viewBox="0 0 ${input.outputWidth} ${blurTopHeight}">
+                  <defs>
+                    <linearGradient id="poster-top-blur-mask" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="black" stop-opacity="0.92"/>
+                      <stop offset="0.48" stop-color="black" stop-opacity="0.62"/>
+                      <stop offset="1" stop-color="black" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="100%" height="100%" fill="url(#poster-top-blur-mask)"/>
+                </svg>`
+              ),
+              blend: 'dest-in',
+            },
+          ])
+          .png({ compressionLevel: 1 })
+          .toBuffer();
+        overlays.push({ input: blurredTop, top: 0, left: 0 });
+      }
+      const blurBandHeight = Math.max(180, Math.round(input.outputHeight * 0.42));
+      const blurTop = Math.max(0, input.outputHeight - blurBandHeight);
+      const blurHeight = Math.min(input.outputHeight - blurTop, blurBandHeight);
+      if (blurHeight > 0) {
+        const blurredBottom = await sharp(resizedImageBuffer)
+          .extract({ left: 0, top: blurTop, width: input.outputWidth, height: blurHeight })
+          .blur(18)
+          .composite([
+            {
+              input: Buffer.from(
+                `<svg xmlns="http://www.w3.org/2000/svg" width="${input.outputWidth}" height="${blurHeight}" viewBox="0 0 ${input.outputWidth} ${blurHeight}">
+                  <defs>
+                    <linearGradient id="poster-bottom-darken" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#000000" stop-opacity="0"/>
+                      <stop offset="0.42" stop-color="#000000" stop-opacity="0.28"/>
+                      <stop offset="1" stop-color="#000000" stop-opacity="0.66"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="100%" height="100%" fill="url(#poster-bottom-darken)"/>
+                </svg>`
+              ),
+            },
+            {
+              input: Buffer.from(
+                `<svg xmlns="http://www.w3.org/2000/svg" width="${input.outputWidth}" height="${blurHeight}" viewBox="0 0 ${input.outputWidth} ${blurHeight}">
+                  <defs>
+                    <linearGradient id="poster-bottom-blur-mask" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="black" stop-opacity="0"/>
+                      <stop offset="0.28" stop-color="black" stop-opacity="0.45"/>
+                      <stop offset="0.62" stop-color="black" stop-opacity="0.82"/>
+                      <stop offset="1" stop-color="black" stop-opacity="0.96"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="100%" height="100%" fill="url(#poster-bottom-blur-mask)"/>
+                </svg>`
+              ),
+              blend: 'dest-in',
+            },
+          ])
+          .png({ compressionLevel: 1 })
+          .toBuffer();
+        overlays.push({ input: blurredBottom, top: blurTop, left: 0 });
+      }
+    }
     const composeBadgeRow = (
       rowBadges: RatingBadge[],
       rowY: number,
@@ -4605,12 +4877,14 @@ const renderWithSharp = async (
         rowContentLayout
       );
       const rowEntries = rowBadges.map((badge) => {
+        const badgeIconSize = badge.key === 'average' ? 0 : input.badgeIconSize;
+        const badgeGap = badge.key === 'average' ? 0 : input.badgeGap;
         const badgeWidth = estimateBadgeWidth(
           badge.value,
           input.badgeFontSize,
           input.badgePaddingX,
-          input.badgeIconSize,
-          input.badgeGap,
+          badgeIconSize,
+          badgeGap,
           rowCompactText,
           rowContentLayout
         );
@@ -4618,8 +4892,8 @@ const renderWithSharp = async (
           badge.value,
           input.badgeFontSize,
           input.badgePaddingX,
-          input.badgeIconSize,
-          input.badgeGap,
+          badgeIconSize,
+          badgeGap,
           rowCompactText,
           rowContentLayout
         );
@@ -4695,7 +4969,7 @@ const renderWithSharp = async (
           paddingX: input.badgePaddingX,
           gap: input.badgeGap,
           accentColor: entry.badge.accentColor,
-          monogram,
+          monogram: entry.badge.key === 'average' ? '' : monogram,
           iconDataUri: iconByProvider.get(entry.badge.key) || null,
           iconCornerRadius: entry.badge.iconCornerRadius,
           iconScale: entry.badge.iconScale,
@@ -4741,7 +5015,7 @@ const renderWithSharp = async (
                 paddingX: input.badgePaddingX,
                 gap: input.badgeGap,
                 accentColor: entry.badge.accentColor,
-                monogram,
+                monogram: entry.badge.key === 'average' ? '' : monogram,
                 iconDataUri: iconByProvider.get(entry.badge.key) || null,
                 iconCornerRadius: entry.badge.iconCornerRadius,
                 iconScale: entry.badge.iconScale,
@@ -4779,7 +5053,7 @@ const renderWithSharp = async (
               paddingX: input.badgePaddingX,
               gap: input.badgeGap,
               accentColor: entry.badge.accentColor,
-              monogram,
+              monogram: entry.badge.key === 'average' ? '' : monogram,
               iconDataUri: iconByProvider.get(entry.badge.key) || null,
               iconCornerRadius: entry.badge.iconCornerRadius,
               iconScale: entry.badge.iconScale,
@@ -4829,7 +5103,7 @@ const renderWithSharp = async (
           paddingX: input.badgePaddingX,
           gap: input.badgeGap,
           accentColor: entry.badge.accentColor,
-          monogram,
+          monogram: entry.badge.key === 'average' ? '' : monogram,
           iconDataUri: iconByProvider.get(entry.badge.key) || null,
           iconCornerRadius: entry.badge.iconCornerRadius,
           iconScale: entry.badge.iconScale,
@@ -4934,7 +5208,7 @@ const renderWithSharp = async (
         paddingX: input.badgePaddingX,
         gap: input.badgeGap,
         accentColor: badge.accentColor,
-        monogram,
+        monogram: badge.key === 'average' ? '' : monogram,
         iconDataUri: iconByProvider.get(badge.key) || null,
         iconCornerRadius: badge.iconCornerRadius,
         iconScale: badge.iconScale,
@@ -4987,7 +5261,7 @@ const renderWithSharp = async (
           paddingX: topPaddingX,
           gap: topGap,
           accentColor: badge.accentColor,
-          monogram,
+          monogram: badge.key === 'average' ? '' : monogram,
           iconDataUri: iconByProvider.get(badge.key) || null,
           iconCornerRadius: badge.iconCornerRadius,
           iconScale: badge.iconScale,
@@ -5101,7 +5375,7 @@ const renderWithSharp = async (
           paddingX: input.badgePaddingX,
           gap: input.badgeGap,
           accentColor: badge.accentColor,
-          monogram,
+          monogram: badge.key === 'average' ? '' : monogram,
           iconDataUri: iconByProvider.get(badge.key) || null,
           iconCornerRadius: badge.iconCornerRadius,
           iconScale: badge.iconScale,
@@ -5185,7 +5459,7 @@ const renderWithSharp = async (
             paddingX: input.badgePaddingX,
             gap: input.badgeGap,
             accentColor: badge.accentColor,
-            monogram,
+            monogram: badge.key === 'average' ? '' : monogram,
             iconDataUri: iconByProvider.get(badge.key) || null,
             iconCornerRadius: badge.iconCornerRadius,
             iconScale: badge.iconScale,
@@ -5897,6 +6171,10 @@ export async function GET(
   };
 
   const posterRatings = getRatings('posterRatingPreferences', 'posterRatings') ?? globalRatings;
+  const posterRatingsMode =
+    tokenConfig.posterRatingsMode || request.nextUrl.searchParams.get('posterRatingsMode') || null;
+  const posterConfiguratorPreset =
+    tokenConfig.posterConfiguratorPreset || request.nextUrl.searchParams.get('posterConfiguratorPreset') || null;
   const backdropRatings = getRatings('backdropRatingPreferences', 'backdropRatings') ?? globalRatings;
   const thumbnailRatings =
     getRatings('thumbnailRatingPreferences', 'thumbnailRatings') ??
@@ -5918,7 +6196,7 @@ export async function GET(
     tokenConfig.backdropImageText ||
     request.nextUrl.searchParams.get('backdropText') ||
     request.nextUrl.searchParams.get('imageText');
-  
+
   const imageText = type === 'backdrop' || type === 'thumbnail'
     ? (backdropImageTextParam || 'clean')
     : (imageTextParam || 'default');
@@ -5929,7 +6207,7 @@ export async function GET(
   const backdropRatingsMax = normalizeBackdropRatingsMax(tokenConfig.backdropRatingsMax ?? request.nextUrl.searchParams.get('backdropRatingsMax'));
   const logoMode = normalizeLogoMode(tokenConfig.logoMode || request.nextUrl.searchParams.get('logoMode'));
   const logoFontVariant = normalizeLogoFontVariant(tokenConfig.logoFontVariant || request.nextUrl.searchParams.get('logoFontVariant'));
-  
+
   const logoPrimary = normalizeHexColor(
     tokenConfig.logoCustomPrimary || request.nextUrl.searchParams.get('logoPrimary'),
     DEFAULT_LOGO_CUSTOM_PRIMARY
@@ -5942,12 +6220,12 @@ export async function GET(
     tokenConfig.logoCustomOutline || request.nextUrl.searchParams.get('logoOutline'),
     DEFAULT_LOGO_CUSTOM_OUTLINE
   );
-  
+
   const backdropRatingsLayout = normalizeBackdropRatingLayout(tokenConfig.backdropRatingsLayout || request.nextUrl.searchParams.get('backdropRatingsLayout'));
   const thumbnailRatingsLayout = normalizeThumbnailRatingLayout(
     tokenConfig.thumbnailRatingsLayout || request.nextUrl.searchParams.get('thumbnailRatingsLayout')
   );
-  
+
   const posterVerticalBadgeContent = normalizeVerticalBadgeContent(
     tokenConfig.posterVerticalBadgeContent ||
     tokenConfig.verticalBadgeContent ||
@@ -5968,7 +6246,7 @@ export async function GET(
     request.nextUrl.searchParams.get('backdropVerticalBadgeContent') ||
     request.nextUrl.searchParams.get('verticalBadgeContent')
   );
-  
+
   const verticalBadgeContent =
     imageType === 'poster'
       ? isVerticalPosterRatingLayout(posterRatingsLayout)
@@ -5983,12 +6261,12 @@ export async function GET(
             ? backdropVerticalBadgeContent
             : 'standard'
           : 'standard';
-          
+
   const thumbnailSize = normalizeThumbnailSize(tokenConfig.thumbnailSize || request.nextUrl.searchParams.get('thumbnailSize'));
   const backdropRatingsSize = normalizeBackdropRatingsSize(
     tokenConfig.backdropRatingsSize || request.nextUrl.searchParams.get('backdropRatingsSize')
   );
-  
+
   const globalStreamBadgesSetting = normalizeStreamBadgesSetting(tokenConfig.streamBadges || request.nextUrl.searchParams.get('streamBadges'));
   const posterStreamBadgesSetting = normalizeStreamBadgesSetting(
     tokenConfig.posterStreamBadges || tokenConfig.streamBadges || request.nextUrl.searchParams.get('posterStreamBadges') || request.nextUrl.searchParams.get('streamBadges')
@@ -5996,14 +6274,14 @@ export async function GET(
   const backdropStreamBadgesSetting = normalizeStreamBadgesSetting(
     tokenConfig.backdropStreamBadges || tokenConfig.streamBadges || request.nextUrl.searchParams.get('backdropStreamBadges') || request.nextUrl.searchParams.get('streamBadges')
   );
-  
+
   const streamBadgesSetting =
     imageType === 'poster'
       ? posterStreamBadgesSetting
       : imageType === 'backdrop'
         ? backdropStreamBadgesSetting
         : globalStreamBadgesSetting;
-        
+
   const qualityBadgesSide = normalizeQualityBadgesSide(
     tokenConfig.qualityBadgesSide ||
     request.nextUrl.searchParams.get('qualityBadgesSide') ||
@@ -6012,7 +6290,7 @@ export async function GET(
   const posterQualityBadgesPosition = normalizePosterQualityBadgesPosition(
     tokenConfig.posterQualityBadgesPosition || request.nextUrl.searchParams.get('posterQualityBadgesPosition')
   );
-  
+
   const globalQualityBadgesStyle = normalizeQualityBadgesStyle(
     tokenConfig.qualityBadgesStyle || request.nextUrl.searchParams.get('qualityBadgesStyle')
   );
@@ -6028,17 +6306,17 @@ export async function GET(
     request.nextUrl.searchParams.get('backdropQualityBadgesStyle') ||
     request.nextUrl.searchParams.get('qualityBadgesStyle')
   );
-  
+
   const qualityBadgesStyle =
     imageType === 'poster'
       ? posterQualityBadgesStyle
       : imageType === 'backdrop'
         ? backdropQualityBadgesStyle
         : globalQualityBadgesStyle;
-        
+
   const globalRatingStyleParam =
     tokenConfig.ratingStyle || request.nextUrl.searchParams.get('ratingStyle') || request.nextUrl.searchParams.get('style');
-    
+
   const posterRatingStyle = normalizeRatingStyle(
     tokenConfig.posterRatingStyle || globalRatingStyleParam || request.nextUrl.searchParams.get('posterRatingStyle')
   );
@@ -6051,7 +6329,7 @@ export async function GET(
   const logoRatingStyle = normalizeRatingStyle(
     tokenConfig.logoRatingStyle || globalRatingStyleParam || request.nextUrl.searchParams.get('logoRatingStyle')
   );
-  
+
   const ratingStyle =
     imageType === 'poster'
       ? posterRatingStyle
@@ -6062,7 +6340,7 @@ export async function GET(
           : imageType === 'logo'
             ? logoRatingStyle
             : normalizeRatingStyle(globalRatingStyleParam);
-            
+
   const mdblistKey = tokenConfig.mdblistKey || request.nextUrl.searchParams.get('mdblistKey') || request.nextUrl.searchParams.get('mdblist_key');
   const tmdbKey = tokenConfig.tmdbKey || request.nextUrl.searchParams.get('tmdbKey') || request.nextUrl.searchParams.get('tmdb_key');
   const simklClientId =
@@ -6169,22 +6447,22 @@ export async function GET(
     posterAnimeImageTextParam === 'original' ? 'default' : posterAnimeImageTextParam;
   const posterTextPreference: PosterTextPreference =
     normalizedPosterImageText === 'clean' ||
-    normalizedPosterImageText === 'alternative' ||
-    normalizedPosterImageText === 'default'
+      normalizedPosterImageText === 'alternative' ||
+      normalizedPosterImageText === 'default'
       ? normalizedPosterImageText
       : 'default';
   const posterAnimeTextPreference: PosterTextPreference =
     normalizedPosterAnimeImageText === 'clean' ||
-    normalizedPosterAnimeImageText === 'alternative' ||
-    normalizedPosterAnimeImageText === 'default'
+      normalizedPosterAnimeImageText === 'alternative' ||
+      normalizedPosterAnimeImageText === 'default'
       ? normalizedPosterAnimeImageText
       : 'clean';
   const normalizedBackdropAnimeImageText =
     backdropAnimeImageTextParam === 'original' ? 'default' : backdropAnimeImageTextParam;
   const backdropAnimeTextPreference: PosterTextPreference =
     normalizedBackdropAnimeImageText === 'clean' ||
-    normalizedBackdropAnimeImageText === 'alternative' ||
-    normalizedBackdropAnimeImageText === 'default'
+      normalizedBackdropAnimeImageText === 'alternative' ||
+      normalizedBackdropAnimeImageText === 'default'
       ? normalizedBackdropAnimeImageText
       : 'clean';
   const ratingsForType =
@@ -6241,6 +6519,8 @@ export async function GET(
         ? `${posterTextPreference}:${backdropAnimeTextPreference}`
         : posterTextPreference,
     imageType === 'poster' ? posterRatingsLayout : '-',
+    imageType === 'poster' ? String(posterRatingsMode || '-') : '-',
+    imageType === 'poster' ? String(posterConfiguratorPreset || '-') : '-',
     imageType === 'poster' ? String(posterRatingsMaxPerSide ?? 'auto') : '-',
     imageType === 'poster' ? String(posterLang || '-') : '-',
     imageType === 'poster' ? String(posterAnimeLang || '-') : '-',
@@ -6828,7 +7108,7 @@ export async function GET(
                 : null;
             }
           }
-      }
+        }
       }
 
       if (!media && !useRawAnimeImageFallback) {
@@ -7056,6 +7336,8 @@ export async function GET(
           ? `${posterTextPreference}:${posterAnimeTextPreference}`
           : posterTextPreference,
         imageType === 'poster' ? posterRatingsLayout : '-',
+        imageType === 'poster' ? String(posterRatingsMode || '-') : '-',
+        imageType === 'poster' ? String(posterConfiguratorPreset || '-') : '-',
         imageType === 'poster' ? String(posterRatingsMaxPerSide ?? 'auto') : '-',
         imageType === 'poster' ? String(posterLang || '-') : '-',
         imageType === 'poster' ? String(posterAnimeLang || '-') : '-',
@@ -7336,7 +7618,9 @@ export async function GET(
 
             const combinedRatings = new Map<RatingPreference, string>();
             const shortCircuitLimit =
-              imageType === 'poster' ? getPosterRatingLayoutLimit(posterRatingsLayout) : null;
+              imageType === 'poster' && posterRatingsMode !== 'average'
+                ? getPosterRatingLayoutLimit(posterRatingsLayout)
+                : null;
 
             if (shortCircuitLimit) {
               let mdbRatings: Map<RatingPreference, string> | null = null;
@@ -8106,7 +8390,7 @@ export async function GET(
                   ? mediaOriginalLanguage
                   : imageType === 'logo'
                     ? effectiveLogoRequestedImageLang
-                : requestedImageLang;
+                    : requestedImageLang;
           const preferredBackdropPath = details?.backdrop_path || media?.backdrop_path || null;
           const selectedLogo = pickByLanguageWithFallback(
             logoCollection,
@@ -8122,20 +8406,20 @@ export async function GET(
           const localizedPosterPath = isEffectiveOriginalPosterLang
             ? null
             : (
-                pickByLanguageWithFallback(
-                  posterCollection,
-                  resolvedPosterRequestedImageLang,
-                  effectivePosterFallbackImageLang
-                )?.file_path || preferredPosterPath
-              );
+              pickByLanguageWithFallback(
+                posterCollection,
+                resolvedPosterRequestedImageLang,
+                effectivePosterFallbackImageLang
+              )?.file_path || preferredPosterPath
+            );
           let originalPosterPath =
             (isEffectiveOriginalPosterLang
               ? pickByLanguageWithFallback(
-                  posterCollection,
-                  mediaOriginalLanguage,
-                  ''
-                )?.file_path ||
-                posterCollection.find((poster: any) => !poster?.iso_639_1)?.file_path
+                posterCollection,
+                mediaOriginalLanguage,
+                ''
+              )?.file_path ||
+              posterCollection.find((poster: any) => !poster?.iso_639_1)?.file_path
               : media?.poster_path) ||
             localizedPosterPath ||
             posterCollection[0]?.file_path;
@@ -8149,10 +8433,10 @@ export async function GET(
           const originalBackdropPath =
             (isEffectiveOriginalBackdropLang
               ? pickByLanguageWithFallback(
-                  backdropCollection,
-                  mediaOriginalLanguage,
-                  ''
-                )?.file_path
+                backdropCollection,
+                mediaOriginalLanguage,
+                ''
+              )?.file_path
               : localizedBackdropPath) ||
             preferredBackdropPath ||
             backdropCollection[0]?.file_path;
@@ -8218,16 +8502,16 @@ export async function GET(
             originalPosterPath =
               (isEffectiveOriginalPosterLang
                 ? pickByLanguageWithFallback(
-                    posterCollection,
-                    mediaOriginalLanguage,
-                    ''
-                  )?.file_path || seasonPosterPath
+                  posterCollection,
+                  mediaOriginalLanguage,
+                  ''
+                )?.file_path || seasonPosterPath
                 : seasonPosterPath ||
-                  pickByLanguageWithFallback(
-                    posterCollection,
-                    resolvedPosterRequestedImageLang,
-                    effectivePosterFallbackImageLang
-                  )?.file_path) ||
+                pickByLanguageWithFallback(
+                  posterCollection,
+                  resolvedPosterRequestedImageLang,
+                  effectivePosterFallbackImageLang
+                )?.file_path) ||
               originalPosterPath;
           }
 
@@ -8599,6 +8883,27 @@ export async function GET(
           iconCornerRadius: 'iconCornerRadius' in meta ? meta.iconCornerRadius : undefined,
           iconScale: 'iconScale' in meta ? meta.iconScale : undefined,
         });
+      }
+      if (imageType === 'poster' && posterRatingsMode === 'average' && ratingBadges.length > 0) {
+        const values = ratingBadges
+          .map((badge) => parseDisplayRatingValue(badge.value))
+          .filter((value): value is number => value !== null);
+        if (values.length > 0) {
+          const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+          const firstGenreName =
+            posterConfiguratorPreset === 'simple'
+              ? getFirstTmdbGenreName(localizedMediaDetails || fallbackMediaDetails || media, mediaType as 'movie' | 'tv' | null)
+              : null;
+          const averageValue = `${firstGenreName ? `${firstGenreName} ` : ''}★ ${formatRatingNumber(average)}`;
+          ratingBadges.splice(0, ratingBadges.length, {
+            key: 'average',
+            label: 'AVG',
+            value: averageValue,
+            iconUrl: '',
+            accentColor: '#f59e0b',
+          });
+          renderedRatingTtlByProvider.set('average', MDBLIST_CACHE_TTL_MS);
+        }
       }
       if (
         ratingBadges.length === 0 &&

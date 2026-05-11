@@ -81,7 +81,6 @@ import {
   normalizeHexColor,
 } from '@/lib/logoCustomColors';
 import {
-  DEFAULT_RATING_STYLE,
   RATING_STYLE_OPTIONS,
   type RatingStyle,
 } from '@/lib/ratingStyle';
@@ -120,6 +119,7 @@ type StreamBadgesSetting = 'auto' | 'on' | 'off';
 type QualityBadgesSide = 'left' | 'right';
 type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide;
 type VerticalBadgeContent = 'standard' | 'stacked';
+type PosterConfiguratorPreset = 'simple' | 'advanced';
 const DEFAULT_QUALITY_BADGES_STYLE: RatingStyle = 'glass';
 const STREAM_BADGE_OPTIONS: Array<{ id: StreamBadgesSetting; label: string }> = [
   { id: 'auto', label: 'Auto' },
@@ -745,6 +745,9 @@ export default function HomePage({
   const [logoAnimeLang, setLogoAnimeLang] = useState('');
   const [posterImageText, setPosterImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
   const [posterAnimeImageText, setPosterAnimeImageText] = useState<'default' | 'clean' | 'alternative'>('default');
+  const [posterConfiguratorPreset, setPosterConfiguratorPresetState] = useState<PosterConfiguratorPreset>('simple');
+  const [posterAverageRatingsEnabled, setPosterAverageRatingsEnabled] = useState(false);
+  const [posterSimpleRatingSource, setPosterSimpleRatingSource] = useState<'average' | RatingPreference>('average');
   const [backdropImageText, setBackdropImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
   const [backdropAnimeImageText, setBackdropAnimeImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
   const [posterRatingRows, setPosterRatingRows] = useState<RatingProviderRow[]>(buildDefaultRatingRows);
@@ -764,8 +767,22 @@ export default function HomePage({
     [thumbnailRatingRows]
   );
   const logoRatingPreferences = useMemo(() => rowsToEnabledOrdered(logoRatingRows), [logoRatingRows]);
+  const isSimplePosterPreset = previewType === 'poster' && posterConfiguratorPreset === 'simple';
+  const shouldUsePosterAverageRatings =
+    previewType === 'poster' && (posterConfiguratorPreset === 'simple' || posterAverageRatingsEnabled);
   const [posterStreamBadges, setPosterStreamBadges] = useState<StreamBadgesSetting>('auto');
   const [backdropStreamBadges, setBackdropStreamBadges] = useState<StreamBadgesSetting>('off');
+  const setPosterConfiguratorPreset = useCallback((value: PosterConfiguratorPreset) => {
+    setPosterConfiguratorPresetState(value);
+    if (value === 'simple') {
+      setPosterImageText('clean');
+      setPosterAnimeImageText('default');
+      setPosterStreamBadges('on');
+      setPosterQualityBadgesStyle('plain');
+    } else {
+      setPosterAverageRatingsEnabled(false);
+    }
+  }, []);
   const [qualityBadgesSide, setQualityBadgesSide] = useState<QualityBadgesSide>('left');
   const [posterQualityBadgesPosition, setPosterQualityBadgesPosition] =
     useState<PosterQualityBadgesPosition>('auto');
@@ -1261,21 +1278,25 @@ export default function HomePage({
             : logoRatingPreferences;
     const ratingsQuery = stringifyRatingPreferencesAllowEmpty(ratingPreferencesForType);
     const ratingStyleForType =
-      previewType === 'poster'
-        ? posterRatingStyle
-        : previewType === 'backdrop'
-          ? backdropRatingStyle
-          : previewType === 'thumbnail'
-            ? thumbnailRatingStyle
-            : logoRatingStyle;
+      isSimplePosterPreset
+        ? 'plain'
+        : previewType === 'poster'
+          ? posterRatingStyle
+          : previewType === 'backdrop'
+            ? backdropRatingStyle
+            : previewType === 'thumbnail'
+              ? thumbnailRatingStyle
+              : logoRatingStyle;
     const imageTextForType =
-      previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : posterImageText;
+      isSimplePosterPreset ? 'clean' : previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : posterImageText;
     const streamBadgesForType =
-      previewType === 'backdrop' || previewType === 'thumbnail' ? backdropStreamBadges : posterStreamBadges;
+      isSimplePosterPreset ? 'on' : previewType === 'backdrop' || previewType === 'thumbnail' ? backdropStreamBadges : posterStreamBadges;
     const qualityBadgesStyleForType =
       previewType === 'backdrop' || previewType === 'thumbnail'
         ? backdropQualityBadgesStyle
-        : posterQualityBadgesStyle;
+        : isSimplePosterPreset
+          ? 'plain'
+          : posterQualityBadgesStyle;
     const query = new URLSearchParams({
       ratingStyle: ratingStyleForType,
       lang: effectiveLang,
@@ -1287,8 +1308,18 @@ export default function HomePage({
       if (posterAnimeLang) {
         query.set('posterAnimeLang', effectivePosterAnimeLang);
       }
-      query.set('posterAnimeImageText', posterAnimeImageText);
-      query.set('posterRatings', ratingsQuery);
+      query.set('posterAnimeImageText', isSimplePosterPreset ? 'default' : posterAnimeImageText);
+      if (isSimplePosterPreset && posterSimpleRatingSource !== 'average') {
+        query.set('posterRatings', posterSimpleRatingSource);
+      } else {
+        query.set('posterRatings', ratingsQuery);
+      }
+      if (isSimplePosterPreset || shouldUsePosterAverageRatings) {
+        query.set('posterRatingsMode', 'average');
+      }
+      if (isSimplePosterPreset) {
+        query.set('posterConfiguratorPreset', 'simple');
+      }
     } else if (previewType === 'backdrop') {
       if (backdropLang) {
         query.set('backdropLang', effectiveBackdropLang);
@@ -1362,11 +1393,12 @@ export default function HomePage({
       query.set('imageText', imageTextForType);
     }
     if (previewType === 'poster') {
-      query.set('posterRatingsLayout', posterRatingsLayout);
-      if (isVerticalPosterRatingLayout(posterRatingsLayout) && posterRatingsMaxPerSide !== null) {
+      const effectivePosterRatingsLayout = isSimplePosterPreset ? 'bottom' : posterRatingsLayout;
+      query.set('posterRatingsLayout', effectivePosterRatingsLayout);
+      if (isVerticalPosterRatingLayout(effectivePosterRatingsLayout) && posterRatingsMaxPerSide !== null) {
         query.set('posterRatingsMaxPerSide', String(posterRatingsMaxPerSide));
       }
-      if (isVerticalPosterRatingLayout(posterRatingsLayout) && posterVerticalBadgeContent !== 'standard') {
+      if (!isSimplePosterPreset && isVerticalPosterRatingLayout(posterRatingsLayout) && posterVerticalBadgeContent !== 'standard') {
         query.set('posterVerticalBadgeContent', posterVerticalBadgeContent);
       }
     } else if (previewType === 'backdrop' || previewType === 'thumbnail') {
@@ -1425,6 +1457,8 @@ export default function HomePage({
     backdropRatingPreferences,
     thumbnailRatingPreferences,
     logoRatingPreferences,
+    posterConfiguratorPreset,
+    posterAverageRatingsEnabled,
     posterStreamBadges,
     backdropStreamBadges,
     shouldShowQualityBadgesSide,
@@ -1458,6 +1492,9 @@ export default function HomePage({
     simklClientId,
     fanartKey,
     tmdbKey,
+    isSimplePosterPreset,
+    shouldUsePosterAverageRatings,
+    posterSimpleRatingSource,
   ]);
 
   const configString = useMemo(() => {
@@ -1502,7 +1539,7 @@ export default function HomePage({
       config.lang = effectiveLang;
     }
     if (posterAnimeImageText) {
-      config.posterAnimeImageText = posterAnimeImageText;
+      config.posterAnimeImageText = posterConfiguratorPreset === 'simple' ? 'default' : posterAnimeImageText;
     }
     if (backdropAnimeImageText) {
       config.backdropAnimeImageText = backdropAnimeImageText;
@@ -1525,8 +1562,9 @@ export default function HomePage({
     if (logoAnimeLang) {
       config.logoAnimeLang = effectiveLogoAnimeLang;
     }
-    if (posterStreamBadges !== 'auto') {
-      config.posterStreamBadges = posterStreamBadges;
+    const effectivePosterStreamBadges = posterConfiguratorPreset === 'simple' ? 'on' : posterStreamBadges;
+    if (effectivePosterStreamBadges !== 'auto') {
+      config.posterStreamBadges = effectivePosterStreamBadges;
     }
     if (backdropStreamBadges !== 'auto') {
       config.backdropStreamBadges = backdropStreamBadges;
@@ -1537,13 +1575,15 @@ export default function HomePage({
     if (shouldShowPosterQualityBadgesPosition && posterQualityBadgesPosition !== 'auto') {
       config.posterQualityBadgesPosition = posterQualityBadgesPosition;
     }
-    if (posterQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
+    if (posterConfiguratorPreset === 'simple') {
+      config.posterQualityBadgesStyle = 'plain';
+    } else if (posterQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
       config.posterQualityBadgesStyle = posterQualityBadgesStyle;
     }
     if (backdropQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
       config.backdropQualityBadgesStyle = backdropQualityBadgesStyle;
     }
-    if (posterRatingStyle) {
+    if (posterConfiguratorPreset !== 'simple' && posterRatingStyle) {
       config.posterRatingStyle = posterRatingStyle;
     }
     if (backdropRatingStyle) {
@@ -1556,12 +1596,23 @@ export default function HomePage({
       config.logoRatingStyle = logoRatingStyle;
     }
     if (posterImageText) {
-      config.posterImageText = posterImageText;
+      config.posterImageText = posterConfiguratorPreset === 'simple' ? 'clean' : posterImageText;
     }
     if (backdropImageText) {
       config.backdropImageText = backdropImageText;
     }
-    if (posterRatingsLayout) {
+    if (posterConfiguratorPreset === 'simple') {
+      config.posterConfiguratorPreset = 'simple';
+      config.posterRatingsMode = 'average';
+      if (posterSimpleRatingSource !== 'average') {
+        config.posterRatings = posterSimpleRatingSource;
+      }
+      config.posterRatingStyle = 'plain';
+      config.posterRatingsLayout = 'bottom';
+    } else if (posterRatingsLayout) {
+      if (posterAverageRatingsEnabled) {
+        config.posterRatingsMode = 'average';
+      }
       config.posterRatingsLayout = posterRatingsLayout;
     }
     if (isVerticalPosterRatingLayout(posterRatingsLayout) && posterRatingsMaxPerSide !== null) {
@@ -1621,6 +1672,9 @@ export default function HomePage({
     backdropRatingPreferences,
     thumbnailRatingPreferences,
     logoRatingPreferences,
+    posterConfiguratorPreset,
+    posterAverageRatingsEnabled,
+    posterSimpleRatingSource,
     posterStreamBadges,
     backdropStreamBadges,
     shouldShowPosterQualityBadgesSide,
@@ -1770,10 +1824,11 @@ export default function HomePage({
     if (logoAnimeLang) {
       config.logoAnimeLang = effectiveLogoAnimeLang;
     }
-    config.posterAnimeImageText = posterAnimeImageText;
+    config.posterAnimeImageText = posterConfiguratorPreset === 'simple' ? 'default' : posterAnimeImageText;
     config.backdropAnimeImageText = backdropAnimeImageText;
-    if (posterStreamBadges !== 'auto') {
-      config.posterStreamBadges = posterStreamBadges;
+    const proxyEffectivePosterStreamBadges = posterConfiguratorPreset === 'simple' ? 'on' : posterStreamBadges;
+    if (proxyEffectivePosterStreamBadges !== 'auto') {
+      config.posterStreamBadges = proxyEffectivePosterStreamBadges;
     }
     if (backdropStreamBadges !== 'auto') {
       config.backdropStreamBadges = backdropStreamBadges;
@@ -1784,13 +1839,15 @@ export default function HomePage({
     if (shouldShowPosterQualityBadgesPosition && posterQualityBadgesPosition !== 'auto') {
       config.posterQualityBadgesPosition = posterQualityBadgesPosition;
     }
-    if (posterQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
+    if (posterConfiguratorPreset === 'simple') {
+      config.posterQualityBadgesStyle = 'plain';
+    } else if (posterQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
       config.posterQualityBadgesStyle = posterQualityBadgesStyle;
     }
     if (backdropQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
       config.backdropQualityBadgesStyle = backdropQualityBadgesStyle;
     }
-    if (posterRatingStyle) {
+    if (posterConfiguratorPreset !== 'simple' && posterRatingStyle) {
       config.posterRatingStyle = posterRatingStyle;
     }
     if (backdropRatingStyle) {
@@ -1803,7 +1860,9 @@ export default function HomePage({
       config.logoRatingStyle = logoRatingStyle;
     }
 
-    config.posterRatingStyle = posterRatingStyle;
+    if (posterConfiguratorPreset !== 'simple') {
+      config.posterRatingStyle = posterRatingStyle;
+    }
     config.backdropRatingStyle = backdropRatingStyle;
     config.thumbnailRatingStyle = thumbnailRatingStyle;
     config.logoRatingStyle = logoRatingStyle;
@@ -1812,7 +1871,7 @@ export default function HomePage({
     config.logoPrimary = logoCustomPrimary;
     config.logoSecondary = logoCustomSecondary;
     config.logoOutline = logoCustomOutline;
-    config.posterImageText = posterImageText;
+    config.posterImageText = posterConfiguratorPreset === 'simple' ? 'clean' : posterImageText;
     config.backdropImageText = backdropImageText;
     config.posterEnabled = proxyEnabledTypes.poster;
     config.backdropEnabled = proxyEnabledTypes.backdrop;
@@ -1834,7 +1893,18 @@ export default function HomePage({
       config.discoverOnlyCatalogs = sanitizedProxyDiscoverOnlyCatalogs;
     }
 
-    if (posterRatingsLayout) {
+    if (posterConfiguratorPreset === 'simple') {
+      config.posterConfiguratorPreset = 'simple';
+      config.posterRatingsMode = 'average';
+      if (posterSimpleRatingSource !== 'average') {
+        config.posterRatings = posterSimpleRatingSource;
+      }
+      config.posterRatingStyle = 'plain';
+      config.posterRatingsLayout = 'bottom';
+    } else if (posterRatingsLayout) {
+      if (posterAverageRatingsEnabled) {
+        config.posterRatingsMode = 'average';
+      }
       config.posterRatingsLayout = posterRatingsLayout;
     }
     if (isVerticalPosterRatingLayout(posterRatingsLayout) && posterRatingsMaxPerSide !== null) {
@@ -2200,6 +2270,21 @@ export default function HomePage({
     if (typeof payload.previewType === 'string' && isPreviewType(payload.previewType)) {
       setPreviewType(payload.previewType);
     }
+    if (payload.posterConfiguratorPreset === 'simple' || payload.posterRatingsMode === 'average') {
+      if (payload.posterConfiguratorPreset === 'simple') {
+        setPosterConfiguratorPreset('simple');
+      } else {
+        setPosterAverageRatingsEnabled(true);
+      }
+    } else if (payload.posterConfiguratorPreset === 'advanced') {
+      setPosterConfiguratorPreset('advanced');
+    }
+    if (
+      typeof payload.posterSimpleRatingSource === 'string' &&
+      (payload.posterSimpleRatingSource === 'average' || isRatingProviderId(payload.posterSimpleRatingSource))
+    ) {
+      setPosterSimpleRatingSource(payload.posterSimpleRatingSource as 'average' | RatingPreference);
+    }
     if (typeof payload.posterImageText === 'string' && isImageText(payload.posterImageText)) {
       setPosterImageText(payload.posterImageText);
     }
@@ -2493,6 +2578,9 @@ export default function HomePage({
       logoAnimeLang,
       posterImageText,
       posterAnimeImageText,
+      posterConfiguratorPreset,
+      posterAverageRatingsEnabled,
+      posterSimpleRatingSource,
       backdropAnimeImageText,
       backdropImageText,
       posterRatingPreferences,
@@ -2541,6 +2629,7 @@ export default function HomePage({
     previewType,
     mediaId,
     effectiveLang,
+    posterSimpleRatingSource,
     posterLang,
     posterAnimeLang,
     backdropLang,
@@ -2751,6 +2840,9 @@ export default function HomePage({
       logoAnimeLang,
       posterImageText,
       posterAnimeImageText,
+      posterConfiguratorPreset,
+      posterAverageRatingsEnabled,
+      posterSimpleRatingSource,
       backdropAnimeImageText,
       backdropImageText,
       posterRatingPreferences,
@@ -2798,6 +2890,8 @@ export default function HomePage({
       logoAnimeLang,
       posterImageText,
       posterAnimeImageText,
+      posterConfiguratorPreset,
+      posterAverageRatingsEnabled,
       backdropAnimeImageText,
       backdropImageText,
       posterRatingPreferences,
@@ -2830,6 +2924,7 @@ export default function HomePage({
       backdropVerticalBadgeContent,
       thumbnailVerticalBadgeContent,
       thumbnailSize,
+      posterSimpleRatingSource,
       tmdbKey,
       mdblistKey,
       simklClientId,
@@ -2883,15 +2978,17 @@ export default function HomePage({
   const proxyDisplayValue = proxyUrl || `${baseUrl || 'https://erdb.example.com'}/proxy/{config}/manifest.json`;
   const displayedProxyUrl = isProxyUrlVisible ? proxyDisplayValue : maskSensitiveText(proxyDisplayValue);
   const activeRatingStyle =
-    previewType === 'poster'
-      ? posterRatingStyle
-      : previewType === 'backdrop'
-        ? backdropRatingStyle
-        : previewType === 'thumbnail'
-          ? thumbnailRatingStyle
-          : logoRatingStyle;
+    isSimplePosterPreset
+      ? 'plain'
+      : previewType === 'poster'
+        ? posterRatingStyle
+        : previewType === 'backdrop'
+          ? backdropRatingStyle
+          : previewType === 'thumbnail'
+            ? thumbnailRatingStyle
+            : logoRatingStyle;
   const activeImageText =
-    previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : posterImageText;
+    isSimplePosterPreset ? 'clean' : previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : posterImageText;
   const styleLabel =
     previewType === 'poster'
       ? 'Poster Ratings Style'
@@ -3011,6 +3108,9 @@ export default function HomePage({
       backdropVerticalBadgeContent,
       thumbnailVerticalBadgeContent,
       thumbnailSize,
+      posterConfiguratorPreset,
+      posterAverageRatingsEnabled,
+      posterSimpleRatingSource,
       qualityBadgesSide,
       posterQualityBadgesPosition,
       proxyCopied,
@@ -3086,6 +3186,9 @@ export default function HomePage({
       setBackdropVerticalBadgeContent,
       setThumbnailVerticalBadgeContent,
       setThumbnailSize,
+      setPosterConfiguratorPreset,
+      setPosterAverageRatingsEnabled,
+      setPosterSimpleRatingSource,
       setAiometadataEpisodeProvider,
       setProxySeriesMetadataProvider,
       setProxyAiometadataProvider,
