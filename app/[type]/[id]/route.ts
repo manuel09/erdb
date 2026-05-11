@@ -179,7 +179,7 @@ const resolveOriginalAwareImageLanguage = (input: {
   ) ||
   normalizeTmdbLanguageCode(input.requestLanguage) ||
   input.fallbackLanguage;
-const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v88';
+const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v91';
 const TMDB_CACHE_TTL_MS = parseCacheTtlMs(
   process.env.ERDB_TMDB_CACHE_TTL_MS,
   3 * 24 * 60 * 60 * 1000,
@@ -3806,6 +3806,9 @@ const estimateBadgeTextWidth = (
     if (ch === ' ' || ch === ' ') return fontSize * (compactText ? 0.14 : 0.18); // thin / narrow no-break space
     if (ch === '★') return fontSize * 0.88;
     if (ch === '•') return fontSize * (compactText ? 0.34 : 0.40);
+    if (/[mwMW]/.test(ch)) return fontSize * (compactText ? 0.76 : 0.82);
+    if (/[A-Z]/.test(ch)) return fontSize * (compactText ? 0.62 : 0.68);
+    if (/[ilI1jt]/.test(ch)) return fontSize * (compactText ? 0.26 : 0.32);
     return fontSize * (compactText ? 0.54 : 0.58);
   };
   const measuredTextWidth = [...normalized].reduce((acc, ch) => acc + measureChar(ch), 0);
@@ -4587,23 +4590,14 @@ const buildBadgeSvg = ({
       ? (() => {
         const genreValue = String(starRatingMatch[1] || '').trim();
         const ratingValue = starRatingMatch[2];
-        const starFontSize = fontSize;
-        const starWidth = Math.round(starFontSize * 0.9);
         const genreText = genreValue ? genreValue : '';
-        const genreWidth = genreText ? estimateBadgeTextWidth(genreText, fontSize, compactText) : 0;
-        const ratingWidth = estimateBadgeTextWidth(ratingValue, fontSize, compactText);
         const starGap = Math.max(4, Math.round(fontSize * 0.18));
         const genreGap = genreText ? Math.max(6, Math.round(fontSize * 0.20)) : 0;
-        const groupWidth = genreWidth + genreGap + starWidth + starGap + ratingWidth;
-        const groupLeft = Math.round(width / 2 - groupWidth / 2);
-        const genreX = groupLeft;
-        const starX = groupLeft + genreWidth + genreGap + Math.round(starWidth / 2);
-        const ratingX = groupLeft + genreWidth + genreGap + starWidth + starGap;
-        const starY = valueY - Math.round(fontSize * 0.05);
-        const genreSvg = genreText
-          ? `<text x="${genreX}" y="${valueY}" font-family="${valueFontFamily}" font-size="${fontSize}" font-weight="800" fill="white" fill-opacity="0.72"${valueFilter}${valueLetterSpacing}>${escapeXml(genreText)}</text>`
-          : '';
-        return `${genreSvg}<text x="${starX}" y="${starY}" font-family="${valueFontFamily}" font-size="${starFontSize}" font-weight="800" text-anchor="middle" fill="white"${valueFilter}>★</text><text x="${ratingX}" y="${valueY}" font-family="${valueFontFamily}" font-size="${fontSize}" font-weight="800" fill="white"${valueFilter}${valueLetterSpacing}${valueNumericStyle}>${escapeXml(ratingValue)}</text>`;
+        const dyOffset = Math.round(fontSize * 0.07);
+        
+        return `<text x="${valueX}" y="${valueY}" font-family="${valueFontFamily}" font-size="${fontSize}" font-weight="800" fill="white" text-anchor="middle"${valueFilter}${valueLetterSpacing}>${
+          genreText ? `<tspan fill-opacity="0.72">${escapeXml(genreText)}</tspan><tspan dx="${genreGap}" dy="-${dyOffset}">★</tspan>` : `<tspan dy="-${dyOffset}">★</tspan>`
+        }<tspan dx="${starGap}" dy="${dyOffset}"${valueNumericStyle}>${escapeXml(ratingValue)}</tspan></text>`;
       })()
       : `<text x="${valueX}" y="${valueY}" font-family="${valueFontFamily}" font-size="${fontSize}" font-weight="800" fill="white"${valueFilter}${valueLetterSpacing}${valueTextLength}${valueNumericStyle}${valueTextAnchor}>${escapeXml(value)}</text>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
