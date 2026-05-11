@@ -2349,6 +2349,12 @@ export default function HomePage({
     if (typeof payload.logoCustomOutline === 'string') {
       setLogoCustomOutline(normalizeHexColor(payload.logoCustomOutline, DEFAULT_LOGO_CUSTOM_OUTLINE));
     }
+    if (typeof payload.posterConfiguratorPreset === 'string' && (payload.posterConfiguratorPreset === 'simple' || payload.posterConfiguratorPreset === 'advanced')) {
+      setPosterConfiguratorPreset(payload.posterConfiguratorPreset);
+    }
+    if (typeof payload.posterRatingsMode === 'string' && (payload.posterRatingsMode === 'average' || payload.posterRatingsMode === 'separate')) {
+      setPosterAverageRatingsEnabled(payload.posterRatingsMode === 'average');
+    }
     if (typeof payload.posterRatingsLayout === 'string' && isPosterRatingLayout(payload.posterRatingsLayout)) {
       setPosterRatingsLayout(payload.posterRatingsLayout);
     }
