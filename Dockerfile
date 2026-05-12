@@ -1,4 +1,4 @@
-FROM node:20-alpine AS deps
+FROM mirror.gcr.io/library/node:20-alpine AS deps
 WORKDIR /app
 
 COPY package*.json ./
@@ -7,7 +7,7 @@ ENV ERDB_SKIP_FONT_INSTALL=1
 ENV NODE_ENV=development
 RUN if [ -f package-lock.json ]; then npm ci --include=dev; else npm install; fi
 
-FROM node:20-alpine AS builder
+FROM mirror.gcr.io/library/node:20-alpine AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -15,14 +15,14 @@ COPY . .
 RUN mkdir -p /app/public
 RUN npm run build
 
-FROM node:20-alpine AS prod-deps
+FROM mirror.gcr.io/library/node:20-alpine AS prod-deps
 WORKDIR /app
 
 COPY package*.json ./
 COPY --from=deps /app/node_modules ./node_modules
 RUN npm prune --omit=dev
 
-FROM node:20-alpine AS runner
+FROM mirror.gcr.io/library/node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

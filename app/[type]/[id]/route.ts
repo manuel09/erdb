@@ -181,7 +181,7 @@ const resolveOriginalAwareImageLanguage = (input: {
   ) ||
   normalizeTmdbLanguageCode(input.requestLanguage) ||
   input.fallbackLanguage;
-const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v135';
+const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v136';
 const TMDB_CACHE_TTL_MS = parseCacheTtlMs(
   process.env.ERDB_TMDB_CACHE_TTL_MS,
   3 * 24 * 60 * 60 * 1000,
@@ -5922,7 +5922,6 @@ const renderWithSharp = async (
         for (const row of rows) {
           composeBadgeRow(row, rowY, {
             maxRowWidth: input.logoBadgeMaxWidth,
-            preserveBadgeSize: true,
           });
           rowY += badgeHeight + input.badgeGap;
         }

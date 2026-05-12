@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.58](https://github.com/realbestia1/erdb/compare/v0.4.57...v0.4.58) - 2026-05-12
+
+- Bump to v0.4.58; update image cache & defaults ([ddcf2aa](https://github.com/realbestia1/erdb/commit/ddcf2aaa157af84dc46ed2d861f944460c1dfed7))
+  Release bump to 0.4.58 (package.json + package-lock.json + tsbuildinfo). Update FINAL_IMAGE_RENDERER_CACHE_VERSION to 'poster-backdrop-logo-thumbnail-v136' and remove preserveBadgeSize from badge composition in the image renderer. Change HomePage defaults: ranking now defaults to 'daily' (including the simple preset) and currentVersion updated to 0.4.58. These changes align cache/versioning and adjust default UX for rankings.
+
 ## [0.4.57](https://github.com/realbestia1/erdb/compare/v0.4.56...v0.4.57) - 2026-05-12
 
 - Adjust badge layout, use next/image, bump version ([4330009](https://github.com/realbestia1/erdb/commit/433000992f3b7b58592eefbbdfba580e33589135))

@@ -819,7 +819,7 @@ export default function HomePage({
     useState<PosterQualityBadgesPosition>('auto');
   const [posterQualityBadgesStyle, setPosterQualityBadgesStyle] = useState<RatingStyle>('glass');
   const [backdropQualityBadgesStyle, setBackdropQualityBadgesStyle] = useState<RatingStyle>(DEFAULT_QUALITY_BADGES_STYLE);
-  const [ranking, setRanking] = useState('on');
+  const [ranking, setRanking] = useState('daily');
   const setPosterConfiguratorPreset = useCallback((value: PosterConfiguratorPreset) => {
     setPosterConfiguratorPresetState(value);
     if (value === 'simple') {
@@ -827,7 +827,7 @@ export default function HomePage({
       setPosterAnimeImageText('default');
       setPosterStreamBadges('on');
       setPosterQualityBadgesStyle('plain');
-      setRanking('on');
+      setRanking('daily');
     } else {
       setPosterAverageRatingsEnabled(false);
     }
@@ -887,7 +887,7 @@ export default function HomePage({
   const [showProxyUrl, setShowProxyUrl] = useState(false);
   const [aiometadataCopiedType, setAiometadataCopiedType] = useState<AiometadataPatternType | null>(null);
   const [aiometadataEpisodeProvider, setAiometadataEpisodeProvider] = useState<AiometadataEpisodeProvider>('realimdb');
-  const [currentVersion, setCurrentVersion] = useState('0.4.57');
+  const [currentVersion, setCurrentVersion] = useState('0.4.58');
   const [githubPackageVersion, setGithubPackageVersion] = useState<string | null>(null);
   const [repoUrl, setRepoUrl] = useState<string | null>(null);
   const [userCount, setUserCount] = useState<number | null>(null);
