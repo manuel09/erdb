@@ -8,11 +8,14 @@ const GITHUB_REPO = 'erdb';
 const GITHUB_PACKAGE_URL = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/main/package.json`;
 
 const fetchJson = async (url: string) => {
-  const response = await fetch(url, { cache: 'no-store' });
-  if (!response.ok) return null;
   try {
+    const response = await fetch(url, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!response.ok) return null;
     return await response.json();
-  } catch {
+  } catch (error) {
     return null;
   }
 };

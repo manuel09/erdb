@@ -26,6 +26,8 @@ import {
   SEGMENT_CLASS,
   INNER_PANEL_CLASS,
   CONFIG_PANEL_CLASS,
+  RANKING_OPTIONS,
+  JUSTWATCH_COUNTRY_OPTIONS,
 } from './constants';
 
 type WorkspaceControlsPanelProps = Pick<HomePageViewProps, 'state' | 'derived' | 'actions'>;
@@ -68,6 +70,9 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     posterSimpleRatingSource,
     qualityBadgesSide,
     posterQualityBadgesPosition,
+    ranking,
+    rankingCountry,
+    rankingNoBox,
   } = state;
 
   const {
@@ -126,6 +131,9 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     enableAllRatingPreferences,
     disableAllRatingPreferences,
     reorderRatingPreference,
+    setRanking,
+    setRankingCountry,
+    setRankingNoBox,
   } = actions;
 
   const shouldShowVerticalBadgeContent =
@@ -139,6 +147,8 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
       : previewType === 'thumbnail'
         ? thumbnailVerticalBadgeContent
         : backdropVerticalBadgeContent;
+  const normalizedRankingCountry = rankingCountry === 'global' ? 'global' : rankingCountry.toUpperCase();
+  const hasKnownRankingCountry = JUSTWATCH_COUNTRY_OPTIONS.some((option) => option.id === normalizedRankingCountry);
 
   const renderSelect = (value: string, onChange: (val: string) => void, options: any[], defaultLabel: string) => (
     <div className="relative w-full max-w-sm">
@@ -516,7 +526,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
         )}
 
         {/* QUALITY BADGES */}
-        {previewType !== 'logo' && previewType !== 'thumbnail' && !(previewType === 'poster' && posterConfiguratorPreset === 'simple') && (
+        {previewType !== 'logo' && previewType !== 'thumbnail' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={`${INNER_PANEL_CLASS} p-5 space-y-4`}>
             <h3 className="text-xs font-medium text-slate-300">Quality Badges ({qualityBadgeTypeLabel})</h3>
             <div className={SEGMENT_CLASS + " bg-black/40 inline-flex flex-wrap"}>
@@ -526,7 +536,8 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                 </button>
               ))}
             </div>
-            <div className="pt-2 space-y-3">
+            {!(previewType === 'poster' && posterConfiguratorPreset === 'simple') && (
+              <div className="pt-2 space-y-3">
               <h3 className="text-xs font-medium text-slate-300">Badge Style</h3>
               <div className="flex flex-wrap gap-2">
                 {RATING_STYLE_OPTIONS.map(option => (
@@ -535,7 +546,8 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                   </button>
                 ))}
               </div>
-            </div>
+              </div>
+            )}
             
             <div className="flex flex-wrap gap-4 pt-2">
               {shouldShowQualityBadgesPosition && (
@@ -565,6 +577,70 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
             </div>
           </motion.div>
         )}
+
+        {/* JUSTWATCH RANKING */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`${INNER_PANEL_CLASS} p-5 space-y-4`}>
+          <div className="flex items-center gap-2">
+            <h3 className="text-xs font-medium text-slate-300">Ranking</h3>
+            <span className="rounded-full bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 text-[9px] uppercase tracking-wider text-orange-400 font-bold">New</span>
+          </div>
+          <p className="text-xs text-slate-500">Show the popularity rank from JustWatch charts on your posters.</p>
+          
+          <div className="space-y-4 pt-1">
+            <div className="space-y-3">
+              <h4 className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Ranking Interval</h4>
+              <div className={SEGMENT_CLASS + " bg-black/40 inline-flex flex-wrap"}>
+                {RANKING_OPTIONS.map(option => (
+                  <button key={option.id} onClick={() => setRanking(option.id)} className={`px-4 py-2.5 rounded-lg text-xs font-semibold transition-all ${ranking === option.id ? 'bg-orange-500/20 text-orange-200' : 'text-slate-400 hover:text-slate-200'}`}>
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <AnimatePresence>
+              {ranking !== 'off' && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-4 overflow-hidden">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <h4 className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Chart Country</h4>
+                      <div className="flex items-center gap-2">
+                        <Globe2 className="w-4 h-4 text-slate-500" />
+                        <select
+                          value={hasKnownRankingCountry ? normalizedRankingCountry : rankingCountry}
+                          onChange={(e) => setRankingCountry(e.target.value)}
+                          className={INPUT_CLASS}
+                        >
+                          {!hasKnownRankingCountry && (
+                            <option value={rankingCountry}>{rankingCountry}</option>
+                          )}
+                          {JUSTWATCH_COUNTRY_OPTIONS.map((option) => (
+                            <option key={option.id} value={option.id} className="bg-[#0a0a0a]">
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <h4 className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Display Style</h4>
+                      <div className="flex items-center gap-2 h-10">
+                        <label className="flex items-center gap-3 cursor-pointer group">
+                          <div className="relative">
+                            <input type="checkbox" checked={rankingNoBox} onChange={(e) => setRankingNoBox(e.target.checked)} className="sr-only peer" />
+                            <div className="w-9 h-5 bg-black/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 peer-checked:after:bg-orange-400 after:border-slate-400 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500/20"></div>
+                          </div>
+                          <span className="text-xs font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Hide Background Box</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
 
         {/* PROVIDERS */}
         {!(previewType === 'poster' && posterConfiguratorPreset === 'simple') && (

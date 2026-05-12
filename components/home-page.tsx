@@ -98,6 +98,7 @@ import {
   normalizeProxyCatalogNameOverrides,
   type ProxyCatalogDescriptor,
 } from '@/lib/proxyCatalog';
+import { JUSTWATCH_COUNTRY_OPTIONS } from '@/components/workspace/constants';
 
 export type HomePageMode = 'landing' | 'workspace';
 
@@ -386,6 +387,9 @@ const buildAiometadataPattern = (options: {
   backdropVerticalBadgeContent: VerticalBadgeContent;
   thumbnailVerticalBadgeContent: VerticalBadgeContent;
   thumbnailSize: ThumbnailSize;
+  ranking: string;
+  rankingCountry: string;
+  rankingNoBox?: boolean;
 }) => {
   const {
     baseUrl,
@@ -439,6 +443,9 @@ const buildAiometadataPattern = (options: {
     backdropVerticalBadgeContent,
     thumbnailVerticalBadgeContent,
     thumbnailSize,
+    ranking,
+    rankingCountry,
+    rankingNoBox,
   } = options;
 
   if (!baseUrl) {
@@ -458,6 +465,16 @@ const buildAiometadataPattern = (options: {
     ['mdblistKey', mdblistKey || '{mdblist_key}'],
     ['lang', '{language_code}'],
   ];
+
+  if (ranking !== 'off') {
+    params.push(['ranking', ranking]);
+    if (rankingCountry !== 'global') {
+      params.push(['rankingCountry', rankingCountry]);
+    }
+    if (rankingNoBox) {
+      params.push(['rankingNoBox', 'on']);
+    }
+  }
 
   if (simklClientId) {
     params.push(['simklClientId', simklClientId]);
@@ -564,6 +581,9 @@ const buildAiometadataPatternBlock = (options: {
   imageType: 'poster' | 'backdrop' | 'logo' | 'thumbnail';
   configString: string;
   idPattern?: string;
+  ranking: string;
+  rankingCountry: string;
+  rankingNoBox?: boolean;
 }) => {
   if (!options.baseUrl) {
     return '';
@@ -610,6 +630,11 @@ const buildAiometadataPatternBlock = (options: {
 
   pushIfString('tmdbKey');
   pushIfString('lang');
+  pushIfString('ranking');
+  pushIfString('rankingCountry');
+  if (config.rankingNoBox === 'on' || config.rankingNoBox === true) {
+    params.push(['rankingNoBox', 'on']);
+  }
 
   if (options.imageType !== 'thumbnail') {
     pushIfString('mdblistKey');
@@ -724,6 +749,21 @@ const downloadJsonFile = (payload: Record<string, unknown>, filename: string) =>
 };
 
 const maskSensitiveText = (value: string) => value.replace(/[^\s]/g, '*');
+const JUSTWATCH_LANGUAGE_COUNTRY_OVERRIDES: Record<string, string> = {
+  en: 'US',
+  ar: 'EG',
+  es: 'ES',
+  pt: 'BR',
+};
+const getJustWatchCountryForLanguage = (language: string) => {
+  const normalized = normalizeTmdbLanguageCode(language) || language;
+  const region = normalized.match(/^[a-z]{2}-([A-Z]{2})$/)?.[1];
+  const supportedCountries = new Set(JUSTWATCH_COUNTRY_OPTIONS.map((option) => option.id));
+  if (region && supportedCountries.has(region)) return region;
+  const base = getTmdbLanguageBase(normalized);
+  const mapped = base ? JUSTWATCH_LANGUAGE_COUNTRY_OVERRIDES[base] : null;
+  return mapped && supportedCountries.has(mapped) ? mapped : 'global';
+};
 
 export default function HomePage({
   mode = 'landing',
@@ -772,6 +812,11 @@ export default function HomePage({
     previewType === 'poster' && (posterConfiguratorPreset === 'simple' || posterAverageRatingsEnabled);
   const [posterStreamBadges, setPosterStreamBadges] = useState<StreamBadgesSetting>('auto');
   const [backdropStreamBadges, setBackdropStreamBadges] = useState<StreamBadgesSetting>('off');
+  const [qualityBadgesSide, setQualityBadgesSide] = useState<QualityBadgesSide>('left');
+  const [posterQualityBadgesPosition, setPosterQualityBadgesPosition] =
+    useState<PosterQualityBadgesPosition>('auto');
+  const [posterQualityBadgesStyle, setPosterQualityBadgesStyle] = useState<RatingStyle>('glass');
+  const [backdropQualityBadgesStyle, setBackdropQualityBadgesStyle] = useState<RatingStyle>(DEFAULT_QUALITY_BADGES_STYLE);
   const setPosterConfiguratorPreset = useCallback((value: PosterConfiguratorPreset) => {
     setPosterConfiguratorPresetState(value);
     if (value === 'simple') {
@@ -783,11 +828,6 @@ export default function HomePage({
       setPosterAverageRatingsEnabled(false);
     }
   }, []);
-  const [qualityBadgesSide, setQualityBadgesSide] = useState<QualityBadgesSide>('left');
-  const [posterQualityBadgesPosition, setPosterQualityBadgesPosition] =
-    useState<PosterQualityBadgesPosition>('auto');
-  const [posterQualityBadgesStyle, setPosterQualityBadgesStyle] = useState<RatingStyle>('glass');
-  const [backdropQualityBadgesStyle, setBackdropQualityBadgesStyle] = useState<RatingStyle>(DEFAULT_QUALITY_BADGES_STYLE);
   const [posterRatingsLayout, setPosterRatingsLayout] = useState<PosterRatingLayout>('left-right');
   const [backdropRatingsLayout, setBackdropRatingsLayout] = useState<BackdropRatingLayout>('right-vertical');
   const [backdropRatingsSize, setBackdropRatingsSize] = useState<BackdropRatingsSize>('large');
@@ -798,6 +838,14 @@ export default function HomePage({
   const [thumbnailSize, setThumbnailSize] = useState<ThumbnailSize>('large');
   const [posterRatingStyle, setPosterRatingStyle] = useState<RatingStyle>('glass');
   const [backdropRatingStyle, setBackdropRatingStyle] = useState<RatingStyle>('glass');
+  const [ranking, setRanking] = useState('off');
+  const [rankingCountry, setRankingCountry] = useState('global');
+  const [rankingCountryTouched, setRankingCountryTouched] = useState(false);
+  const [rankingNoBox, setRankingNoBox] = useState(false);
+  const updateRankingCountry = useCallback((value: SetStateAction<string>) => {
+    setRankingCountryTouched(true);
+    setRankingCountry(value);
+  }, []);
   const [thumbnailRatingStyle, setThumbnailRatingStyle] = useState<RatingStyle>('glass');
   const [logoRatingStyle, setLogoRatingStyle] = useState<RatingStyle>('plain');
   const [posterRatingsMaxPerSide, setPosterRatingsMaxPerSide] = useState<number | null>(DEFAULT_POSTER_RATINGS_MAX_PER_SIDE);
@@ -836,7 +884,7 @@ export default function HomePage({
   const [showProxyUrl, setShowProxyUrl] = useState(false);
   const [aiometadataCopiedType, setAiometadataCopiedType] = useState<AiometadataPatternType | null>(null);
   const [aiometadataEpisodeProvider, setAiometadataEpisodeProvider] = useState<AiometadataEpisodeProvider>('realimdb');
-  const [currentVersion, setCurrentVersion] = useState('0.3.30');
+  const [currentVersion, setCurrentVersion] = useState('0.4.52');
   const [githubPackageVersion, setGithubPackageVersion] = useState<string | null>(null);
   const [repoUrl, setRepoUrl] = useState<string | null>(null);
   const [userCount, setUserCount] = useState<number | null>(null);
@@ -940,6 +988,11 @@ export default function HomePage({
     const normalizedLogoAnimeLang = normalizeTmdbLanguageCode(logoAnimeLang) || logoAnimeLang;
     return normalizedLogoAnimeLang || effectiveLogoLang;
   }, [effectiveLogoLang, logoAnimeLang]);
+
+  const effectiveRankingCountry = rankingCountryTouched
+    ? rankingCountry
+    : getJustWatchCountryForLanguage(effectiveLang);
+
   const sanitizedProxyCatalogNames = useMemo(
     () => normalizeProxyCatalogNameOverrides(proxyCatalogNames) || {},
     [proxyCatalogNames]
@@ -958,9 +1011,9 @@ export default function HomePage({
   );
 
   const [copied, setCopied] = useState(false);
-  const shouldShowPosterQualityBadgesSide = posterRatingsLayout === 'top-bottom';
+  const shouldShowPosterQualityBadgesSide = false;
   const shouldShowPosterQualityBadgesPosition =
-    posterRatingsLayout === 'top' || posterRatingsLayout === 'bottom';
+    posterRatingsLayout === 'top' || posterRatingsLayout === 'bottom' || posterRatingsLayout === 'top-bottom';
   const shouldShowQualityBadgesSide = previewType === 'poster' && shouldShowPosterQualityBadgesSide;
   const shouldShowQualityBadgesPosition =
     previewType === 'poster' && shouldShowPosterQualityBadgesPosition;
@@ -1290,7 +1343,7 @@ export default function HomePage({
     const imageTextForType =
       isSimplePosterPreset ? 'clean' : previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : posterImageText;
     const streamBadgesForType =
-      isSimplePosterPreset ? 'on' : previewType === 'backdrop' || previewType === 'thumbnail' ? backdropStreamBadges : posterStreamBadges;
+      previewType === 'backdrop' || previewType === 'thumbnail' ? backdropStreamBadges : posterStreamBadges;
     const qualityBadgesStyleForType =
       previewType === 'backdrop' || previewType === 'thumbnail'
         ? backdropQualityBadgesStyle
@@ -1428,6 +1481,15 @@ export default function HomePage({
         query.set('previewVariant', `${thumbnailSize}-${thumbnailRatingsLayout}`);
       }
     }
+    if (ranking !== 'off') {
+      query.set('ranking', ranking);
+      if (effectiveRankingCountry !== 'global') {
+        query.set('rankingCountry', effectiveRankingCountry);
+      }
+      if (rankingNoBox) {
+        query.set('rankingNoBox', 'on');
+      }
+    }
 
     if (!baseUrl) {
       return '';
@@ -1495,6 +1557,9 @@ export default function HomePage({
     isSimplePosterPreset,
     shouldUsePosterAverageRatings,
     posterSimpleRatingSource,
+    ranking,
+    effectiveRankingCountry,
+    rankingNoBox,
   ]);
 
   const configString = useMemo(() => {
@@ -1562,7 +1627,7 @@ export default function HomePage({
     if (logoAnimeLang) {
       config.logoAnimeLang = effectiveLogoAnimeLang;
     }
-    const effectivePosterStreamBadges = posterConfiguratorPreset === 'simple' ? 'on' : posterStreamBadges;
+    const effectivePosterStreamBadges = posterStreamBadges;
     if (effectivePosterStreamBadges !== 'auto') {
       config.posterStreamBadges = effectivePosterStreamBadges;
     }
@@ -1660,6 +1725,15 @@ export default function HomePage({
     ) {
       config.thumbnailVerticalBadgeContent = thumbnailVerticalBadgeContent;
     }
+    if (ranking !== 'off') {
+      config.ranking = ranking;
+      if (effectiveRankingCountry !== 'global') {
+        config.rankingCountry = effectiveRankingCountry;
+      }
+      if (rankingNoBox) {
+        config.rankingNoBox = 'on';
+      }
+    }
 
     return encodeBase64Url(JSON.stringify(config));
   }, [
@@ -1720,6 +1794,9 @@ export default function HomePage({
     thumbnailVerticalBadgeContent,
     thumbnailSize,
     thumbnailRatingStyle,
+    ranking,
+    effectiveRankingCountry,
+    rankingNoBox,
   ]);
 
   const proxyUrl = useMemo(() => {
@@ -1826,7 +1903,7 @@ export default function HomePage({
     }
     config.posterAnimeImageText = posterConfiguratorPreset === 'simple' ? 'default' : posterAnimeImageText;
     config.backdropAnimeImageText = backdropAnimeImageText;
-    const proxyEffectivePosterStreamBadges = posterConfiguratorPreset === 'simple' ? 'on' : posterStreamBadges;
+    const proxyEffectivePosterStreamBadges = posterStreamBadges;
     if (proxyEffectivePosterStreamBadges !== 'auto') {
       config.posterStreamBadges = proxyEffectivePosterStreamBadges;
     }
@@ -1947,6 +2024,15 @@ export default function HomePage({
     ) {
       config.thumbnailVerticalBadgeContent = thumbnailVerticalBadgeContent;
     }
+    if (ranking !== 'off') {
+      config.ranking = ranking;
+      if (effectiveRankingCountry !== 'global') {
+        config.rankingCountry = effectiveRankingCountry;
+      }
+      if (rankingNoBox) {
+        config.rankingNoBox = 'on';
+      }
+    }
     if (isAiometadataManifest) {
       config.aiometadataProvider = proxyAiometadataProvider;
     } else if (!isCinemetaManifest && proxySeriesMetadataProvider === 'imdb') {
@@ -2020,6 +2106,12 @@ export default function HomePage({
     baseUrl,
     thumbnailRatingStyle,
     activeToken,
+    posterConfiguratorPreset,
+    posterAverageRatingsEnabled,
+    posterSimpleRatingSource,
+    ranking,
+    effectiveRankingCountry,
+    rankingNoBox,
   ]);
 
   const aiometadataPatterns = useMemo(() => {
@@ -2029,6 +2121,9 @@ export default function HomePage({
       imageType: 'thumbnail',
       configString,
       idPattern: buildEpisodeThumbnailIdPattern(aiometadataEpisodeProvider),
+      ranking,
+      rankingCountry: effectiveRankingCountry,
+      rankingNoBox,
     });
 
     return {
@@ -2038,6 +2133,9 @@ export default function HomePage({
         imageType: 'poster',
         configString,
         idPattern: 'tmdb:{type}:{tmdb_id}',
+        ranking,
+        rankingCountry: effectiveRankingCountry,
+        rankingNoBox,
       }),
       background: buildAiometadataPatternBlock({
         baseUrl,
@@ -2045,6 +2143,9 @@ export default function HomePage({
         imageType: 'backdrop',
         configString,
         idPattern: 'tmdb:{type}:{tmdb_id}',
+        ranking,
+        rankingCountry: effectiveRankingCountry,
+        rankingNoBox,
       }),
       logo: buildAiometadataPatternBlock({
         baseUrl,
@@ -2052,6 +2153,9 @@ export default function HomePage({
         imageType: 'logo',
         configString,
         idPattern: 'tmdb:{type}:{tmdb_id}',
+        ranking,
+        rankingCountry: effectiveRankingCountry,
+        rankingNoBox,
       }),
       episodeThumbnail: episodePattern,
     };
@@ -2060,6 +2164,9 @@ export default function HomePage({
     activeToken,
     configString,
     aiometadataEpisodeProvider,
+    ranking,
+    effectiveRankingCountry,
+    rankingNoBox,
   ]);
 
   const updateRatingRowsForType = (
@@ -2215,6 +2322,9 @@ export default function HomePage({
       proxyHiddenCatalogs: sanitizedProxyHiddenCatalogs,
       proxySearchDisabledCatalogs: sanitizedProxySearchDisabledCatalogs,
       proxyDiscoverOnlyCatalogs: sanitizedProxyDiscoverOnlyCatalogs,
+      ranking,
+      rankingCountry: effectiveRankingCountry,
+      rankingNoBox,
     };
 
     if (includeKeys) {
@@ -2354,6 +2464,17 @@ export default function HomePage({
     }
     if (typeof payload.posterRatingsMode === 'string' && (payload.posterRatingsMode === 'average' || payload.posterRatingsMode === 'separate')) {
       setPosterAverageRatingsEnabled(payload.posterRatingsMode === 'average');
+    }
+    if (typeof payload.ranking === 'string') {
+      setRanking(payload.ranking);
+    }
+    if (typeof payload.rankingCountry === 'string') {
+      setRankingCountry(payload.rankingCountry);
+    }
+    if (typeof payload.rankingNoBox === 'boolean') {
+      setRankingNoBox(payload.rankingNoBox);
+    } else if (payload.rankingNoBox === 'on') {
+      setRankingNoBox(true);
     }
     if (typeof payload.posterRatingsLayout === 'string' && isPosterRatingLayout(payload.posterRatingsLayout)) {
       setPosterRatingsLayout(payload.posterRatingsLayout);
@@ -2633,6 +2754,9 @@ export default function HomePage({
       proxyHiddenCatalogs: sanitizedProxyHiddenCatalogs,
       proxySearchDisabledCatalogs: sanitizedProxySearchDisabledCatalogs,
       proxyDiscoverOnlyCatalogs: sanitizedProxyDiscoverOnlyCatalogs,
+      ranking,
+      rankingCountry: effectiveRankingCountry,
+      rankingNoBox: rankingNoBox ? 'on' : undefined,
     };
     safeLocalStorageSet(PREVIEW_CONFIG_STORAGE_KEY, JSON.stringify(payload));
   }, [
@@ -2690,6 +2814,9 @@ export default function HomePage({
     sanitizedProxyHiddenCatalogs,
     sanitizedProxySearchDisabledCatalogs,
     sanitizedProxyDiscoverOnlyCatalogs,
+    ranking,
+    effectiveRankingCountry,
+    rankingNoBox,
   ]);
 
   const handleImportFile = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -2783,6 +2910,9 @@ export default function HomePage({
       mdblistKey,
       simklClientId,
       fanartKey,
+      ranking,
+      rankingCountry: effectiveRankingCountry,
+      rankingNoBox,
     }),
     [
       effectiveLang,
@@ -2835,6 +2965,9 @@ export default function HomePage({
       mdblistKey,
       simklClientId,
       fanartKey,
+      ranking,
+      effectiveRankingCountry,
+      rankingNoBox,
     ]
   );
 
@@ -2889,6 +3022,9 @@ export default function HomePage({
       mdblistKey,
       simklClientId,
       fanartKey,
+      ranking,
+      rankingCountry: effectiveRankingCountry,
+      rankingNoBox: rankingNoBox ? 'on' : undefined,
     }),
     [
       effectiveLang,
@@ -2939,6 +3075,9 @@ export default function HomePage({
       mdblistKey,
       simklClientId,
       fanartKey,
+      ranking,
+      effectiveRankingCountry,
+      rankingNoBox,
     ]
   );
 
@@ -3131,6 +3270,9 @@ export default function HomePage({
       proxyAiometadataProvider,
       activeToken,
       configSaveStatus,
+      ranking,
+      rankingCountry: effectiveRankingCountry,
+      rankingNoBox,
     },
     derived: {
       baseUrl,
@@ -3298,6 +3440,9 @@ export default function HomePage({
       toggleProxyUrlVisibility: () => setShowProxyUrl((value) => !value),
       handleTokenDisconnect,
       handleSaveConfig,
+      setRanking,
+      setRankingCountry: updateRankingCountry,
+      setRankingNoBox,
     },
   };
 
