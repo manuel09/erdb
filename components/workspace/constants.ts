@@ -35,6 +35,30 @@ export const PROXY_EPISODE_PROVIDER_OPTIONS: Array<{ id: ProxyEpisodeProvider; l
   { id: 'tvdb', label: 'TVDB' },
   { id: 'custom', label: 'Custom' },
 ];
+export const RANKING_OPTIONS: Array<{ id: string; label: string }> = [
+  { id: 'off', label: 'Off' },
+  { id: 'daily', label: 'Daily' },
+  { id: 'weekly', label: 'Weekly' },
+  { id: 'monthly', label: 'Monthly' },
+];
+export const JUSTWATCH_COUNTRY_OPTIONS: Array<{ id: string; label: string }> = [
+  { id: 'global', label: 'Global (US fallback)' },
+  { id: 'AR', label: 'Argentina' },
+  { id: 'AU', label: 'Australia' },
+  { id: 'BR', label: 'Brazil' },
+  { id: 'CA', label: 'Canada' },
+  { id: 'DE', label: 'Germany' },
+  { id: 'EG', label: 'Egypt' },
+  { id: 'ES', label: 'Spain' },
+  { id: 'FR', label: 'France' },
+  { id: 'GB', label: 'United Kingdom' },
+  { id: 'IN', label: 'India' },
+  { id: 'IT', label: 'Italy' },
+  { id: 'MX', label: 'Mexico' },
+  { id: 'PL', label: 'Poland' },
+  { id: 'TR', label: 'Turkey' },
+  { id: 'US', label: 'United States' },
+];
 export const INPUT_CLASS =
   'w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition duration-200 focus:border-orange-400/50 focus:bg-white/[0.07] focus:shadow-[0_0_0_1px_rgba(249,115,22,0.16)]';
 export const INPUT_COMPACT_CLASS =

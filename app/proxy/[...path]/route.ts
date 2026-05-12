@@ -84,6 +84,8 @@ const buildProxyConfigFromToken = (
   mapStr('backdropVerticalBadgeContent', 'backdropVerticalBadgeContent');
   mapStr('thumbnailVerticalBadgeContent', 'thumbnailVerticalBadgeContent');
   mapStr('thumbnailSize', 'thumbnailSize');
+  mapStr('ranking', 'ranking');
+  mapStr('rankingCountry', 'rankingCountry');
 
   if (typeof t.posterRatingsMaxPerSide === 'number') config.posterRatingsMaxPerSide = String(t.posterRatingsMaxPerSide);
   if (typeof t.logoRatingsMax === 'number') config.logoRatingsMax = String(t.logoRatingsMax);

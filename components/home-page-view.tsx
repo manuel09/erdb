@@ -89,6 +89,9 @@ type HomePageViewState = {
   aiometadataEpisodeProvider: AiometadataEpisodeProvider;
   activeToken: string | null;
   configSaveStatus: 'idle' | 'saving' | 'saved' | 'error';
+  ranking: string;
+  rankingCountry: string;
+  rankingNoBox: boolean;
 };
 
 type HomePageViewDerived = {
@@ -184,6 +187,9 @@ type HomePageViewActions = {
   toggleProxyUrlVisibility: () => void;
   handleTokenDisconnect: () => void;
   handleSaveConfig: () => void;
+  setRanking: Dispatch<SetStateAction<string>>;
+  setRankingCountry: Dispatch<SetStateAction<string>>;
+  setRankingNoBox: Dispatch<SetStateAction<boolean>>;
 };
 
 export type HomePageViewProps = {

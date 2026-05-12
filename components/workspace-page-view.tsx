@@ -93,7 +93,7 @@ export type ProxySeriesMetadataProvider = 'tmdb' | 'imdb';
 export type ProxyEpisodeProvider = 'custom' | 'realimdb' | 'tvdb';
 export type VerticalBadgeContent = 'standard' | 'stacked';
 
-type HomePageViewState = {
+export type HomePageViewState = {
   previewType: PreviewType;
   mediaId: string;
   lang: string;
@@ -152,9 +152,12 @@ type HomePageViewState = {
   aiometadataEpisodeProvider: AiometadataEpisodeProvider;
   activeToken: string | null;
   configSaveStatus: 'idle' | 'saving' | 'saved' | 'error';
+  ranking: string;
+  rankingCountry: string;
+  rankingNoBox: boolean;
 };
 
-type HomePageViewDerived = {
+export type HomePageViewDerived = {
   baseUrl: string;
   previewUrl: string;
   proxyUrl: string;
@@ -179,7 +182,7 @@ type HomePageViewDerived = {
   aiometadataPatterns: Record<AiometadataPatternType, string>;
 };
 
-type HomePageViewActions = {
+export type HomePageViewActions = {
   handleAnchorClick: (event: MouseEvent<HTMLAnchorElement>) => void;
   handleExportConfig: (includeKeys: boolean) => void;
   handleImportFile: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -246,6 +249,9 @@ type HomePageViewActions = {
   toggleProxyUrlVisibility: () => void;
   handleTokenDisconnect: () => void;
   handleSaveConfig: () => void;
+  setRanking: Dispatch<SetStateAction<string>>;
+  setRankingCountry: Dispatch<SetStateAction<string>>;
+  setRankingNoBox: Dispatch<SetStateAction<boolean>>;
 };
 
 import { WorkspaceNav } from './workspace/workspace-nav';
@@ -379,6 +385,8 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
     copied,
     aiometadataCopiedType,
     aiometadataEpisodeProvider,
+    ranking,
+    rankingCountry,
   } = state;
   const {
     baseUrl,
@@ -443,6 +451,8 @@ export function WorkspacePageView({ refs, state, derived, actions }: HomePageVie
     setProxyAiometadataProvider,
     setPosterQualityBadgesPosition,
     setQualityBadgesSide,
+    setRanking,
+    setRankingCountry,
     setRatingStyleForType,
     setImageTextForType,
     setActiveStreamBadges,
