@@ -181,7 +181,7 @@ const resolveOriginalAwareImageLanguage = (input: {
   ) ||
   normalizeTmdbLanguageCode(input.requestLanguage) ||
   input.fallbackLanguage;
-const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v133';
+const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v135';
 const TMDB_CACHE_TTL_MS = parseCacheTtlMs(
   process.env.ERDB_TMDB_CACHE_TTL_MS,
   3 * 24 * 60 * 60 * 1000,
@@ -6088,15 +6088,14 @@ const renderWithSharp = async (
           }
 
           let underLogoPlaced = false;
-          const neededGap = Math.max(24, Math.round(input.badgeGap * 2.2));
           if (hasOverlay && lastOverlayBottomY > 0) {
-            const bottomLimit = input.outputHeight - input.badgeBottomOffset;
+            const bottomLimit = input.outputHeight;
             const effectiveAnchorY = hasBottomRatings ? lastOverlayAnchorY : bottomLimit;
             const spaceBelowLogo = effectiveAnchorY - lastOverlayBottomY;
-            // Be more lenient: if we have at least 40px, we can fit quality badges (min height 32 + gap)
             if (spaceBelowLogo >= 40) {
-              bottomY = lastOverlayBottomY + neededGap;
-              currentQualityHeight = Math.max(32, Math.min(bottomQualityHeight, spaceBelowLogo - neededGap));
+              currentQualityHeight = Math.max(32, Math.min(bottomQualityHeight, spaceBelowLogo));
+              const freeSpace = Math.max(0, spaceBelowLogo - currentQualityHeight);
+              bottomY = Math.round(lastOverlayBottomY + freeSpace * 0.65);
               underLogoPlaced = true;
             }
           }

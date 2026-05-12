@@ -1,6 +1,7 @@
 'use client';
 
 import { Settings2, ChevronDown, KeyRound, Palette, Globe2, Layers } from 'lucide-react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
 import type { HomePageViewProps } from '@/components/workspace-page-view';
 import { RatingProviderSortableList } from '@/components/rating-provider-sortable-list';
@@ -237,7 +238,14 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                           : 'border border-white/5 bg-[#0a0a0a] text-slate-400 hover:bg-[#121212] hover:text-slate-200'
                         }`}
                     >
-                      <img src={provider.iconUrl} alt={provider.label} className="h-3.5 w-3.5 rounded-sm object-contain" />
+                      <Image
+                        src={provider.iconUrl}
+                        alt={provider.label}
+                        width={14}
+                        height={14}
+                        unoptimized
+                        className="h-3.5 w-3.5 rounded-sm object-contain"
+                      />
                       {provider.label}
                     </button>
                   ))}

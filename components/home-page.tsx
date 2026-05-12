@@ -819,6 +819,7 @@ export default function HomePage({
     useState<PosterQualityBadgesPosition>('auto');
   const [posterQualityBadgesStyle, setPosterQualityBadgesStyle] = useState<RatingStyle>('glass');
   const [backdropQualityBadgesStyle, setBackdropQualityBadgesStyle] = useState<RatingStyle>(DEFAULT_QUALITY_BADGES_STYLE);
+  const [ranking, setRanking] = useState('on');
   const setPosterConfiguratorPreset = useCallback((value: PosterConfiguratorPreset) => {
     setPosterConfiguratorPresetState(value);
     if (value === 'simple') {
@@ -841,7 +842,6 @@ export default function HomePage({
   const [thumbnailSize, setThumbnailSize] = useState<ThumbnailSize>('large');
   const [posterRatingStyle, setPosterRatingStyle] = useState<RatingStyle>('glass');
   const [backdropRatingStyle, setBackdropRatingStyle] = useState<RatingStyle>('glass');
-  const [ranking, setRanking] = useState('on');
   const [rankingCountry, setRankingCountry] = useState('global');
   const [rankingCountryTouched, setRankingCountryTouched] = useState(false);
   const [rankingNoBox, setRankingNoBox] = useState(false);
@@ -887,7 +887,7 @@ export default function HomePage({
   const [showProxyUrl, setShowProxyUrl] = useState(false);
   const [aiometadataCopiedType, setAiometadataCopiedType] = useState<AiometadataPatternType | null>(null);
   const [aiometadataEpisodeProvider, setAiometadataEpisodeProvider] = useState<AiometadataEpisodeProvider>('realimdb');
-  const [currentVersion, setCurrentVersion] = useState('0.4.56');
+  const [currentVersion, setCurrentVersion] = useState('0.4.57');
   const [githubPackageVersion, setGithubPackageVersion] = useState<string | null>(null);
   const [repoUrl, setRepoUrl] = useState<string | null>(null);
   const [userCount, setUserCount] = useState<number | null>(null);
@@ -1522,8 +1522,6 @@ export default function HomePage({
     backdropRatingPreferences,
     thumbnailRatingPreferences,
     logoRatingPreferences,
-    posterConfiguratorPreset,
-    posterAverageRatingsEnabled,
     posterStreamBadges,
     backdropStreamBadges,
     shouldShowQualityBadgesSide,
@@ -2343,10 +2341,10 @@ export default function HomePage({
     setTimeout(() => setExportStatus('idle'), 2000);
   };
 
-  function applyImportedConfig(
+  const applyImportedConfig = useCallback((
     payload: Record<string, unknown>,
     options: { includeProxy?: boolean } = {}
-  ) {
+  ) => {
     const { includeProxy = true } = options;
     if (typeof payload.tmdbKey === 'string') {
       setTmdbKey(payload.tmdbKey);
@@ -2668,7 +2666,7 @@ export default function HomePage({
 
     setImportStatus('success');
     setImportMessage('');
-  }
+  }, [setPosterConfiguratorPreset]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -2687,7 +2685,7 @@ export default function HomePage({
       isPreviewHydrated.current = true;
     });
     return () => window.cancelAnimationFrame(frameId);
-  }, []);
+  }, [applyImportedConfig]);
 
   useEffect(() => {
     if (!initialConfig) {
@@ -2697,7 +2695,7 @@ export default function HomePage({
       applyImportedConfig(initialConfig, { includeProxy: false });
     });
     return () => window.cancelAnimationFrame(frameId);
-  }, [initialConfig]);
+  }, [applyImportedConfig, initialConfig]);
 
   useEffect(() => {
     if (!isPreviewHydrated.current) return;
@@ -2783,6 +2781,8 @@ export default function HomePage({
     backdropRatingPreferences,
     thumbnailRatingPreferences,
     logoRatingPreferences,
+    posterConfiguratorPreset,
+    posterAverageRatingsEnabled,
     posterStreamBadges,
     backdropStreamBadges,
     qualityBadgesSide,
