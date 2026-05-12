@@ -181,7 +181,7 @@ const resolveOriginalAwareImageLanguage = (input: {
   ) ||
   normalizeTmdbLanguageCode(input.requestLanguage) ||
   input.fallbackLanguage;
-const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v111';
+const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v113';
 const TMDB_CACHE_TTL_MS = parseCacheTtlMs(
   process.env.ERDB_TMDB_CACHE_TTL_MS,
   3 * 24 * 60 * 60 * 1000,
@@ -4458,7 +4458,7 @@ const buildQualityBadgeSvg = (
     return baseRect(width, chrome.stroke, chrome.fill, chromeExtra);
   };
   const universalStroke = ' stroke="rgba(0,0,0,0.80)" stroke-width="1.8" paint-order="stroke fill"';
-  
+
   const generateGlowText = (attrs: string, content: string) => {
     if (!isReferencePlain) return `<text ${attrs}${universalStroke}>${content}</text>`;
     const glow = Array.from({ length: 8 }, (_, i) => {
@@ -4764,10 +4764,10 @@ const buildBadgeSvg = ({
 
   const glowLayers = ratingStyle === 'plain'
     ? Array.from({ length: 8 }, (_, i) => {
-        const strokeWidth = 20 - i * 2.5;
-        const opacity = 0.05 + (i * 0.05);
-        return `<text ${commonAttrs} fill="none" stroke="rgba(0,0,0,${opacity})" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round">${textInnerContent}</text>`;
-      }).join('\\n')
+      const strokeWidth = 20 - i * 2.5;
+      const opacity = 0.05 + (i * 0.05);
+      return `<text ${commonAttrs} fill="none" stroke="rgba(0,0,0,${opacity})" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round">${textInnerContent}</text>`;
+    }).join('\\n')
     : '';
 
   const valueText = `${glowLayers}<text ${commonAttrs} fill="white"${valueStroke}>${textInnerContent}</text>`;
@@ -4805,18 +4805,18 @@ const buildRankingBadgeSvg = (value: string, label: string, iconDataUri?: string
 
   const rankGlowLayers = noBox
     ? Array.from({ length: 8 }, (_, i) => {
-        const strokeWidth = 20 - i * 2.5;
-        const opacity = 0.05 + (i * 0.05);
-        return `<text x="${rankX}" y="${textY}" font-family="'Noto Sans','DejaVu Sans',Arial,sans-serif" font-size="${rankFontSize}" font-style="italic" font-weight="500" fill="none" stroke="rgba(0,0,0,${opacity})" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" style="font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1, 'lnum' 1;">${escapeXml(value)}</text>`;
-      }).join('\\n')
+      const strokeWidth = 20 - i * 2.5;
+      const opacity = 0.05 + (i * 0.05);
+      return `<text x="${rankX}" y="${textY}" font-family="'Noto Sans','DejaVu Sans',Arial,sans-serif" font-size="${rankFontSize}" font-style="italic" font-weight="500" fill="none" stroke="rgba(0,0,0,${opacity})" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" style="font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1, 'lnum' 1;">${escapeXml(value)}</text>`;
+    }).join('\\n')
     : '';
 
   const labelGlowLayers = noBox
     ? Array.from({ length: 8 }, (_, i) => {
-        const strokeWidth = 20 - i * 2.5;
-        const opacity = 0.05 + (i * 0.05);
-        return `<text x="${labelX}" y="${textY}" font-family="'Noto Sans','DejaVu Sans',Arial,sans-serif" font-size="${labelFontSize}" font-weight="800" fill="none" stroke="rgba(0,0,0,${opacity})" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round">${escapeXml(label)}</text>`;
-      }).join('\\n')
+      const strokeWidth = 20 - i * 2.5;
+      const opacity = 0.05 + (i * 0.05);
+      return `<text x="${labelX}" y="${textY}" font-family="'Noto Sans','DejaVu Sans',Arial,sans-serif" font-size="${labelFontSize}" font-weight="800" fill="none" stroke="rgba(0,0,0,${opacity})" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round">${escapeXml(label)}</text>`;
+    }).join('\\n')
     : '';
 
   const blurDef = '';
@@ -5067,6 +5067,20 @@ const renderWithSharp = async (
           .toBuffer();
         overlays.push({ input: blurredBottom, top: blurTop, left: 0 });
       }
+    }
+
+    if (input.imageType === 'poster') {
+      const vignetteSvg = `<svg width="${input.outputWidth}" height="${input.finalOutputHeight}">
+        <defs>
+          <radialGradient id="vignette" cx="50%" cy="50%" r="70%" fx="50%" fy="50%">
+            <stop offset="0%" stop-color="black" stop-opacity="0" />
+            <stop offset="40%" stop-color="black" stop-opacity="0" />
+            <stop offset="100%" stop-color="black" stop-opacity="0.85" />
+          </radialGradient>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#vignette)" />
+      </svg>`;
+      overlays.push({ input: Buffer.from(vignetteSvg), top: 0, left: 0 });
     }
     const composeBadgeRow = (
       rowBadges: RatingBadge[],
@@ -5832,6 +5846,7 @@ const renderWithSharp = async (
         input.qualityBadges = [];
       }
     }
+
 
     if (input.imageType === 'logo') {
       let rowY = imageTop + renderedImageHeight + input.logoBadgeTopGap;
@@ -6923,7 +6938,7 @@ export async function GET(
   let objectStorageHit = false;
 
   try {
-      let renderedImage = await withDedupe(finalImageInFlight, renderSeedKey, async () => {
+    let renderedImage = await withDedupe(finalImageInFlight, renderSeedKey, async () => {
       let media = null;
       let mediaType: 'movie' | 'tv' | null = null;
       let useRawAnimeImageFallback = false;
@@ -7482,7 +7497,7 @@ export async function GET(
       const isAnimeContent = hasNativeAnimeInput || hasConfirmedAnimeMapping || mediaLooksAnimated;
       const isGenericCatalogId = isTmdb || isTvdb || isRealImdb || idPrefix === 'imdb' || idPrefix.startsWith('tt');
       const shouldApplyAnimeTextPreference = isAnimeContent && !isGenericCatalogId;
-      
+
       const effectivePosterTextPreference =
         type === 'poster' && shouldApplyAnimeTextPreference ? posterAnimeTextPreference : posterTextPreference;
       const effectiveBackdropTextPreference =

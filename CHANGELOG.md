@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.55](https://github.com/realbestia1/erdb/compare/v0.4.54...v0.4.55) - 2026-05-12
+
+- Enable poster-only ranking UI and proxy keys ([de6a4d8](https://github.com/realbestia1/erdb/commit/de6a4d853b38e36525850d6c89edb21f1e02a042))
+  Restrict JustWatch ranking to poster previews: ranking params are now only applied for imageType === 'poster' and the Ranking panel in the workspace is shown only when previewType is 'poster'. Add ranking keys to the proxy/ERDB config (ranking, rankingCountry, rankingNoBox) so the addon proxy supports the new options. Change default ranking state to 'on' and initialize new profiles with ranking enabled. Also bump package version to 0.4.55 (package.json + package-lock.json) and include minor JSX/formatting cleanups in the workspace controls panel.
+
+## [0.4.54](https://github.com/realbestia1/erdb/compare/v0.4.53...v0.4.54) - 2026-05-12
+
+- Bump app version and update image vignette ([0f7977a](https://github.com/realbestia1/erdb/commit/0f7977a3ed84f5a8a2f14820af90a7a3542880b0))
+  Bump app version to 0.4.54 (package.json) and update UI currentVersion to match. Increment FINAL_IMAGE_RENDERER_CACHE_VERSION to v113 to force image cache invalidation. Simplify poster vignette SVG in the image renderer: replace multiple linear gradient edges and rects (and the edgeSize calculation) with a single radial gradient overlay for a cleaner vignette effect.
+
+## [0.4.53](https://github.com/realbestia1/erdb/compare/v0.4.52...v0.4.53) - 2026-05-12
+
+- Bump release to 0.4.53; add poster vignette ([7e501af](https://github.com/realbestia1/erdb/commit/7e501afc9c46223d680b39cecea6eb227b7a75d2))
+  Bump project version to 0.4.53 (package.json, package-lock.json, and HomePage display). Increment FINAL_IMAGE_RENDERER_CACHE_VERSION to 'poster-backdrop-logo-thumbnail-v112' to force cache invalidation for image renderer changes. Add a subtle SVG vignette overlay for poster images in renderWithSharp to darken edges. Also include small SVG glow generation/formatting cleanups and minor whitespace/formatting adjustments in route.ts.
+- Update route.ts ([bb83a86](https://github.com/realbestia1/erdb/commit/bb83a865c13e62c2e707437a6fc9aedbf3392eee))
+
 ## [0.4.52](https://github.com/realbestia1/erdb/compare/v0.4.51...v0.4.52) - 2026-05-12
 
 - Exclude generic catalog IDs from anime text prefs ([2c4bd07](https://github.com/realbestia1/erdb/commit/2c4bd078a28b43e09cfb6347a4ad6b710d8ffbf0))
