@@ -887,7 +887,7 @@ export default function HomePage({
   const [showProxyUrl, setShowProxyUrl] = useState(false);
   const [aiometadataCopiedType, setAiometadataCopiedType] = useState<AiometadataPatternType | null>(null);
   const [aiometadataEpisodeProvider, setAiometadataEpisodeProvider] = useState<AiometadataEpisodeProvider>('realimdb');
-  const [currentVersion, setCurrentVersion] = useState('0.4.55');
+  const [currentVersion, setCurrentVersion] = useState('0.4.56');
   const [githubPackageVersion, setGithubPackageVersion] = useState<string | null>(null);
   const [repoUrl, setRepoUrl] = useState<string | null>(null);
   const [userCount, setUserCount] = useState<number | null>(null);
@@ -2465,7 +2465,9 @@ export default function HomePage({
     if (typeof payload.posterConfiguratorPreset === 'string' && (payload.posterConfiguratorPreset === 'simple' || payload.posterConfiguratorPreset === 'advanced')) {
       setPosterConfiguratorPreset(payload.posterConfiguratorPreset);
     }
-    if (typeof payload.posterRatingsMode === 'string' && (payload.posterRatingsMode === 'average' || payload.posterRatingsMode === 'separate')) {
+    if (typeof payload.posterAverageRatingsEnabled === 'boolean') {
+      setPosterAverageRatingsEnabled(payload.posterAverageRatingsEnabled);
+    } else if (typeof payload.posterRatingsMode === 'string' && (payload.posterRatingsMode === 'average' || payload.posterRatingsMode === 'separate')) {
       setPosterAverageRatingsEnabled(payload.posterRatingsMode === 'average');
     }
     if (typeof payload.ranking === 'string') {

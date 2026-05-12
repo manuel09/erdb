@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.56](https://github.com/realbestia1/erdb/compare/v0.4.55...v0.4.56) - 2026-05-12
+
+- Add 'solid-light' badge style & poster average ratings ([51b4ca7](https://github.com/realbestia1/erdb/commit/51b4ca74200265811d26956eea9c9cdf7f7324bb))
+  Introduce a new quality badge style 'solid-light' and update SVG rendering to support it (shape, gradients, shadows, font sizing). Add optional qualityBadge size/spacing overrides (qualityBadgeIconSize/FontSize/PaddingX/PaddingY/Gap) and preserveBadgeSize handling so poster badges can retain custom sizing. Refine poster badge placement and layout heuristics (including top/bottom placement, spacing, overlay interactions) and adjust various badge/label sizing and ranking badge scaling. Add posterAverageRatingsEnabled config and proxy mapping, plus posterSimpleRatingSource and rankingNoBox passthroughs. Bump image renderer cache version and package version to 0.4.56 and wire UI changes to expose the new options in workspace and home components.
+
 ## [0.4.55](https://github.com/realbestia1/erdb/compare/v0.4.54...v0.4.55) - 2026-05-12
 
 - Enable poster-only ranking UI and proxy keys ([de6a4d8](https://github.com/realbestia1/erdb/commit/de6a4d853b38e36525850d6c89edb21f1e02a042))
