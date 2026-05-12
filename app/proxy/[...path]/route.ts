@@ -86,6 +86,14 @@ const buildProxyConfigFromToken = (
   mapStr('thumbnailSize', 'thumbnailSize');
   mapStr('ranking', 'ranking');
   mapStr('rankingCountry', 'rankingCountry');
+  mapStr('posterSimpleRatingSource', 'posterSimpleRatingSource');
+
+  if (typeof t.posterAverageRatingsEnabled === 'boolean' || typeof t.posterAverageRatingsEnabled === 'string') {
+    config.posterAverageRatingsEnabled = t.posterAverageRatingsEnabled;
+  }
+  if (typeof t.rankingNoBox === 'boolean' || typeof t.rankingNoBox === 'string') {
+    config.rankingNoBox = t.rankingNoBox;
+  }
 
   if (typeof t.posterRatingsMaxPerSide === 'number') config.posterRatingsMaxPerSide = String(t.posterRatingsMaxPerSide);
   if (typeof t.logoRatingsMax === 'number') config.logoRatingsMax = String(t.logoRatingsMax);

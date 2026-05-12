@@ -32,6 +32,7 @@ const ERDB_OPTIONAL_PARAMS = [
   'thumbnailVerticalBadgeContent',
   'thumbnailSize',
   'aiometadataProvider',
+  'posterSimpleRatingSource',
 ];
 const ERDB_TYPE_OPTIONAL_PARAMS = {
   poster: [
@@ -43,6 +44,7 @@ const ERDB_TYPE_OPTIONAL_PARAMS = {
     'ranking',
     'rankingCountry',
     'rankingNoBox',
+    'posterAverageRatingsEnabled',
   ],
   backdrop: ['backdropStreamBadges', 'backdropQualityBadgesStyle', 'backdropRatings', 'backdropRatingsMax'],
   logo: ['logoRatings', 'logoRatingsMax', 'logoMode', 'logoFontVariant', 'logoPrimary', 'logoSecondary', 'logoOutline'],
@@ -161,7 +163,9 @@ export type ProxyConfig = {
   thumbnailSize?: string;
   ranking?: string;
   rankingCountry?: string;
-  rankingNoBox?: string;
+  rankingNoBox?: string | boolean;
+  posterAverageRatingsEnabled?: boolean | string;
+  posterSimpleRatingSource?: string;
   seriesMetadataProvider?: string;
   aiometadataProvider?: string;
   erdbBase?: string;
@@ -229,6 +233,7 @@ const PROXY_OPTIONAL_STRING_KEYS = [
   'ranking',
   'rankingCountry',
   'rankingNoBox',
+  'posterSimpleRatingSource',
   'seriesMetadataProvider',
   'aiometadataProvider',
   'erdbBase',
@@ -242,6 +247,7 @@ const PROXY_OPTIONAL_BOOLEAN_KEYS = [
   'backdropEnabled',
   'logoEnabled',
   'thumbnailEnabled',
+  'posterAverageRatingsEnabled',
 ] as const satisfies readonly (keyof ProxyConfig)[];
 type ProxyOptionalBooleanKey = (typeof PROXY_OPTIONAL_BOOLEAN_KEYS)[number];
 
@@ -459,6 +465,9 @@ const getProxyParam = (reqUrl: URL, config: ProxyConfig | null, key: keyof Proxy
   const configValue = config ? config[key] : null;
   if (typeof configValue === 'string') {
     return configValue;
+  }
+  if (typeof configValue === 'boolean') {
+    return configValue ? 'true' : 'false';
   }
   const queryValue = reqUrl.searchParams.get(key);
   return queryValue !== null ? queryValue : null;

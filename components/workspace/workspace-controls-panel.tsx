@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { HomePageViewProps } from '@/components/workspace-page-view';
 import { RatingProviderSortableList } from '@/components/rating-provider-sortable-list';
 import { isVerticalPosterRatingLayout, type PosterRatingLayout } from '@/lib/posterRatingLayout';
-import { RATING_STYLE_OPTIONS, type RatingStyle } from '@/lib/ratingStyle';
+import { RATING_STYLE_OPTIONS, QUALITY_BADGE_STYLE_OPTIONS, type RatingStyle } from '@/lib/ratingStyle';
 import { BACKDROP_RATING_LAYOUT_OPTIONS, type BackdropRatingLayout } from '@/lib/backdropRatingLayout';
 import { BACKDROP_RATINGS_SIZE_OPTIONS, type BackdropRatingsSize } from '@/lib/backdropRatingsSize';
 import { THUMBNAIL_RATING_LAYOUT_OPTIONS, type ThumbnailRatingLayout } from '@/lib/thumbnailRatingLayout';
@@ -226,7 +226,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                         : 'border border-white/5 bg-[#0a0a0a] text-slate-400 hover:bg-[#121212] hover:text-slate-200'
                       }`}
                   >
-                    Average
+                    Average + Genre
                   </button>
                   {RATING_PROVIDER_OPTIONS.map((provider) => (
                     <button
@@ -538,7 +538,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
               <div className="pt-2 space-y-3">
                 <h3 className="text-xs font-medium text-slate-300">Badge Style</h3>
                 <div className="flex flex-wrap gap-2">
-                  {RATING_STYLE_OPTIONS.map(option => (
+                  {QUALITY_BADGE_STYLE_OPTIONS.map(option => (
                     <button key={`quality-style-${option.id}`} onClick={() => setActiveQualityBadgesStyle(option.id)} className={`rounded-xl px-4 py-2.5 text-xs font-semibold transition-all shadow-sm ${activeQualityBadgesStyle === option.id ? 'border border-orange-500/30 bg-orange-500/15 text-white' : 'border border-white/5 bg-[#0a0a0a] text-slate-400 hover:bg-[#121212] hover:text-slate-200'}`}>
                       {option.label}
                     </button>
@@ -651,7 +651,10 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
             </div>
             {previewType === 'poster' && posterConfiguratorPreset === 'advanced' && (
               <label className="mb-4 flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-[#0a0a0a] px-4 py-3">
-                <span className="text-xs font-medium text-slate-300">Average rating</span>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs font-medium text-slate-300">Average rating</span>
+                  <span className="text-[10px] text-slate-500">If enabled, the genre name will also be displayed</span>
+                </div>
                 <button
                   type="button"
                   onClick={() => setPosterAverageRatingsEnabled((value) => !value)}

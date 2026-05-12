@@ -1,4 +1,4 @@
-export type RatingStyle = 'glass' | 'square' | 'plain';
+export type RatingStyle = 'glass' | 'square' | 'plain' | 'solid-light';
 
 export const DEFAULT_RATING_STYLE: RatingStyle = 'glass';
 
@@ -6,6 +6,11 @@ export const RATING_STYLE_OPTIONS: Array<{ id: RatingStyle; label: string }> = [
   { id: 'glass', label: 'Pill Glass' },
   { id: 'square', label: 'Square Dark' },
   { id: 'plain', label: 'No Background' },
+];
+
+export const QUALITY_BADGE_STYLE_OPTIONS: Array<{ id: RatingStyle; label: string }> = [
+  ...RATING_STYLE_OPTIONS,
+  { id: 'solid-light', label: 'Solid Light' },
 ];
 
 export const normalizeRatingStyle = (value?: string | null): RatingStyle => {
