@@ -181,7 +181,7 @@ const resolveOriginalAwareImageLanguage = (input: {
   ) ||
   normalizeTmdbLanguageCode(input.requestLanguage) ||
   input.fallbackLanguage;
-const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v110';
+const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v111';
 const TMDB_CACHE_TTL_MS = parseCacheTtlMs(
   process.env.ERDB_TMDB_CACHE_TTL_MS,
   3 * 24 * 60 * 60 * 1000,
@@ -661,7 +661,7 @@ const resolvePosterQualityBadgePlacement = (
     return 'bottom';
   }
   if (layout === 'top-bottom') {
-    return posterQualityBadgesPosition === 'auto' ? 'bottom' : posterQualityBadgesPosition;
+    return posterQualityBadgesPosition === 'auto' ? qualityBadgesSide : posterQualityBadgesPosition;
   }
   if (layout === 'top') {
     return posterQualityBadgesPosition === 'auto' ? 'bottom' : posterQualityBadgesPosition;
@@ -5737,8 +5737,8 @@ const renderWithSharp = async (
       rowBadges: RatingBadge[],
       rowY: number,
       baseHeight?: number
-    ) => {
-      if (rowBadges.length === 0) return;
+    ): number => {
+      if (rowBadges.length === 0) return 0;
       const maxRowWidth = Math.max(0, input.outputWidth - 24);
       const qualityBaseHeight =
         input.imageType === 'poster' ? posterReferenceBadgeHeight : badgeHeight;
@@ -5779,6 +5779,7 @@ const renderWithSharp = async (
         overlays.push({ input: Buffer.from(spec.svg), top: rowY, left: rowX });
         rowX += badgeWidth + rowGap;
       }
+      return qualityHeight;
     };
     const renderQualityBadgeColumnAt = (
       columnBadges: RatingBadge[],
@@ -5807,6 +5808,30 @@ const renderWithSharp = async (
         rowY += spec.height + input.badgeGap;
       }
     };
+
+    if (input.imageType === 'poster' && input.qualityBadges.length > 0) {
+      let qualityPlacement = resolvePosterQualityBadgePlacement(
+        input.posterRatingsLayout,
+        input.qualityBadgesSide,
+        input.posterQualityBadgesPosition
+      );
+
+      if (qualityPlacement === 'bottom') {
+        const hasBottomRatings = input.bottomBadges.length > 0;
+        const isAuto = input.posterQualityBadgesPosition === 'auto';
+        if (hasBottomRatings && isAuto) {
+          qualityPlacement = 'top';
+        }
+      }
+
+      if (qualityPlacement === 'top') {
+        const topQualityHeight = Math.max(36, Math.round(badgeHeight * 1.05));
+        const actualHeight = composeQualityBadgeRow(input.qualityBadges, input.badgeTopOffset, topQualityHeight);
+        const rankingGap = Math.max(3, Math.round(input.badgeGap * 0.35));
+        input.badgeTopOffset += actualHeight + rankingGap;
+        input.qualityBadges = [];
+      }
+    }
 
     if (input.imageType === 'logo') {
       let rowY = imageTop + renderedImageHeight + input.logoBadgeTopGap;
@@ -6098,33 +6123,6 @@ const renderWithSharp = async (
           }
         }
         composeQualityBadgeRow(input.qualityBadges, bottomY, currentQualityHeight);
-      } else if (qualityPlacement === 'top') {
-        const topQualityHeight = Math.max(36, Math.round(badgeHeight * 1.05));
-        let topY = input.badgeTopOffset;
-
-        // Custom logic for Simple preset: place above the "logo" or title and the rating row
-        if (
-          input.posterConfiguratorPreset === 'simple' &&
-          input.posterRatingsLayout === 'bottom' &&
-          input.bottomBadges.length > 0
-        ) {
-          const bottomRowY = Math.max(
-            input.badgeTopOffset,
-            input.outputHeight - input.badgeBottomOffset - badgeHeight
-          );
-
-          let anchorY = bottomRowY;
-
-          // Check if there is an overlay (logo or title) above the bottom row
-          const overlayHeight = posterLogoSpec?.height ?? posterTitleSpec?.height ?? 0;
-          if (overlayHeight > 0) {
-            const overlayGap = Math.max(8, Math.round(posterReferenceBadgeGap * 0.9));
-            anchorY = bottomRowY - overlayGap - overlayHeight;
-          }
-
-          topY = Math.max(input.badgeTopOffset, anchorY - topQualityHeight - Math.max(input.badgeGap, 12));
-        }
-        composeQualityBadgeRow(input.qualityBadges, topY, topQualityHeight);
       } else {
         const qualityTotalHeight =
           input.qualityBadges.length * qualityBadgeHeight +
@@ -6155,7 +6153,7 @@ const renderWithSharp = async (
             }
           }
         }
-        composeQualityBadgeColumn(input.qualityBadges, qualityStartY, qualityPlacement);
+        composeQualityBadgeColumn(input.qualityBadges, qualityStartY, qualityPlacement === 'right' ? 'right' : 'left');
       }
     }
 
@@ -6401,6 +6399,12 @@ const renderWithSharp = async (
           const topQualityHeight = Math.max(36, Math.round(badgeHeight * 1.05));
           top = Math.max(top, input.badgeTopOffset + topQualityHeight + rankingGap);
         }
+      }
+
+      if (lastOverlayTopY > 0) {
+        const overlayGap = Math.max(8, Math.round(posterReferenceBadgeGap * 0.9));
+        const idealTop = lastOverlayTopY - renderedHeight - overlayGap;
+        top = Math.max(top, idealTop);
       }
       overlays.push({ input: rankingBuffer, top, left });
     }
