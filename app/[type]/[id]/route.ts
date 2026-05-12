@@ -181,7 +181,7 @@ const resolveOriginalAwareImageLanguage = (input: {
   ) ||
   normalizeTmdbLanguageCode(input.requestLanguage) ||
   input.fallbackLanguage;
-const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v112';
+const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v113';
 const TMDB_CACHE_TTL_MS = parseCacheTtlMs(
   process.env.ERDB_TMDB_CACHE_TTL_MS,
   3 * 24 * 60 * 60 * 1000,
@@ -5070,30 +5070,15 @@ const renderWithSharp = async (
     }
 
     if (input.imageType === 'poster') {
-      const edgeSize = Math.round(Math.min(input.outputWidth, input.finalOutputHeight) * 0.18);
       const vignetteSvg = `<svg width="${input.outputWidth}" height="${input.finalOutputHeight}">
         <defs>
-          <linearGradient id="edge-left" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stop-color="black" stop-opacity="0.9"/>
-            <stop offset="1" stop-color="black" stop-opacity="0"/>
-          </linearGradient>
-          <linearGradient id="edge-right" x1="1" y1="0" x2="0" y2="0">
-            <stop offset="0" stop-color="black" stop-opacity="0.9"/>
-            <stop offset="1" stop-color="black" stop-opacity="0"/>
-          </linearGradient>
-          <linearGradient id="edge-top" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="black" stop-opacity="0.9"/>
-            <stop offset="1" stop-color="black" stop-opacity="0"/>
-          </linearGradient>
-          <linearGradient id="edge-bottom" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0" stop-color="black" stop-opacity="0.9"/>
-            <stop offset="1" stop-color="black" stop-opacity="0"/>
-          </linearGradient>
+          <radialGradient id="vignette" cx="50%" cy="50%" r="70%" fx="50%" fy="50%">
+            <stop offset="0%" stop-color="black" stop-opacity="0" />
+            <stop offset="40%" stop-color="black" stop-opacity="0" />
+            <stop offset="100%" stop-color="black" stop-opacity="0.85" />
+          </radialGradient>
         </defs>
-        <rect x="0" y="0" width="${edgeSize}" height="100%" fill="url(#edge-left)"/>
-        <rect x="${input.outputWidth - edgeSize}" y="0" width="${edgeSize}" height="100%" fill="url(#edge-right)"/>
-        <rect x="0" y="0" width="100%" height="${edgeSize}" fill="url(#edge-top)"/>
-        <rect x="0" y="${input.finalOutputHeight - edgeSize}" width="100%" height="${edgeSize}" fill="url(#edge-bottom)"/>
+        <rect width="100%" height="100%" fill="url(#vignette)" />
       </svg>`;
       overlays.push({ input: Buffer.from(vignetteSvg), top: 0, left: 0 });
     }
