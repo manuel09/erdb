@@ -59,8 +59,17 @@ export function WorkspacePreviewPanel({ state, derived }: WorkspacePreviewPanelP
       {/* Invisible viewport boundary for drag constraint */}
       <div ref={viewportRef} className="fixed inset-0 pointer-events-none z-0" />
 
+      {/* Mobile floating notice (keys missing) */}
+      {previewNotice && (
+        <div className="fixed top-20 right-3 z-40 xl:hidden">
+          <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 px-3 py-2 text-[11px] font-medium text-orange-200 shadow-2xl backdrop-blur-xl">
+            {previewNotice}
+          </div>
+        </div>
+      )}
+
       {/* Mobile floating preview (small, top-right) */}
-      {previewUrl && (
+      {!previewNotice && previewUrl && (
         <>
           {isExpanded && (
             <div
@@ -125,9 +134,6 @@ export function WorkspacePreviewPanel({ state, derived }: WorkspacePreviewPanelP
                 className="relative z-10 max-w-md text-center"
               >
                 <div className="text-sm font-semibold text-orange-300">{previewNotice}</div>
-                <div className="mt-2 text-xs text-slate-500">
-                  Use an episode ID in the format `imdb_id:season:episode`.
-                </div>
               </motion.div>
             ) : previewUrl ? (
               <PreviewImage key={previewUrl} previewUrl={previewUrl} previewType={previewType} />
