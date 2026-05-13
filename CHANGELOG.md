@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.68](https://github.com/realbestia1/erdb/compare/v0.4.67...v0.4.68) - 2026-05-13
+
+- Add draggable mobile preview and reorder panels ([2cbc5e2](https://github.com/realbestia1/erdb/commit/2cbc5e2a65b8663d6170ed47b0eb476909514450))
+  Introduce a floating, draggable mobile preview with an expand-to-overlay interaction (isExpanded + viewportRef) and a dedicated desktop preview layout. Adjust container classes and add xl ordering (xl:order-1/2/3) to Controls, Preview and Proxy panels so panel order/layout is correct on large screens. Add useRef import and tweak preview animations/constraints. Bump package version to 0.4.68 (package.json/package-lock updated; tsconfig build info regenerated).
+
 ## [0.4.67](https://github.com/realbestia1/erdb/compare/v0.4.66...v0.4.67) - 2026-05-13
 
 - Normalize posterVignette handling and bump version ([58eb904](https://github.com/realbestia1/erdb/commit/58eb904bce879b7f5102f723cf3984c431b06834))
