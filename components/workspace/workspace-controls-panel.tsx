@@ -19,6 +19,7 @@ import { POSTER_RATING_LAYOUT_OPTIONS } from '@/lib/posterRatingLayout';
 import { RATING_PROVIDER_OPTIONS } from '@/lib/ratingPreferences';
 import {
   STREAM_BADGE_OPTIONS,
+  POSTER_GENRE_POSITION_OPTIONS,
   POSTER_QUALITY_BADGE_POSITION_OPTIONS,
   QUALITY_BADGE_SIDE_OPTIONS,
   VERTICAL_BADGE_CONTENT_OPTIONS,
@@ -73,6 +74,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     backdropVerticalBadgeContent,
     posterConfiguratorPreset,
     posterAverageRatingsEnabled,
+    posterGenrePosition,
     posterSimpleRatingSource,
     qualityBadgesSide,
     posterQualityBadgesPosition,
@@ -123,6 +125,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     setThumbnailVerticalBadgeContent,
     setPosterConfiguratorPreset,
     setPosterAverageRatingsEnabled,
+    setPosterGenrePosition,
     setPosterSimpleRatingSource,
     setLogoMode,
     setLogoFontVariant,
@@ -230,8 +233,8 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                   <button
                     onClick={() => setPosterSimpleRatingSource('average')}
                     className={`rounded-xl px-4 py-2.5 text-xs font-semibold transition-all shadow-sm ${posterSimpleRatingSource === 'average'
-                        ? 'border border-orange-500/30 bg-orange-500/15 text-white'
-                        : 'border border-white/5 bg-[#0a0a0a] text-slate-400 hover:bg-[#121212] hover:text-slate-200'
+                      ? 'border border-orange-500/30 bg-orange-500/15 text-white'
+                      : 'border border-white/5 bg-[#0a0a0a] text-slate-400 hover:bg-[#121212] hover:text-slate-200'
                       }`}
                   >
                     Average + Genre
@@ -241,8 +244,8 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                       key={provider.id}
                       onClick={() => setPosterSimpleRatingSource(provider.id)}
                       className={`flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all shadow-sm ${posterSimpleRatingSource === provider.id
-                          ? 'border border-orange-500/30 bg-orange-500/15 text-white'
-                          : 'border border-white/5 bg-[#0a0a0a] text-slate-400 hover:bg-[#121212] hover:text-slate-200'
+                        ? 'border border-orange-500/30 bg-orange-500/15 text-white'
+                        : 'border border-white/5 bg-[#0a0a0a] text-slate-400 hover:bg-[#121212] hover:text-slate-200'
                         }`}
                     >
                       <Image
@@ -610,7 +613,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
               <span className="rounded-full bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 text-[9px] uppercase tracking-wider text-orange-400 font-bold">New</span>
             </div>
             <p className="text-xs text-slate-500">Show the popularity rank from JustWatch charts on your posters.</p>
-            
+
             <div className="space-y-4 pt-1">
               <div className="space-y-3">
                 <h4 className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Ranking Interval</h4>
@@ -678,6 +681,25 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
           </motion.div>
         )}
 
+        {/* GENRE */}
+        {previewType === 'poster' && posterConfiguratorPreset === 'advanced' && !posterAverageRatingsEnabled && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`${INNER_PANEL_CLASS} p-5 space-y-4`}>
+            <h3 className="text-xs font-medium text-slate-300">Genre</h3>
+            <div className="space-y-3">
+              <div className="space-y-3 rounded-xl border border-white/5 bg-[#0a0a0a] px-4 py-3">
+                <h4 className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Position</h4>
+                <div className={BUTTON_GROUP_CONTAINER_CLASS}>
+                  {POSTER_GENRE_POSITION_OPTIONS.map((option) => (
+                    <button key={option.id} onClick={() => setPosterGenrePosition(option.id)} className={`${BUTTON_BASE_CLASS} ${posterGenrePosition === option.id ? BUTTON_ACTIVE_CLASS : BUTTON_INACTIVE_CLASS}`}>
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* PROVIDERS */}
         {!(previewType === 'poster' && posterConfiguratorPreset === 'simple') && (
           <motion.div layout className={`${INNER_PANEL_CLASS} p-5 space-y-4`}>
@@ -685,21 +707,39 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
               <h3 className="text-xs font-medium text-slate-300">{providersLabel}</h3>
               <p className="text-xs text-slate-500">Drag the grips to reorder providers. Order flows top to bottom.</p>
             </div>
-            {previewType === 'poster' && posterConfiguratorPreset === 'advanced' && (
-              <label className="mb-4 flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-[#0a0a0a] px-4 py-3">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs font-medium text-slate-300">Average rating</span>
-                  <span className="text-[10px] text-slate-500">If enabled, the genre name will also be displayed</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPosterAverageRatingsEnabled((value) => !value)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-1 transition-colors ${posterAverageRatingsEnabled ? 'bg-orange-500/80' : 'bg-white/10'}`}
-                  aria-pressed={posterAverageRatingsEnabled}
-                >
-                  <span className={`block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${posterAverageRatingsEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
-              </label>
+            {previewType === 'poster' && (
+              <div className="mb-6 space-y-2">
+                <label className="flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-[#0a0a0a] px-4 py-3">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs font-medium text-slate-300">Average rating</span>
+                    <span className="text-[10px] text-slate-500 text-balance leading-relaxed">Displays a unified rating across providers</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPosterAverageRatingsEnabled((value) => !value)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-1 transition-colors ${posterAverageRatingsEnabled ? 'bg-orange-500/80' : 'bg-white/10'}`}
+                    aria-pressed={posterAverageRatingsEnabled}
+                  >
+                    <span className={`block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${posterAverageRatingsEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </label>
+                {posterAverageRatingsEnabled && (
+                  <motion.label
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="ml-4 flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-[#0a0a0a]/50 px-4 py-2.5"
+                  >
+                    <span className="text-[11px] font-medium text-slate-400">Include genre name</span>
+                    <button
+                      type="button"
+                      onClick={() => setPosterGenrePosition(posterGenrePosition === 'off' ? 'top' : 'off')}
+                      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors ${posterGenrePosition !== 'off' ? 'bg-orange-500/60' : 'bg-white/5'}`}
+                    >
+                      <span className={`block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${posterGenrePosition !== 'off' ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </button>
+                  </motion.label>
+                )}
+              </div>
             )}
             <div className="flex gap-2 mb-4">
               <button onClick={enableAllRatingPreferences} className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS + " px-4 py-2"}>

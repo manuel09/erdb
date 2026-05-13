@@ -4,10 +4,11 @@ import type { PosterRatingLayout } from '@/lib/posterRatingLayout';
 
 export type StreamBadgeKey = '4k' | 'hdr' | 'dolbyvision' | 'dolbyatmos' | 'remux';
 export type RenderImageType = 'poster' | 'backdrop' | 'logo' | 'thumbnail';
-export type BadgeKey = RatingPreference | StreamBadgeKey | 'average' | 'ranking';
+export type BadgeKey = RatingPreference | StreamBadgeKey | 'average' | 'genre' | 'ranking';
 export type QualityBadgesSide = 'left' | 'right';
 export type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide;
 export type RankingPosition = 'auto' | 'top' | 'bottom' | 'above-logo';
+export type PosterGenrePosition = 'off' | 'top' | 'bottom';
 export type StreamQualityFlags = {
   has4k: boolean;
   hasHdr: boolean;
@@ -152,6 +153,12 @@ export const normalizeRankingPosition = (value?: string | null): RankingPosition
     return 'above-logo';
   }
   return 'auto';
+};
+export const normalizePosterGenrePosition = (value?: string | null): PosterGenrePosition => {
+  const normalized = (value || '').trim().toLowerCase();
+  if (['top', 't', 'up'].includes(normalized)) return 'top';
+  if (['bottom', 'bot', 'b', 'down'].includes(normalized)) return 'bottom';
+  return 'off';
 };
 export const resolvePosterQualityBadgePlacement = (
   layout: PosterRatingLayout,

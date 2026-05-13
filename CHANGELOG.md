@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.65](https://github.com/realbestia1/erdb/compare/v0.4.64...v0.4.65) - 2026-05-13
+
+- Add poster genre badge and UI control ([c140553](https://github.com/realbestia1/erdb/commit/c1405530aff7f92ef35a0de3cdbed8bead5fb0cb))
+  Introduce poster genre badges: add PosterGenrePosition type (off/top/bottom) and normalization, wire posterGenrePosition through token/proxy config and aiometadata params, and persist it in controllers and URL/query generation. Route logic now resolves the first TMDB genre name, includes genre in average rating display when enabled, and builds a posterGenreBadge for rendering; posterGenrePosition is included in cache keys/TTLs. Image renderer composes the genre badge (top/bottom), avoids collisions using poster blocking rects, and registers blocking rects for other badges; badge height estimation was slightly improved to avoid clipping. UI: expose genre position controls in workspace/home panels and toggle for including genre with average rating. Bump package version to 0.4.65.
+
 ## [0.4.64](https://github.com/realbestia1/erdb/compare/v0.4.63...v0.4.64) - 2026-05-13
 
 - Unify and extend layout controls UI ([99eae0c](https://github.com/realbestia1/erdb/commit/99eae0c62ee4dcb40d4dd0b90732abb59516ada8))

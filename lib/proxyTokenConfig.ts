@@ -64,6 +64,7 @@ export const buildProxyConfigFromToken = (
   mapStr('backdropImageText', 'backdropImageText');
   mapStr('backdropAnimeImageText', 'backdropAnimeImageText');
   mapStr('posterRatingsLayout', 'posterRatingsLayout');
+  mapStr('posterGenrePosition', 'posterGenrePosition');
   mapStr('backdropRatingsLayout', 'backdropRatingsLayout');
   mapStr('backdropRatingsSize', 'backdropRatingsSize');
   mapStr('thumbnailRatingsLayout', 'thumbnailRatingsLayout');

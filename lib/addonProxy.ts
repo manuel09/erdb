@@ -21,6 +21,7 @@ const ERDB_OPTIONAL_PARAMS = [
   'posterQualityBadgesPosition',
   'qualityBadgesStyle',
   'posterRatingsLayout',
+  'posterGenrePosition',
   'posterRatingsMode',
   'posterConfiguratorPreset',
   'posterRatingsMaxPerSide',
@@ -41,6 +42,7 @@ const ERDB_TYPE_OPTIONAL_PARAMS = {
     'posterRatings',
     'posterRatingsMode',
     'posterConfiguratorPreset',
+    'posterGenrePosition',
     'ranking',
     'rankingCountry',
     'rankingNoBox',
@@ -151,6 +153,7 @@ export type ProxyConfig = {
   backdropImageText?: string;
   backdropAnimeImageText?: string;
   posterRatingsLayout?: string;
+  posterGenrePosition?: string;
   posterRatingsMode?: string;
   posterConfiguratorPreset?: string;
   posterRatingsMaxPerSide?: string;
@@ -221,6 +224,7 @@ const PROXY_OPTIONAL_STRING_KEYS = [
   'backdropImageText',
   'backdropAnimeImageText',
   'posterRatingsLayout',
+  'posterGenrePosition',
   'posterRatingsMode',
   'posterConfiguratorPreset',
   'posterRatingsMaxPerSide',
