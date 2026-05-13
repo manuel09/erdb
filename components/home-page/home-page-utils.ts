@@ -26,7 +26,7 @@ import {
 } from '@/lib/ratingStyle';
 import type { LogoMode } from '@/lib/logoMode';
 import type { LogoFontVariant } from '@/lib/logoFontVariant';
-import type { RankingPosition } from '@/lib/ratingBadgeLogic';
+import type { PosterGenrePosition, RankingPosition } from '@/lib/ratingBadgeLogic';
 import {
   getTmdbLanguageBase,
   normalizeTmdbLanguageCode,
@@ -51,6 +51,7 @@ export type ProxyEpisodeProvider = 'custom' | 'realimdb' | 'tvdb';
 export type StreamBadgesSetting = 'auto' | 'on' | 'off';
 export type QualityBadgesSide = 'left' | 'right';
 export type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide;
+export type { PosterGenrePosition };
 export type VerticalBadgeContent = 'standard' | 'stacked';
 export type PosterConfiguratorPreset = 'simple' | 'advanced';
 export const DEFAULT_QUALITY_BADGES_STYLE: RatingStyle = 'glass';
@@ -93,6 +94,8 @@ export const isQualityBadgesSide = (value: unknown): value is QualityBadgesSide 
   value === 'left' || value === 'right';
 export const isPosterQualityBadgesPosition = (value: unknown): value is PosterQualityBadgesPosition =>
   value === 'auto' || value === 'left' || value === 'right';
+export const isPosterGenrePosition = (value: unknown): value is PosterGenrePosition =>
+  value === 'off' || value === 'top' || value === 'bottom';
 export const isImageText = (value: unknown): value is 'default' | 'clean' | 'alternative' =>
   value === 'default' || value === 'original' || value === 'clean' || value === 'alternative';
 export const isRatingStyle = (value: unknown): value is RatingStyle =>
@@ -301,6 +304,7 @@ export const buildAiometadataPattern = (options: {
   shouldShowPosterQualityBadgesPosition: boolean;
   qualityBadgesSide: QualityBadgesSide;
   posterQualityBadgesPosition: PosterQualityBadgesPosition;
+  posterGenrePosition: PosterGenrePosition;
   posterQualityBadgesStyle: RatingStyle;
   backdropQualityBadgesStyle: RatingStyle;
   posterRatingStyle: RatingStyle;
@@ -358,6 +362,7 @@ export const buildAiometadataPattern = (options: {
     shouldShowPosterQualityBadgesPosition,
     qualityBadgesSide,
     posterQualityBadgesPosition,
+    posterGenrePosition,
     posterQualityBadgesStyle,
     backdropQualityBadgesStyle,
     posterRatingStyle,
@@ -437,6 +442,9 @@ export const buildAiometadataPattern = (options: {
     }
     if (shouldShowPosterQualityBadgesPosition && posterQualityBadgesPosition !== 'auto') {
       params.push(['posterQualityBadgesPosition', posterQualityBadgesPosition]);
+    }
+    if (posterGenrePosition !== 'off') {
+      params.push(['posterGenrePosition', posterGenrePosition]);
     }
     if (posterQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
       params.push(['posterQualityBadgesStyle', posterQualityBadgesStyle]);
@@ -600,6 +608,7 @@ export const buildAiometadataPatternBlock = (options: {
       params.push(['imageText', config.posterImageText]);
     }
     pushIfString('posterRatingsLayout');
+    pushIfString('posterGenrePosition');
     if (
       typeof config.posterRatingsMaxPerSide === 'string' ||
       typeof config.posterRatingsMaxPerSide === 'number'

@@ -1,4 +1,4 @@
-import type { RatingBadge, RankingBadge, RankingPosition, StreamQualityFlags } from '@/lib/ratingBadgeLogic';
+import type { PosterGenrePosition, RatingBadge, RankingBadge, RankingPosition, StreamQualityFlags } from '@/lib/ratingBadgeLogic';
 import type { BackdropRatingLayout } from '@/lib/backdropRatingLayout';
 import type { ThumbnailRatingLayout } from '@/lib/thumbnailRatingLayout';
 import type { BackdropRatingsSize } from '@/lib/backdropRatingsSize';
@@ -114,6 +114,8 @@ export type FastRenderInput = {
   rightBadges: RatingBadge[];
   backdropColumns?: RatingBadge[][];
   backdropRows?: RatingBadge[][];
+  posterGenreBadge?: RatingBadge | null;
+  posterGenrePosition: PosterGenrePosition;
   rankingBadge?: RankingBadge | null;
   rankingPosition: RankingPosition;
   posterConfiguratorPreset?: string | null;

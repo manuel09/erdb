@@ -1,4 +1,4 @@
-import type { StreamBadgesSetting, QualityBadgesSide, PosterQualityBadgesPosition, RankingPosition, VerticalBadgeContent, AiometadataEpisodeProvider, ProxySeriesMetadataProvider, ProxyEpisodeProvider, ProxyType } from '@/components/workspace/types';
+import type { StreamBadgesSetting, QualityBadgesSide, PosterQualityBadgesPosition, PosterGenrePosition, RankingPosition, VerticalBadgeContent, AiometadataEpisodeProvider, ProxySeriesMetadataProvider, ProxyEpisodeProvider, ProxyType } from '@/components/workspace/types';
 
 export const PROXY_TYPES: ProxyType[] = ['poster', 'backdrop', 'logo', 'thumbnail'];
 export const STREAM_BADGE_OPTIONS: Array<{ id: StreamBadgesSetting; label: string }> = [
@@ -17,6 +17,11 @@ export const POSTER_QUALITY_BADGE_POSITION_OPTIONS: Array<{
   { id: 'auto', label: 'Auto' },
   { id: 'left', label: 'Left' },
   { id: 'right', label: 'Right' },
+];
+export const POSTER_GENRE_POSITION_OPTIONS: Array<{ id: PosterGenrePosition; label: string }> = [
+  { id: 'off', label: 'Off' },
+  { id: 'top', label: 'Top' },
+  { id: 'bottom', label: 'Bottom' },
 ];
 export const VERTICAL_BADGE_CONTENT_OPTIONS: Array<{ id: VerticalBadgeContent; label: string }> = [
   { id: 'standard', label: 'Standard' },

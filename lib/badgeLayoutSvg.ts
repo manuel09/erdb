@@ -159,7 +159,7 @@ export const estimateBadgeHeight = (
     const bottomPadding = Math.max(outerPadding + 2, paddingY + 4);
     return outerPadding + iconSize + innerGap + textBlockHeight + bottomPadding;
   }
-  return iconSize + paddingY * 2;
+  return Math.max(iconSize, Math.round(fontSize * 1.15)) + paddingY * 2;
 };
 export const getMinimumCompressedBadgeWidth = (
   value: string,

@@ -11,7 +11,7 @@ import type { PosterRatingLayout } from '@/lib/posterRatingLayout';
 import type { RatingStyle } from '@/lib/ratingStyle';
 import type { LogoMode } from '@/lib/logoMode';
 import type { LogoFontVariant } from '@/lib/logoFontVariant';
-import type { RankingPosition } from '@/lib/ratingBadgeLogic';
+import type { PosterGenrePosition, RankingPosition } from '@/lib/ratingBadgeLogic';
 
 export type PreviewType = 'poster' | 'backdrop' | 'logo' | 'thumbnail';
 export type ProxyType = PreviewType;
@@ -19,7 +19,7 @@ export type ProxyEnabledTypes = Record<ProxyType, boolean>;
 export type StreamBadgesSetting = 'auto' | 'on' | 'off';
 export type QualityBadgesSide = 'left' | 'right';
 export type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide;
-export type { RankingPosition };
+export type { PosterGenrePosition, RankingPosition };
 export type PosterConfiguratorPreset = 'simple' | 'advanced';
 export type AiometadataPatternType = 'poster' | 'background' | 'logo' | 'episodeThumbnail';
 export type AiometadataEpisodeProvider = 'tvdb' | 'realimdb';
@@ -77,6 +77,7 @@ export type HomePageViewState = {
   thumbnailSize: ThumbnailSize;
   posterConfiguratorPreset: PosterConfiguratorPreset;
   posterAverageRatingsEnabled: boolean;
+  posterGenrePosition: PosterGenrePosition;
   posterSimpleRatingSource: 'average' | RatingPreference;
   qualityBadgesSide: QualityBadgesSide;
   posterQualityBadgesPosition: PosterQualityBadgesPosition;
@@ -158,6 +159,7 @@ export type HomePageViewActions = {
   setThumbnailSize: Dispatch<SetStateAction<ThumbnailSize>>;
   setPosterConfiguratorPreset: (value: PosterConfiguratorPreset) => void;
   setPosterAverageRatingsEnabled: Dispatch<SetStateAction<boolean>>;
+  setPosterGenrePosition: Dispatch<SetStateAction<PosterGenrePosition>>;
   setPosterSimpleRatingSource: Dispatch<SetStateAction<'average' | RatingPreference>>;
   setAiometadataEpisodeProvider: Dispatch<SetStateAction<AiometadataEpisodeProvider>>;
   setProxySeriesMetadataProvider: Dispatch<SetStateAction<ProxySeriesMetadataProvider>>;

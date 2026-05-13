@@ -86,7 +86,7 @@ import { HttpError, type PhaseDurations, type RenderImageType, type RenderedImag
 import { FALLBACK_IMAGE_LANGUAGE, getDeterministicTtlMs, getTmdbLanguageFallbackChain, isImdbId, isOriginalLanguageSetting, resolveOriginalAwareImageLanguage, resolveRequestedImageLanguage } from '@/lib/routeUtils';
 import { normalizeRatingValue } from '@/lib/ratingProviderParsing';
 import { isTextlessPosterSelection, matchesImageLanguage, pickBackdropByPreference, pickByLanguageWithFallback, pickPosterByPreference, type PosterTextPreference } from '@/lib/tmdbImageSelection';
-import { ANIME_ONLY_RATING_PROVIDER_SET, LOGO_BASE_HEIGHT, RATING_PROVIDER_META, formatDisplayRatingValue, formatRatingNumber, normalizePosterQualityBadgesPosition, normalizeQualityBadgesSide, normalizeQualityBadgesStyle, normalizeRankingPosition, normalizeStreamBadgesSetting, outputFormatToExtension, parseDisplayRatingValue, pickOutputFormat, resolvePosterQualityBadgePlacement, shouldRenderRatingValue, type BadgeKey, type RankingBadge, type RatingBadge } from '@/lib/ratingBadgeLogic';
+import { ANIME_ONLY_RATING_PROVIDER_SET, LOGO_BASE_HEIGHT, RATING_PROVIDER_META, formatDisplayRatingValue, formatRatingNumber, normalizePosterGenrePosition, normalizePosterQualityBadgesPosition, normalizeQualityBadgesSide, normalizeQualityBadgesStyle, normalizeRankingPosition, normalizeStreamBadgesSetting, outputFormatToExtension, parseDisplayRatingValue, pickOutputFormat, resolvePosterQualityBadgePlacement, shouldRenderRatingValue, type BadgeKey, type RankingBadge, type RatingBadge } from '@/lib/ratingBadgeLogic';
 import { buildTransparentLogoDataUrl } from '@/lib/imageSvgText';
 
 export const runtime = 'nodejs';
@@ -205,6 +205,7 @@ export async function GET(
   const posterAverageRatingsEnabled = posterAverageRatingsEnabledRaw === true || posterAverageRatingsEnabledRaw === 'true' || posterAverageRatingsEnabledRaw === 'on';
   const posterRatingsMode =
     tokenConfig.posterRatingsMode || request.nextUrl.searchParams.get('posterRatingsMode') || (posterAverageRatingsEnabled ? 'average' : null);
+  const posterGenrePosition = normalizePosterGenrePosition(tokenConfig.posterGenrePosition || request.nextUrl.searchParams.get('posterGenrePosition'));
   // Removed duplicate posterConfiguratorPreset declaration
   const backdropRatings = getRatings('backdropRatingPreferences', 'backdropRatings') ?? globalRatings;
   const thumbnailRatings =
@@ -551,6 +552,7 @@ export async function GET(
         : posterTextPreference,
     imageType === 'poster' ? posterRatingsLayout : '-',
     imageType === 'poster' ? String(posterRatingsMode || '-') : '-',
+    imageType === 'poster' ? posterGenrePosition : '-',
     imageType === 'poster' ? String(posterConfiguratorPreset || '-') : '-',
     imageType === 'poster' ? String(posterRatingsMaxPerSide ?? 'auto') : '-',
     imageType === 'poster' ? String(posterLang || '-') : '-',
@@ -1265,7 +1267,8 @@ export async function GET(
         requestedExternalRatings.has(rawAnimeProviderForBadges);
       const shouldRenderRatings = shouldApplyRatings && (!useRawAnimeImageFallback || shouldRenderRawAnimeFallbackRating);
       const shouldRenderStreamBadges = shouldApplyStreamBadges && !isAnimeContent;
-      const shouldRenderBadges = shouldRenderRatings || shouldRenderStreamBadges;
+      const shouldRenderPosterGenre = imageType === 'poster' && posterGenrePosition !== 'off';
+      const shouldRenderBadges = shouldRenderRatings || shouldRenderStreamBadges || shouldRenderPosterGenre;
       const rawFallbackImageUrlForThumb = rawFallbackImageUrl as string | null;
       const hasRawAnimeThumbnailImage =
         useRawAnimeImageFallback &&
@@ -1371,6 +1374,7 @@ export async function GET(
           : posterTextPreference,
         imageType === 'poster' ? posterRatingsLayout : '-',
         imageType === 'poster' ? String(posterRatingsMode || '-') : '-',
+        imageType === 'poster' ? posterGenrePosition : '-',
         imageType === 'poster' ? String(posterConfiguratorPreset || '-') : '-',
         imageType === 'poster' ? String(posterRatingsMaxPerSide ?? 'auto') : '-',
         imageType === 'poster' ? String(posterLang || '-') : '-',
@@ -2943,20 +2947,29 @@ export async function GET(
           iconScale: 'iconScale' in meta ? meta.iconScale : undefined,
         });
       }
+      let resolvedPosterGenreName: string | null | undefined;
+      const resolvePosterGenreName = async () => {
+        if (resolvedPosterGenreName !== undefined) {
+          return resolvedPosterGenreName;
+        }
+        resolvedPosterGenreName = await getFirstTmdbGenreName(
+          localizedMediaDetails || fallbackMediaDetails || media,
+          mediaType as 'movie' | 'tv' | null,
+          tmdbKey || '',
+          requestedImageLang,
+          phases
+        );
+        return resolvedPosterGenreName;
+      };
       if (imageType === 'poster' && posterRatingsMode === 'average' && ratingBadges.length > 0) {
         const values = ratingBadges
           .map((badge) => parseDisplayRatingValue(badge.value))
           .filter((value): value is number => value !== null);
         if (values.length > 0) {
           const average = values.reduce((sum, value) => sum + value, 0) / values.length;
-          const firstGenreName = await getFirstTmdbGenreName(
-            localizedMediaDetails || fallbackMediaDetails || media,
-            mediaType as 'movie' | 'tv' | null,
-            tmdbKey || '',
-            requestedImageLang,
-            phases
-          );
-          const averageValue = `${firstGenreName ? `${firstGenreName} ` : ''}★ ${formatRatingNumber(average)}`;
+          const firstGenreName = await resolvePosterGenreName();
+          const showGenreInAverage = posterGenrePosition !== 'off';
+          const averageValue = `${(firstGenreName && showGenreInAverage) ? `${firstGenreName} ` : ''}★ ${formatRatingNumber(average)}`;
           ratingBadges.splice(0, ratingBadges.length, {
             key: 'average',
             label: requestedImageLang.startsWith('it') ? 'MEDIA' : 'AVG',
@@ -2967,6 +2980,20 @@ export async function GET(
           renderedRatingTtlByProvider.set('average', MDBLIST_CACHE_TTL_MS);
         }
       }
+      const posterGenreBadge: RatingBadge | null =
+        imageType === 'poster' && posterGenrePosition !== 'off' && posterRatingsMode !== 'average'
+          ? await resolvePosterGenreName().then((genreName) =>
+            genreName
+              ? {
+                key: 'genre',
+                label: requestedImageLang.startsWith('it') ? 'GENERE' : 'GENRE',
+                value: genreName,
+                iconUrl: '',
+                accentColor: '#f59e0b',
+              }
+              : null
+          )
+          : null;
 
       const rankingValue = await rankingPromise;
       let rankingBadge: RankingBadge | null = null;
@@ -2982,6 +3009,7 @@ export async function GET(
       if (
         ratingBadges.length === 0 &&
         streamBadges.length === 0 &&
+        !posterGenreBadge &&
         !posterTitleText &&
         !posterLogoUrl &&
         !shouldRenderThumbnailFallbackOverlay &&
@@ -3579,6 +3607,7 @@ export async function GET(
           return renderedRatingTtlByProvider.get(badge.key) || null;
         }),
         ...(streamBadges.length > 0 ? [streamBadgesCacheTtlMs ?? STREAM_BADGES_CACHE_TTL_MS] : []),
+        ...(posterGenreBadge ? [TMDB_CACHE_TTL_MS] : []),
         ...(rankingBadge ? [1 * 60 * 60 * 1000] : []),
       ].filter((ttlMs): ttlMs is number => typeof ttlMs === 'number' && Number.isFinite(ttlMs) && ttlMs > 0);
       const finalImageCacheTtlMs =
@@ -3639,6 +3668,8 @@ export async function GET(
           rightBadges: rightRatingBadges,
           backdropColumns,
           backdropRows,
+          posterGenreBadge,
+          posterGenrePosition,
           rankingBadge,
           rankingPosition,
           posterConfiguratorPreset,

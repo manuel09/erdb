@@ -433,6 +433,7 @@ export const renderWithSharp = async (
           contentLayout: rowContentLayout,
         });
         overlays.push({ input: Buffer.from(badgeSvg), top: rowY, left: clampedX });
+        addPosterBlockingRect(clampedX, rowY, entry.badgeWidth, rowBadgeHeight);
         return;
       }
       if (shouldSplitRow) {
@@ -479,6 +480,7 @@ export const renderWithSharp = async (
                 contentLayout: rowContentLayout,
               });
               overlays.push({ input: Buffer.from(badgeSvg), top: rowY, left: positions[index] });
+              addPosterBlockingRect(positions[index], rowY, entry.badgeWidth, rowBadgeHeight);
             }
             return;
           }
@@ -517,6 +519,7 @@ export const renderWithSharp = async (
               contentLayout: rowContentLayout,
             });
             overlays.push({ input: Buffer.from(badgeSvg), top: rowY, left: positions[index] });
+            addPosterBlockingRect(positions[index], rowY, entry.badgeWidth, rowBadgeHeight);
           }
           return;
         }
@@ -1533,6 +1536,69 @@ export const renderWithSharp = async (
       }
     }
 
+    const composePosterGenreBadge = () => {
+      if (input.imageType !== 'poster' || !input.posterGenreBadge || input.posterGenrePosition === 'off') return;
+      const badge = input.posterGenreBadge;
+      const position = input.posterGenrePosition;
+      const metrics: BadgeLayoutMetrics = {
+        iconSize: input.badgeIconSize,
+        fontSize: input.badgeFontSize,
+        paddingX: input.badgePaddingX,
+        paddingY: input.badgePaddingY,
+        gap: input.badgeGap,
+      };
+
+      // Use slightly more generous height for Genre to avoid clipping
+      const genreHeight = estimateBadgeHeight(metrics.fontSize, metrics.paddingX, metrics.paddingY, 0, 'standard');
+      const genreWidth = estimateBadgeWidth(badge.value, metrics.fontSize, metrics.paddingX, 0, metrics.gap, true, 'standard');
+      const left = Math.round((input.outputWidth - genreWidth) / 2);
+
+      let top = input.badgeTopOffset;
+      if (position === 'bottom') {
+        top = input.outputHeight - input.badgeBottomOffset - genreHeight;
+      }
+
+      const overlapGap = Math.max(12, Math.round(input.badgeGap * 1.1));
+      const getGenreRect = (y: number) => ({ left, top: y, width: genreWidth, height: genreHeight });
+
+      for (let guard = 0; guard < 12; guard++) {
+        const rect = getGenreRect(top);
+        const collisions = posterBlockingRects.filter(r => rectsOverlap(rect, r));
+        if (collisions.length === 0) break;
+
+        if (position === 'top') {
+          top = Math.max(...collisions.map(r => r.top + r.height)) + overlapGap;
+        } else {
+          top = Math.min(...collisions.map(r => r.top)) - genreHeight - overlapGap;
+        }
+      }
+
+      // Clamp to screen bounds
+      top = Math.max(input.badgeTopOffset, Math.min(top, input.outputHeight - input.badgeBottomOffset - genreHeight));
+
+      const badgeSvg = buildBadgeSvg({
+        width: genreWidth,
+        height: genreHeight,
+        iconSize: 0,
+        fontSize: metrics.fontSize,
+        paddingX: metrics.paddingX,
+        gap: metrics.gap,
+        accentColor: badge.accentColor || '#4b5563',
+        monogram: '',
+        value: badge.value,
+        ratingStyle: input.ratingStyle,
+        compactText: true,
+      });
+
+      // Compensate for the 4px padding in buildBadgeSvg's viewBox
+      const renderedSvg = badgeSvg
+        .replace(`width="${genreWidth}"`, `width="${genreWidth + 8}"`)
+        .replace(`height="${genreHeight}"`, `height="${genreHeight + 8}"`);
+
+      overlays.push({ input: Buffer.from(renderedSvg), top: top - 4, left: left - 4 });
+      addPosterBlockingRect(left, top, genreWidth, genreHeight);
+    };
+
     if (input.imageType === 'poster' && input.rankingBadge) {
       const badge = input.rankingBadge;
       const rankingIconDataUri = await getProviderIconDataUri(RANKING_ICON_URL, 0);
@@ -1654,7 +1720,10 @@ export const renderWithSharp = async (
       const maxTop = Math.max(minTop, input.outputHeight - input.badgeBottomOffset - renderedHeight);
       top = Math.max(minTop, Math.min(Math.round(top), maxTop));
       overlays.push({ input: rankingBuffer, top, left });
+      addPosterBlockingRect(left, top, renderedWidth, renderedHeight);
     }
+
+    composePosterGenreBadge();
 
     const background =
       input.imageType === 'logo'
