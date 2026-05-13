@@ -44,6 +44,7 @@ const ERDB_TYPE_OPTIONAL_PARAMS = {
     'ranking',
     'rankingCountry',
     'rankingNoBox',
+    'rankingPosition',
     'posterAverageRatingsEnabled',
   ],
   backdrop: ['backdropStreamBadges', 'backdropQualityBadgesStyle', 'backdropRatings', 'backdropRatingsMax'],
@@ -164,6 +165,7 @@ export type ProxyConfig = {
   ranking?: string;
   rankingCountry?: string;
   rankingNoBox?: string | boolean;
+  rankingPosition?: string;
   posterAverageRatingsEnabled?: boolean | string;
   posterSimpleRatingSource?: string;
   seriesMetadataProvider?: string;
@@ -233,6 +235,7 @@ const PROXY_OPTIONAL_STRING_KEYS = [
   'ranking',
   'rankingCountry',
   'rankingNoBox',
+  'rankingPosition',
   'posterSimpleRatingSource',
   'seriesMetadataProvider',
   'aiometadataProvider',

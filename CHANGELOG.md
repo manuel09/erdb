@@ -2,6 +2,35 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.64](https://github.com/realbestia1/erdb/compare/v0.4.63...v0.4.64) - 2026-05-13
+
+- Unify and extend layout controls UI ([99eae0c](https://github.com/realbestia1/erdb/commit/99eae0c62ee4dcb40d4dd0b90732abb59516ada8))
+  Consolidate and refactor layout-related controls into the main Styles & Texts panel and add new layout options for multiple preview types. Adds Poster Layout controls (ratings layout, max per side, vertical badge style) and a short note about Poster Text anime support; introduces Backdrop and Thumbnail layout settings (layout, size, max badges, vertical badge style) and improves Logo mode UI including custom logo font, color presets and max badges. Also adds separators and minor UI tweaks for spacing and headings. Bumps package version to 0.4.64.
+
+## [0.4.63](https://github.com/realbestia1/erdb/compare/v0.4.62...v0.4.63) - 2026-05-13
+
+- Use shared button style constants ([e86399f](https://github.com/realbestia1/erdb/commit/e86399ff93e32e6610b0112bfa862add35f8f860))
+  Add reusable button style constants (BUTTON_GROUP_CONTAINER_CLASS, BUTTON_BASE_CLASS, BUTTON_ACTIVE_CLASS, BUTTON_INACTIVE_CLASS) and refactor WorkspaceControlsPanel to replace many duplicated inline button/group classes with those constants. The change centralizes and normalizes button/group styling across poster/backdrop/thumbnail/logo/quality/ranking controls and updates a few 'Auto' and preset buttons to use the new base/inactive classes. No functional logic changes—only CSS class consolidation and minor class tweaks for consistency.
+
+## [0.4.62](https://github.com/realbestia1/erdb/compare/v0.4.61...v0.4.62) - 2026-05-13
+
+- Add rankingPosition option and badge positioning ([3756b18](https://github.com/realbestia1/erdb/commit/3756b186313e52413b175ec6b0815238967b0335))
+  Introduce a new RankingPosition option (auto/top/bottom/above-logo) and thread it through the app: types, normalization, token/config mapping, UI controls, aiometadata patterns, and runtime route handling. The image renderer was enhanced to honor rankingPosition when placing the ranking badge: new collision-avoidance logic (posterBlockingRects, rectsOverlap) and dedicated top calculation paths for top/above-logo/bottom/auto ensure badges don't overlap other overlays or quality badges. Also add UI options for selecting position and include rankingPosition in preview/config URLs and proxy token handling. Bump package version in package.json.
+
+## [0.4.61](https://github.com/realbestia1/erdb/compare/v0.4.58...v0.4.61) - 2026-05-13
+
+- Balance badges for left-right layout ([cd7a24f](https://github.com/realbestia1/erdb/commit/cd7a24fa1cfaeb2021126d78786b96d0817b48ed))
+  Replace naive slicing with a distribution loop for the 'left-right' poster layout so badges are assigned to left/right columns more evenly while respecting the column limit. Also bump package version to 0.4.61.
+- Extract route logic into lib modules ([4f51982](https://github.com/realbestia1/erdb/commit/4f51982bf97675f7336cfd3556f7ef730d97b68c))
+  Refactor: pull large, self-contained logic out of app/[type]/[id]/route.ts into dedicated lib modules and reorganize related components. Added many new lib files (cachedFetch, ratingProviders, ratingProviderParsing, ratingBadgeLogic, imageAssetPipeline, imageRenderer, imageSvgText, animeProviders, externalMediaProviders, routeShared, routeConfig, routeTypes, routeUtils, streamBadges, tmdbMetadata, proxyTokenConfig, proxyMetaTransform, etc.) and new home-page utilities/hooks and workspace types. Updated route imports to use these libs, adjusted workspace and home-page components, and added related utilities for streaming badges, TMDB/rating handling, image generation and caching. Also includes package.json/package-lock updates. This improves modularity, testability and reuse by separating concerns (rating providers, image pipeline, caching and metadata) into independent modules.
+- Update Dockerfile ([a9e97b4](https://github.com/realbestia1/erdb/commit/a9e97b44314ce7602f12ecca85d050123078008e))
+
+## [0.4.6](https://github.com/realbestia1/erdb/compare/v0.4.58...v0.4.6) - 2026-05-13
+
+- Extract route logic into lib modules ([4f51982](https://github.com/realbestia1/erdb/commit/4f51982bf97675f7336cfd3556f7ef730d97b68c))
+  Refactor: pull large, self-contained logic out of app/[type]/[id]/route.ts into dedicated lib modules and reorganize related components. Added many new lib files (cachedFetch, ratingProviders, ratingProviderParsing, ratingBadgeLogic, imageAssetPipeline, imageRenderer, imageSvgText, animeProviders, externalMediaProviders, routeShared, routeConfig, routeTypes, routeUtils, streamBadges, tmdbMetadata, proxyTokenConfig, proxyMetaTransform, etc.) and new home-page utilities/hooks and workspace types. Updated route imports to use these libs, adjusted workspace and home-page components, and added related utilities for streaming badges, TMDB/rating handling, image generation and caching. Also includes package.json/package-lock updates. This improves modularity, testability and reuse by separating concerns (rating providers, image pipeline, caching and metadata) into independent modules.
+- Update Dockerfile ([a9e97b4](https://github.com/realbestia1/erdb/commit/a9e97b44314ce7602f12ecca85d050123078008e))
+
 ## [0.4.58](https://github.com/realbestia1/erdb/compare/v0.4.57...v0.4.58) - 2026-05-12
 
 - Bump to v0.4.58; update image cache & defaults ([ddcf2aa](https://github.com/realbestia1/erdb/commit/ddcf2aaa157af84dc46ed2d861f944460c1dfed7))

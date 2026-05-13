@@ -16,6 +16,7 @@ import type { PosterRatingLayout } from '@/lib/posterRatingLayout';
 import type { RatingStyle } from '@/lib/ratingStyle';
 import type { LogoMode } from '@/lib/logoMode';
 import type { LogoFontVariant } from '@/lib/logoFontVariant';
+import type { RankingPosition } from '@/lib/ratingBadgeLogic';
 
 type PreviewType = 'poster' | 'backdrop' | 'logo' | 'thumbnail';
 type ProxyType = PreviewType;
@@ -92,6 +93,7 @@ type HomePageViewState = {
   ranking: string;
   rankingCountry: string;
   rankingNoBox: boolean;
+  rankingPosition: RankingPosition;
 };
 
 type HomePageViewDerived = {
@@ -190,6 +192,7 @@ type HomePageViewActions = {
   setRanking: Dispatch<SetStateAction<string>>;
   setRankingCountry: Dispatch<SetStateAction<string>>;
   setRankingNoBox: Dispatch<SetStateAction<boolean>>;
+  setRankingPosition: Dispatch<SetStateAction<RankingPosition>>;
 };
 
 export type HomePageViewProps = {

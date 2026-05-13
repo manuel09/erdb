@@ -1,4 +1,4 @@
-import type { StreamBadgesSetting, QualityBadgesSide, PosterQualityBadgesPosition, VerticalBadgeContent, AiometadataEpisodeProvider, ProxySeriesMetadataProvider, ProxyEpisodeProvider, ProxyType } from '@/components/workspace-page-view';
+import type { StreamBadgesSetting, QualityBadgesSide, PosterQualityBadgesPosition, RankingPosition, VerticalBadgeContent, AiometadataEpisodeProvider, ProxySeriesMetadataProvider, ProxyEpisodeProvider, ProxyType } from '@/components/workspace/types';
 
 export const PROXY_TYPES: ProxyType[] = ['poster', 'backdrop', 'logo', 'thumbnail'];
 export const STREAM_BADGE_OPTIONS: Array<{ id: StreamBadgesSetting; label: string }> = [
@@ -41,6 +41,12 @@ export const RANKING_OPTIONS: Array<{ id: string; label: string }> = [
   { id: 'weekly', label: 'Weekly' },
   { id: 'monthly', label: 'Monthly' },
 ];
+export const RANKING_POSITION_OPTIONS: Array<{ id: RankingPosition; label: string }> = [
+  { id: 'auto', label: 'Auto' },
+  { id: 'above-logo', label: 'Above Logo' },
+  { id: 'top', label: 'Top' },
+  { id: 'bottom', label: 'Bottom' },
+];
 export const JUSTWATCH_COUNTRY_OPTIONS: Array<{ id: string; label: string }> = [
   { id: 'global', label: 'Global (US fallback)' },
   { id: 'AR', label: 'Argentina' },
@@ -65,6 +71,11 @@ export const INPUT_COMPACT_CLASS =
   'rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition duration-200 focus:border-orange-400/50 focus:bg-white/[0.07]';
 export const SEGMENT_CLASS =
   'flex gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]';
+export const BUTTON_GROUP_CONTAINER_CLASS = 'flex flex-wrap gap-2';
+export const BUTTON_BASE_CLASS = 'rounded-xl px-4 py-2.5 text-xs font-semibold transition-all shadow-sm';
+export const BUTTON_ACTIVE_CLASS = 'border border-orange-500/30 bg-orange-500/15 text-white';
+export const BUTTON_INACTIVE_CLASS =
+  'border border-white/5 bg-[#0a0a0a] text-slate-400 hover:bg-[#121212] hover:text-slate-200';
 export const INNER_PANEL_CLASS =
   'rounded-[22px] border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]';
 export const CODE_PANEL_CLASS =
