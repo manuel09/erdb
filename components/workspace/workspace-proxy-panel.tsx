@@ -84,6 +84,12 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenAiometadata
         </div>
 
         <div className="flex-1 overflow-y-auto premium-scrollbar p-5 pt-2 space-y-4">
+          <div className="rounded-xl border border-sky-400/20 bg-sky-500/5 p-3">
+            <p className="text-xs leading-relaxed text-sky-200/70">
+              ERDB's Addon Proxy lets you use any Stremio addon through ERDB to add rating badges (IMDb, TMDB, Rotten Tomatoes, etc.) and quality indicators directly on posters, backdrops, and logos. It also supports metadata translation, catalog customization, and JustWatch rankings — all without modifying the original addon.
+            </p>
+          </div>
+
           <div className={`${INNER_PANEL_CLASS} p-5 space-y-4`}>
             <div className="space-y-2">
               <label className="text-xs font-medium text-slate-300 block">Manifest URL</label>
@@ -140,14 +146,6 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenAiometadata
                 {proxyCatalogsStatus === 'error' && (
                   <p className="text-xs text-rose-400 p-2 bg-rose-500/10 rounded-lg">{proxyCatalogsError}</p>
                 )}
-              </div>
-            )}
-
-            {canConfigureCatalogs && isCinemetaProxyManifest && (
-              <div className="rounded-xl border border-sky-400/20 bg-sky-500/5 p-3">
-                <p className="text-xs leading-relaxed text-sky-200/70">
-                  Cinemeta automaps series to IMDb IDs. ERDB will inject `realimdb:` episodes seamlessly.
-                </p>
               </div>
             )}
 
