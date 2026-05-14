@@ -7,11 +7,12 @@ import {
   ChevronRight, Image as ImageIcon, MonitorPlay, Layers, Search, Tv, Film, X, Loader2,
 } from 'lucide-react';
 import type { HomePageViewProps } from '@/components/workspace/types';
+import { Dropdown } from './dropdown';
 
 const SEGMENT_CLASS =
   'flex gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]';
 const INPUT_COMPACT_CLASS =
-  'rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition duration-200 focus:border-orange-400/50 focus:bg-white/[0.07]';
+  'rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-[13px] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition duration-200 focus:border-orange-400/50 focus:bg-white/[0.07]';
 
 type SearchResult = {
   tmdbId: number;
@@ -158,9 +159,7 @@ function MediaIdSearch({
 
   return (
     <div ref={containerRef} className="relative flex items-center gap-2">
-      <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wide text-slate-500">
-        Media ID
-      </span>
+
       <div className="relative flex items-center">
         <input
           ref={inputRef}
@@ -169,7 +168,7 @@ function MediaIdSearch({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder={tmdbKey ? `${placeholder} or title…` : placeholder}
-          className={`h-8 w-44 pr-14 ${INPUT_COMPACT_CLASS}`}
+          className={`h-8 w-32 pr-14 sm:w-44 ${INPUT_COMPACT_CLASS}`}
         />
         {/* Clear button */}
         {inputValue && (
@@ -273,150 +272,190 @@ export function WorkspaceNav({ refs, state, actions, derived, onOpenRotateModal 
   const { previewType, mediaId, lang, supportedLanguages, tmdbKey } = state;
   const { setPreviewType, setMediaId, setLang, handleSaveConfig, handleTokenDisconnect } = actions;
   const [tokenCopied, setTokenCopied] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const langOptions = supportedLanguages.map((l: { code: string; flag: string; label: string }) => ({ id: l.code, label: `${l.flag} ${l.label}` }));
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <nav ref={navRef} className="z-50 rounded-[28px] border border-white/10 bg-[#06070b]/72 shadow-[0_24px_70px_-45px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl">
-      <div className="mx-auto grid w-full grid-cols-1 gap-3 px-4 py-3 sm:px-6 lg:grid-cols-[auto_1fr_auto] lg:items-center lg:gap-4">
-        {/* Left: nav links */}
-        <div className="flex flex-wrap items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-          <Link href="/" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 transition-colors hover:bg-white/[0.07] hover:text-white">
-            <ArrowLeft className="h-3.5 w-3.5" />Home
+    <nav ref={navRef} className="sticky top-0 z-50 rounded-[28px] border border-white/10 bg-[#06070b]/72 shadow-[0_24px_70px_-45px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl xl:static">
+      <div className="mx-auto flex w-full flex-col gap-1 px-3 py-1.5 sm:px-4 sm:py-3 lg:flex-row lg:items-center lg:gap-3">
+        {/* Desktop: Home always left */}
+        <Link href="/" className="hidden shrink-0 items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400 transition-colors hover:bg-white/[0.07] hover:text-white lg:flex">
+          <ArrowLeft className="h-3.5 w-3.5" />
+        </Link>
+        {state.activeToken && (
+          <button onClick={handleTokenDisconnect}
+            className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-medium text-slate-400 transition-colors hover:bg-white/10 hover:text-white lg:flex" title="Logout">
+            <LogOut className="h-3.5 w-3.5" />
+            <span>Logout</span>
+          </button>
+        )}
+        {!state.activeToken && (
+          <Link href="/configurator" className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-medium text-slate-100 transition-colors hover:bg-white/10 lg:flex">
+            <Lock className="h-3.5 w-3.5" />
+            <span>Login</span>
           </Link>
-          <span className="rounded-full border border-orange-400/20 bg-orange-500/10 px-3 py-2 text-white">Workspace</span>
-          <Link href="/docs" className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 transition-colors hover:bg-white/[0.07] hover:text-white">
-            API Docs
-          </Link>
-        </div>
-        {/* Center: Type + Media ID + Lang */}
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wide text-slate-500">Type</span>
-            <div className={`${SEGMENT_CLASS} flex-wrap p-0.5 xl:flex-nowrap`}>
-              {(['poster', 'backdrop', 'logo', 'thumbnail'] as const).map(type => (
-                <button
-                  key={type}
-                  onClick={() => setPreviewType(type)}
-                  className={`px-2 py-1 rounded text-[11px] font-bold transition-all flex items-center gap-1 whitespace-nowrap ${previewType === type ? 'border border-orange-400/20 bg-orange-500/10 text-white' : 'border border-transparent text-slate-400 hover:text-white'}`}
-                >
-                  {type === 'poster' && <ImageIcon className="w-3 h-3" />}
-                  {type === 'backdrop' && <MonitorPlay className="w-3 h-3" />}
-                  {type === 'logo' && <Layers className="w-3 h-3" />}
-                  {type === 'thumbnail' && <MonitorPlay className="w-3 h-3" />}
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
-                </button>
-              ))}
-            </div>
+        )}
+
+        {/* Center group: Type + Media ID + Lang (desktop) / Mobile Row 1 */}
+        <div className="flex flex-col gap-1 lg:mx-auto lg:flex-row lg:items-center lg:gap-3">
+          <div className="flex items-center justify-center gap-1">
+            <div className={`${SEGMENT_CLASS} flex max-w-full gap-0.5 overflow-x-auto px-0.5 py-0`}>
+            {(['poster', 'backdrop', 'logo', 'thumbnail'] as const).map(type => (
+              <button
+                key={type}
+                onClick={() => setPreviewType(type)}
+                className={`flex h-8 shrink-0 items-center gap-1 rounded-lg px-1.5 py-0.5 text-[10px] font-bold whitespace-nowrap transition-all sm:px-2 sm:py-1 sm:text-[11px] ${
+                  previewType === type
+                    ? 'border border-orange-400/20 bg-orange-500/10 text-white shadow-sm'
+                    : 'border border-transparent text-slate-400 hover:text-white'
+                }`}
+              >
+                {type === 'poster' && <ImageIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
+                {type === 'backdrop' && <MonitorPlay className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
+                {type === 'logo' && <Layers className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
+                {type === 'thumbnail' && <MonitorPlay className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
+                <span>{type === 'backdrop' ? 'Backdrp' : type.charAt(0).toUpperCase() + type.slice(1)}</span>
+              </button>
+            ))}
           </div>
-
-          <MediaIdSearch
-            mediaId={mediaId}
-            setMediaId={setMediaId}
-            tmdbKey={tmdbKey}
-            placeholder={previewType === 'thumbnail' ? 'tt0944947:1:1' : 'tt0133093'}
-            previewType={previewType}
-          />
-
-          {tmdbKey ? (
-            <div className="flex items-center gap-2">
-              <span className="flex shrink-0 items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-slate-500"><Globe2 className="w-3 h-3" /> Lang</span>
-              <div className="relative">
-                <select value={lang} onChange={(e) => setLang(e.target.value)} className={`h-8 w-40 appearance-none pr-7 ${INPUT_COMPACT_CLASS}`}>
-                  {supportedLanguages.map((language) => (
-                    <option key={language.code} value={language.code} className="bg-[#0a0a0a]">
-                      {language.flag} {language.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronRight className="absolute right-2 top-2.5 w-3 h-3 rotate-90 stroke-2 text-slate-500 pointer-events-none" />
+          {/* Desktop: Media ID + Lang inline after type */}
+          <div className="hidden items-center gap-2 lg:flex">
+            <MediaIdSearch
+              mediaId={mediaId}
+              setMediaId={setMediaId}
+              tmdbKey={tmdbKey}
+              placeholder={previewType === 'thumbnail' ? 'tt0944947:1:1' : 'tt0133093'}
+              previewType={previewType}
+            />
+            {tmdbKey ? (
+              <Dropdown value={lang} onChange={setLang} options={langOptions} className="h-8 text-[13px]" />
+            ) : (
+              <div className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-[#080808] px-2 text-[10px] text-slate-500">
+                <Globe2 className="h-3 w-3 shrink-0" />
+                <span>No key</span>
               </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <span className="flex shrink-0 items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-slate-500"><Globe2 className="w-3 h-3" /> Lang</span>
-              <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#080808] px-2 py-1.5 text-[10px] text-slate-500">
-                <Globe2 className="w-3 h-3 shrink-0" /> Add TMDB key
-              </div>
-            </div>
+            )}
+          </div>
+          </div>
+        </div>
+
+        {/* Desktop right section: actions */}
+        <div className="hidden items-center gap-2 lg:flex">
+          {state.activeToken && (
+            <button onClick={handleSaveConfig} disabled={state.configSaveStatus === 'saving'}
+              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-semibold transition-colors ${
+                state.configSaveStatus === 'saved' ? 'border-green-400/30 bg-green-500/15 text-green-200'
+                : state.configSaveStatus === 'error' ? 'border-red-400/30 bg-red-500/15 text-red-200'
+                : state.configSaveStatus === 'saving' ? 'border-orange-400/20 bg-orange-500/10 text-orange-200 cursor-wait'
+                : 'border-orange-400/20 bg-orange-500/10 text-white hover:bg-orange-500/20'}`}
+              title="Save Settings">
+              {state.configSaveStatus === 'saved' ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
+              <span>{state.configSaveStatus === 'saving' ? 'Saving…' : state.configSaveStatus === 'saved' ? 'Saved' : state.configSaveStatus === 'error' ? 'Error' : 'Save Settings'}</span>
+            </button>
+          )}
+          {state.activeToken && (
+            <button onClick={() => { navigator.clipboard.writeText(state.activeToken!); setTokenCopied(true); setTimeout(() => setTokenCopied(false), 2000); }}
+              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-medium text-slate-400 transition-colors hover:bg-white/10 hover:text-white" title="Copy Token">
+              <Clipboard className="h-3.5 w-3.5" />
+              <span>Copy Token</span>
+            </button>
+          )}
+          {state.activeToken && (
+            <button onClick={onOpenRotateModal}
+              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-medium text-slate-400 transition-colors hover:bg-white/10 hover:text-white" title="Rotate Token">
+              <RefreshCcw className="h-3.5 w-3.5" />
+              <span>Rotate Token</span>
+            </button>
           )}
         </div>
-        {/* Right: Rotate Token / Disconnect / Login */}
-        <div className="flex items-center gap-2">
+
+        {/* Mobile: Row 2 = Home + Media ID + Lang + compact actions (hidden on desktop) */}
+        <div className="flex items-center gap-2 lg:hidden">
+          <Link href="/" className={`flex shrink-0 items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] px-1.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 transition-all duration-200 hover:bg-white/[0.07] hover:text-white sm:px-2 sm:py-1.5 sm:text-[11px] h-8 sm:py-0 ${scrolled ? 'opacity-0 invisible w-0 overflow-hidden px-0' : ''}`}>
+            <ArrowLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+          </Link>
+          <div className="mx-auto flex items-center gap-2">
+            <MediaIdSearch
+              mediaId={mediaId}
+              setMediaId={setMediaId}
+              tmdbKey={tmdbKey}
+              placeholder={previewType === 'thumbnail' ? 'tt0944947:1:1' : 'tt0133093'}
+              previewType={previewType}
+            />
+            {tmdbKey ? (
+              <Dropdown value={lang} onChange={setLang} options={langOptions} className="h-8 px-2 py-1 text-[10px] sm:px-2.5 sm:py-1.5 sm:text-[13px]" />
+            ) : (
+              <div className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-[#080808] px-1.5 text-[9px] text-slate-500 sm:px-2 sm:text-[10px]">
+                <Globe2 className="h-2.5 w-2.5 shrink-0 sm:h-3 sm:w-3" />
+                <span>No key</span>
+              </div>
+            )}
+          </div>
+          <div className={`flex shrink-0 items-center gap-1 ml-auto transition-all duration-200 ${scrolled ? 'flex' : 'hidden'}`}>
+            {state.activeToken && (
+              <button onClick={handleSaveConfig} disabled={state.configSaveStatus === 'saving'}
+                className={`rounded-full border p-1 text-[8px] transition-colors ${
+                  state.configSaveStatus === 'saved' ? 'border-green-400/30 bg-green-500/15 text-green-200'
+                  : state.configSaveStatus === 'error' ? 'border-red-400/30 bg-red-500/15 text-red-200'
+                  : 'border-orange-400/20 bg-orange-500/10 text-white'}`}
+                title="Save Settings">
+                {state.configSaveStatus === 'saved' ? <Check className="h-3 w-3" /> : <Save className="h-3 w-3" />}
+              </button>
+            )}
+            {state.activeToken && (
+              <button onClick={() => { navigator.clipboard.writeText(state.activeToken!); setTokenCopied(true); setTimeout(() => setTokenCopied(false), 2000); }}
+                className="rounded-full border border-white/10 bg-white/[0.04] p-1 text-slate-400" title="Copy Token">
+                {tokenCopied ? <Check className="h-3 w-3 text-green-400" /> : <Clipboard className="h-3 w-3" />}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile: Row 3 = Action buttons full size (only when not scrolled) */}
+        <div className={`flex items-center gap-1.5 transition-all duration-200 lg:hidden ${scrolled ? 'h-0 overflow-hidden opacity-0' : ''}`}>
           {state.activeToken && (
-            <button
-              onClick={handleSaveConfig}
-              disabled={state.configSaveStatus === 'saving'}
-              className={`rounded-full border px-3 py-2 text-[10px] transition-colors inline-flex items-center gap-1.5 ${
-                state.configSaveStatus === 'saved'
-                  ? 'border-green-400/30 bg-green-500/15 text-green-200'
-                  : state.configSaveStatus === 'error'
-                    ? 'border-red-400/30 bg-red-500/15 text-red-200'
-                    : state.configSaveStatus === 'saving'
-                      ? 'border-orange-400/20 bg-orange-500/10 text-orange-200 cursor-wait'
-                      : 'border-orange-400/20 bg-orange-500/10 text-white hover:bg-orange-500/20'
-              }`}
-              title="Save current configuration to token"
-            >
-              {state.configSaveStatus === 'saved' ? (
-                <Check className="h-3 w-3" />
-              ) : (
-                <Save className="h-3 w-3" />
-              )}
-              <span>
-                {state.configSaveStatus === 'saving'
-                  ? 'Saving…'
-                  : state.configSaveStatus === 'saved'
-                    ? 'Saved'
-                    : state.configSaveStatus === 'error'
-                      ? 'Error'
-                      : 'Save Config'}
-              </span>
+            <button onClick={handleSaveConfig} disabled={state.configSaveStatus === 'saving'}
+              className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-medium transition-colors sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[10px] ${
+                state.configSaveStatus === 'saved' ? 'border-green-400/30 bg-green-500/15 text-green-200'
+                : state.configSaveStatus === 'error' ? 'border-red-400/30 bg-red-500/15 text-red-200'
+                : state.configSaveStatus === 'saving' ? 'border-orange-400/20 bg-orange-500/10 text-orange-200 cursor-wait'
+                : 'border-orange-400/20 bg-orange-500/10 text-white hover:bg-orange-500/20'}`}
+              title="Save Settings">
+              {state.configSaveStatus === 'saved' ? <Check className="h-3 w-3" /> : <Save className="h-3 w-3" />}
+              <span>{state.configSaveStatus === 'saving' ? 'Saving…' : state.configSaveStatus === 'saved' ? 'Saved' : state.configSaveStatus === 'error' ? 'Error' : 'Save Settings'}</span>
             </button>
           )}
           {state.activeToken && (
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(state.activeToken!);
-                setTokenCopied(true);
-                setTimeout(() => setTokenCopied(false), 2000);
-              }}
-              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] text-slate-400 transition-colors hover:bg-white/10 hover:text-white inline-flex items-center gap-1.5"
-              title="Copia il Token negli appunti"
-            >
-              {tokenCopied ? (
-                <Check className="h-3 w-3 text-green-400" />
-              ) : (
-                <Clipboard className="h-3 w-3" />
-              )}
-              <span className={tokenCopied ? 'text-green-400' : ''}>
-                {tokenCopied ? 'Copied' : 'Copy Token'}
-              </span>
+            <button onClick={() => { navigator.clipboard.writeText(state.activeToken!); setTokenCopied(true); setTimeout(() => setTokenCopied(false), 2000); }}
+              className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[9px] font-medium text-slate-400 transition-colors hover:bg-white/10 hover:text-white sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[10px]" title="Copy Token">
+              {tokenCopied ? <Check className="h-3 w-3 text-green-400" /> : <Clipboard className="h-3 w-3" />}
+              <span>{tokenCopied ? 'Copied' : 'Copy Token'}</span>
             </button>
           )}
           {state.activeToken && (
-            <button
-              onClick={onOpenRotateModal}
-              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] text-slate-400 transition-colors hover:bg-white/10 hover:text-white inline-flex items-center gap-1.5"
-              title="Genera un nuovo token migrando la configurazione"
-            >
+            <button onClick={onOpenRotateModal}
+              className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[9px] font-medium text-slate-400 transition-colors hover:bg-white/10 hover:text-white sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[10px]" title="Rotate Token">
               <RefreshCcw className="h-3 w-3" />
               <span>Rotate Token</span>
             </button>
           )}
           {state.activeToken && (
-            <button
-              onClick={handleTokenDisconnect}
-              className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[10px] text-slate-100 transition-colors hover:bg-white/10 inline-flex items-center gap-2"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              <span>Disconnect</span>
+            <button onClick={handleTokenDisconnect}
+              className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[9px] font-medium text-slate-400 transition-colors hover:bg-white/10 hover:text-white sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[10px]" title="Logout">
+              <LogOut className="h-3 w-3" />
+              <span>Logout</span>
             </button>
           )}
           {!state.activeToken && (
-            <Link
-              href="/configurator"
-              className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[10px] text-slate-100 transition-colors hover:bg-white/10 inline-flex items-center gap-2"
-            >
-              <Lock className="h-3.5 w-3.5" />
+            <Link href="/configurator" className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[9px] font-medium text-slate-100 transition-colors hover:bg-white/10 sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[10px]">
+              <Lock className="h-3 w-3" />
               <span>Login</span>
             </Link>
           )}

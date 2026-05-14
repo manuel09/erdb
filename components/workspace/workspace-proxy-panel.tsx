@@ -192,13 +192,13 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenAiometadata
               </div>
             )}
 
-            <div className="space-y-3 pt-2">
+            <div className="space-y-2 pt-2">
               <span className="text-xs font-medium text-slate-300 block">Replace Artwork For</span>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {PROXY_TYPES.map(type => (
-                  <label key={`proxy-enabled-${type}`} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold cursor-pointer select-none transition-all shadow-sm ${(proxyEnabledTypes as any)[type] ? 'border border-orange-500/30 bg-orange-500/15 text-white' : 'border border-white/5 bg-[#0a0a0a] text-slate-400 hover:bg-[#121212] hover:text-slate-200'}`}>
-                    <input type="checkbox" checked={(proxyEnabledTypes as any)[type]} onChange={() => toggleProxyEnabledType(type)} className="h-4 w-4 accent-orange-500" />
-                    <span>{type.charAt(0).toUpperCase() + type.slice(1)}</span>
+                  <label key={`proxy-enabled-${type}`} className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold cursor-pointer select-none transition-all shadow-sm ${(proxyEnabledTypes as any)[type] ? 'border border-orange-500/30 bg-orange-500/15 text-white' : 'border border-white/5 bg-[#0a0a0a] text-slate-400 hover:bg-[#121212] hover:text-slate-200'}`}>
+                    <input type="checkbox" checked={(proxyEnabledTypes as any)[type]} onChange={() => toggleProxyEnabledType(type)} className="h-3.5 w-3.5 accent-orange-500" />
+                    <span>{type === 'backdrop' ? 'Backdrp' : type.charAt(0).toUpperCase() + type.slice(1)}</span>
                   </label>
                 ))}
               </div>

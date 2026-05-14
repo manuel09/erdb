@@ -245,7 +245,7 @@ export function HomePageView({ refs, derived }: HomePageViewProps) {
       <div className="relative mx-auto w-full max-w-[1840px]">
         <nav
           ref={navRef}
-          className="sticky top-3 z-50 mx-3 mt-3 rounded-[28px] border border-white/10 bg-[#06070b]/72 shadow-[0_24px_70px_-45px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl sm:mx-4 sm:mt-4"
+          className="fixed top-3 left-3 right-3 z-50 rounded-[28px] border border-white/10 bg-[#06070b]/72 shadow-[0_24px_70px_-45px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl sm:left-4 sm:right-4"
         >
           <div className="mx-auto grid w-full grid-cols-1 gap-3 px-4 py-3 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center lg:gap-4">
             <div className="flex items-center gap-3">
@@ -283,7 +283,7 @@ export function HomePageView({ refs, derived }: HomePageViewProps) {
           </div>
         </nav>
 
-        <main className="mx-auto w-full px-6 py-16 space-y-16">
+        <main className="mx-auto w-full px-6 pt-28 pb-28 space-y-16">
           <section className="relative mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
             <div className="space-y-6">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[10px] uppercase tracking-[0.35em] text-slate-300">
@@ -412,7 +412,7 @@ export function HomePageView({ refs, derived }: HomePageViewProps) {
           </section>
         </main>
 
-        <footer className="mx-3 mb-6 rounded-[28px] border border-white/10 bg-[#06070b]/72 shadow-[0_24px_70px_-45px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl sm:mx-4 sm:mb-8">
+        <footer className="fixed bottom-3 left-3 right-3 z-50 rounded-[28px] border border-white/10 bg-[#06070b]/72 shadow-[0_24px_70px_-45px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl sm:left-4 sm:right-4">
           <div className="mx-auto flex w-full flex-col items-center justify-between gap-4 px-6 py-4 md:flex-row">
             <div className="flex items-center gap-2 text-slate-500">
               <Star className="h-4 w-4" />

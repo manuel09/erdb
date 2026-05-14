@@ -2649,7 +2649,7 @@ export function useHomePageController({
           ? 'Thumbnail Ratings Style'
           : 'Logo Ratings Style';
   const textLabel =
-    previewType === 'backdrop' ? 'Backdrop Text' : previewType === 'thumbnail' ? 'Thumbnail Text' : 'Poster Text';
+    previewType === 'backdrop' ? 'Text on Backdrop' : previewType === 'thumbnail' ? 'Text on Thumbnail' : 'Text on Poster';
   const providersLabel =
     previewType === 'poster'
       ? 'Poster Providers'
@@ -2671,9 +2671,13 @@ export function useHomePageController({
       ? ratingProviderRows.filter((row) => THUMBNAIL_SUPPORTED_RATINGS.includes(row.id))
       : ratingProviderRows;
   const previewNotice =
-    previewType === 'thumbnail' && !EPISODE_ID_PATTERN.test(mediaId.trim())
-      ? 'Movies are not supported for thumbnails.'
-      : null;
+    !tmdbKey.trim()
+      ? 'Enter a TMDB API Key to generate previews.'
+      : !mdblistKey.trim()
+        ? 'Enter an MDBList API Key to generate previews.'
+        : previewType === 'thumbnail' && !EPISODE_ID_PATTERN.test(mediaId.trim())
+          ? 'Movies are not supported for thumbnails.'
+          : null;
 
   const setRatingStyleForType = (value: RatingStyle) => {
     if (previewType === 'poster') {

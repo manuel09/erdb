@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { MonitorPlay } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { HomePageViewProps } from '@/components/workspace/types';
@@ -52,17 +53,36 @@ export function WorkspacePreviewPanel({ state, derived }: WorkspacePreviewPanelP
   const { previewType } = state;
   const { previewUrl, previewNotice } = derived;
   const [isExpanded, setIsExpanded] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const topClass = scrolled ? 'top-24' : 'top-36';
 
   return (
     <>
       {/* Invisible viewport boundary for drag constraint */}
-      <div ref={viewportRef} className="fixed inset-0 pointer-events-none z-0" />
+      <div ref={viewportRef} className={`fixed bottom-0 left-3 right-3 sm:left-4 sm:right-4 ${topClass} pointer-events-none z-0`} />
+
+      {/* Mobile floating notice (keys missing) */}
+      {previewNotice && (
+        <div className={`fixed ${topClass} right-3 z-40 xl:hidden`}>
+          <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 px-3 py-2 text-[11px] font-medium text-orange-200 shadow-2xl backdrop-blur-xl">
+            {previewNotice}
+          </div>
+        </div>
+      )}
 
       {/* Mobile floating preview (small, top-right) */}
-      {previewUrl && (
+      {!previewNotice && previewUrl && (
         <>
-          {isExpanded && (
+          {isExpanded && createPortal(
             <div
               className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm xl:hidden"
               onClick={() => setIsExpanded(false)}
@@ -76,24 +96,22 @@ export function WorkspacePreviewPanel({ state, derived }: WorkspacePreviewPanelP
                 transition={{ duration: 0.25 }}
                 className="max-h-[90vh] max-w-[90vw] rounded-2xl border border-white/10 shadow-2xl"
               />
-            </div>
+            </div>,
+            document.body
           )}
           <motion.div
             drag
             dragMomentum={false}
             dragConstraints={viewportRef}
             whileDrag={{ scale: 1.08, opacity: 0.9 }}
-            className="fixed top-20 right-3 z-40 cursor-grab active:cursor-grabbing xl:hidden"
+            className={`fixed ${topClass} right-3 z-40 cursor-grab active:cursor-grabbing xl:hidden`}
             onClick={() => setIsExpanded(true)}
           >
             <div className="pointer-events-none overflow-hidden rounded-xl border border-white/15 bg-[#06070b]/80 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl">
-              <motion.img
+              <img
                 key={previewUrl}
                 src={previewUrl}
                 alt="Preview"
-                initial={{ opacity: 0, filter: 'blur(10px)' }}
-                animate={{ opacity: 1, filter: 'blur(0px)' }}
-                transition={{ duration: 0.4 }}
                 className="block h-auto w-24 object-cover"
               />
             </div>
@@ -125,9 +143,6 @@ export function WorkspacePreviewPanel({ state, derived }: WorkspacePreviewPanelP
                 className="relative z-10 max-w-md text-center"
               >
                 <div className="text-sm font-semibold text-orange-300">{previewNotice}</div>
-                <div className="mt-2 text-xs text-slate-500">
-                  Use an episode ID in the format `imdb_id:season:episode`.
-                </div>
               </motion.div>
             ) : previewUrl ? (
               <PreviewImage key={previewUrl} previewUrl={previewUrl} previewType={previewType} />
