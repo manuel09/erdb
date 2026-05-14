@@ -2649,7 +2649,7 @@ export function useHomePageController({
           ? 'Thumbnail Ratings Style'
           : 'Logo Ratings Style';
   const textLabel =
-    previewType === 'backdrop' ? 'Backdrop Text' : previewType === 'thumbnail' ? 'Thumbnail Text' : 'Poster Text';
+    previewType === 'backdrop' ? 'Text on Backdrop' : previewType === 'thumbnail' ? 'Text on Thumbnail' : 'Text on Poster';
   const providersLabel =
     previewType === 'poster'
       ? 'Poster Providers'

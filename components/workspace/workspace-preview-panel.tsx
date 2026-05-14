@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { MonitorPlay } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { HomePageViewProps } from '@/components/workspace/types';
@@ -52,16 +52,26 @@ export function WorkspacePreviewPanel({ state, derived }: WorkspacePreviewPanelP
   const { previewType } = state;
   const { previewUrl, previewNotice } = derived;
   const [isExpanded, setIsExpanded] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const topClass = scrolled ? 'top-24' : 'top-36';
 
   return (
     <>
       {/* Invisible viewport boundary for drag constraint */}
-      <div ref={viewportRef} className="fixed inset-0 pointer-events-none z-0" />
+      <div ref={viewportRef} className={`fixed inset-x-0 bottom-0 ${topClass} pointer-events-none z-0`} />
 
       {/* Mobile floating notice (keys missing) */}
       {previewNotice && (
-        <div className="fixed top-20 right-3 z-40 xl:hidden">
+        <div className={`fixed ${topClass} right-3 z-40 xl:hidden`}>
           <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 px-3 py-2 text-[11px] font-medium text-orange-200 shadow-2xl backdrop-blur-xl">
             {previewNotice}
           </div>
@@ -88,11 +98,12 @@ export function WorkspacePreviewPanel({ state, derived }: WorkspacePreviewPanelP
             </div>
           )}
           <motion.div
+            layout
             drag
             dragMomentum={false}
             dragConstraints={viewportRef}
             whileDrag={{ scale: 1.08, opacity: 0.9 }}
-            className="fixed top-20 right-3 z-40 cursor-grab active:cursor-grabbing xl:hidden"
+            className={`fixed ${topClass} right-3 z-40 cursor-grab active:cursor-grabbing xl:hidden`}
             onClick={() => setIsExpanded(true)}
           >
             <div className="pointer-events-none overflow-hidden rounded-xl border border-white/15 bg-[#06070b]/80 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl">
