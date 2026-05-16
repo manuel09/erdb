@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.73](https://github.com/realbestia1/erdb/compare/v0.4.72...v0.4.73) - 2026-05-16
+
+- Fix preview notice overlay and rating counts ([ef3de31](https://github.com/realbestia1/erdb/commit/ef3de31639891dd0c343161281a43ce8119c784a))
+  Improve preview rendering and rating badge capacity:
+
+  - Poster rating logic: when posterRatingsMaxPerSide is unset, account for posterImageText (adds extra badge slots when image text is not 'clean') while preserving left-right vs single-column and stacked vs non-stacked rules.
+  - Workspace preview: avoid PreviewImage remounts by using a stable wrapper key and render previewNotice as a separate absolutely-positioned overlay with increased z-index.
+  - Bump package version to 0.4.73.
+
 ## [0.4.72](https://github.com/realbestia1/erdb/compare/v0.4.71...v0.4.72) - 2026-05-16
 
 - Improve poster badge placement & preview handling ([a68b6cc](https://github.com/realbestia1/erdb/commit/a68b6ccdb01bf2491f6f2d7fa84634df2836d90a))
