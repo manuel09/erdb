@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.78](https://github.com/realbestia1/erdb/compare/v0.4.77...v0.4.78) - 2026-05-16
+
+- . ([968491a](https://github.com/realbestia1/erdb/commit/968491ab618fb116ab4c6f0b5cbc85cbe136a2af))
+
 ## [0.4.77](https://github.com/realbestia1/erdb/compare/v0.4.76...v0.4.77) - 2026-05-16
 
 - Simplify bottom quality badge layout ([bcb1e37](https://github.com/realbestia1/erdb/commit/bcb1e37a75a76bfc4fc7610ebc634a59d2a9d98c))
