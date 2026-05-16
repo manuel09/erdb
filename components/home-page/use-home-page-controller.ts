@@ -197,7 +197,7 @@ export function useHomePageController({
   const [posterConfiguratorPreset, setPosterConfiguratorPresetState] = useState<PosterConfiguratorPreset>('simple');
   const [posterAverageRatingsEnabled, setPosterAverageRatingsEnabled] = useState(false);
   const [posterVignetteEnabled, setPosterVignetteEnabled] = useState(true);
-  const [posterGenrePosition, setPosterGenrePosition] = useState<PosterGenrePosition>('top');
+  const [posterGenrePosition, setPosterGenrePosition] = useState<PosterGenrePosition>('bottom');
   const [posterSimpleRatingSource, setPosterSimpleRatingSource] = useState<'average' | RatingPreference>('average');
   const [backdropImageText, setBackdropImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
   const [backdropAnimeImageText, setBackdropAnimeImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
@@ -1572,6 +1572,11 @@ export function useHomePageController({
     rankingPosition,
   ]);
 
+  const stremioInstallUrl = useMemo(() => {
+    if (!proxyUrl) return '';
+    return proxyUrl.replace(/^https?:\/\//, 'stremio://');
+  }, [proxyUrl]);
+
   const aiometadataPatterns = useMemo(() => {
     const episodePattern = buildAiometadataPatternBlock({
       baseUrl,
@@ -2670,6 +2675,21 @@ export function useHomePageController({
     previewType === 'thumbnail'
       ? ratingProviderRows.filter((row) => THUMBNAIL_SUPPORTED_RATINGS.includes(row.id))
       : ratingProviderRows;
+  const enabledRatingCount = visibleRatingProviderRows.filter(r => r.enabled).length;
+  const tooManyRatings = previewType === 'poster'
+    ? isVerticalPosterRatingLayout(posterRatingsLayout) &&
+      !shouldUsePosterAverageRatings &&
+      posterStreamBadges !== 'off' && ranking !== 'off' && posterGenrePosition !== 'off' &&
+      (posterRatingsMaxPerSide !== null
+        ? enabledRatingCount > (posterRatingsLayout === 'left-right' ? posterRatingsMaxPerSide * 2 : posterRatingsMaxPerSide)
+        : enabledRatingCount > (posterRatingsLayout === 'left-right'
+          ? (posterVerticalBadgeContent === 'stacked' ? 4 : 8) + (posterImageText === 'clean' ? 0 : 2)
+          : (posterVerticalBadgeContent === 'stacked' ? 2 : 4) + (posterImageText === 'clean' ? 0 : 1)))
+    : previewType === 'backdrop'
+      ? backdropRatingsMax !== null && enabledRatingCount > backdropRatingsMax
+      : previewType === 'logo'
+        ? logoRatingsMax !== null && enabledRatingCount > logoRatingsMax
+        : false;
   const previewNotice =
     !tmdbKey.trim()
       ? 'Enter a TMDB API Key to generate previews.'
@@ -2677,7 +2697,9 @@ export function useHomePageController({
         ? 'Enter an MDBList API Key to generate previews.'
         : previewType === 'thumbnail' && !EPISODE_ID_PATTERN.test(mediaId.trim())
           ? 'Movies are not supported for thumbnails.'
-          : null;
+          : tooManyRatings
+            ? `Too many ratings — set Max / Side to ${(posterVerticalBadgeContent === 'stacked' ? 2 : 4) + (posterImageText === 'clean' ? 0 : 1)} or fewer to avoid missing the Ranking badge.`
+            : null;
 
   const setRatingStyleForType = (value: RatingStyle) => {
     if (previewType === 'poster') {
@@ -2787,6 +2809,7 @@ export function useHomePageController({
       baseUrl,
       previewUrl,
       proxyUrl,
+      stremioInstallUrl,
       currentVersion,
       githubPackageVersion,
       repoUrl,
