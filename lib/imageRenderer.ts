@@ -967,7 +967,7 @@ export const renderWithSharp = async (
       const qualityBaseHeight =
         input.imageType === 'poster' ? posterReferenceBadgeHeight : badgeHeight;
       const qualityGap = input.imageType === 'poster' ? posterReferenceBadgeGap : input.badgeGap;
-      const qualityHeight = Math.max(44, Math.round(qualityBaseHeight * 1.25));
+      const qualityHeight = Math.max(32, qualityBaseHeight);
       const columnInset = input.imageType === 'poster' ? input.posterRowHorizontalInset : 12;
       const uniformBadgeWidth = Math.min(
         Math.max(72, Math.round(qualityHeight * 1.75)),
@@ -1254,7 +1254,7 @@ export const renderWithSharp = async (
         paddingY: input.badgePaddingY,
         gap: input.badgeGap,
       };
-      const qualityBadgeHeight = Math.max(44, Math.round(posterReferenceBadgeHeight * 1.25));
+      const qualityBadgeHeight = Math.max(32, posterReferenceBadgeHeight);
       if (qualityPlacement === 'bottom') {
         const bottomQualityHeight = Math.max(32, posterReferenceBadgeHeight);
         const hasBottomRatings = input.bottomBadges.length > 0;
