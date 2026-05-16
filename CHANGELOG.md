@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.72](https://github.com/realbestia1/erdb/compare/v0.4.71...v0.4.72) - 2026-05-16
+
+- Improve poster badge placement & preview handling ([a68b6cc](https://github.com/realbestia1/erdb/commit/a68b6ccdb01bf2491f6f2d7fa84634df2836d90a))
+  Stop rendering poster genre/ranking overlays when collision resolution fails to avoid misplaced badges; only add blocking rects for successfully placed badges. Update poster rating overflow logic for vertical layouts (and remove the now-unused getPosterRatingLayoutMaxBadges import), and provide a clearer user message recommending a lower Max/Side based on stacked vs. regular vertical badge content. Change workspace preview to always render the preview image when available and overlay any preview notice on top of it instead of hiding the image. Bump package version to 0.4.72.
+
 ## [0.4.71](https://github.com/realbestia1/erdb/compare/v0.4.70...v0.4.71) - 2026-05-15
 
 - Add Stremio install link and fix badge collisions ([caa58bb](https://github.com/realbestia1/erdb/commit/caa58bb421d850615726ffe7b690af493ee25df2))
