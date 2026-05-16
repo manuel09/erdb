@@ -2682,7 +2682,9 @@ export function useHomePageController({
       posterStreamBadges !== 'off' && ranking !== 'off' && posterGenrePosition !== 'off' &&
       (posterRatingsMaxPerSide !== null
         ? enabledRatingCount > (posterRatingsLayout === 'left-right' ? posterRatingsMaxPerSide * 2 : posterRatingsMaxPerSide)
-        : enabledRatingCount > (posterRatingsLayout === 'left-right' ? (posterVerticalBadgeContent === 'stacked' ? 4 : 8) : (posterVerticalBadgeContent === 'stacked' ? 2 : 4)))
+        : enabledRatingCount > (posterRatingsLayout === 'left-right'
+          ? (posterVerticalBadgeContent === 'stacked' ? 4 : 8) + (posterImageText === 'clean' ? 0 : 2)
+          : (posterVerticalBadgeContent === 'stacked' ? 2 : 4) + (posterImageText === 'clean' ? 0 : 1)))
     : previewType === 'backdrop'
       ? backdropRatingsMax !== null && enabledRatingCount > backdropRatingsMax
       : previewType === 'logo'
