@@ -8,7 +8,7 @@ import type { RatingStyle } from '@/lib/ratingStyle';
 
 export type RenderImageType = 'poster' | 'backdrop' | 'logo' | 'thumbnail';
 export type QualityBadgesSide = 'left' | 'right';
-export type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide;
+export type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide | 'top' | 'bottom' | 'above-logo';
 
 export type CachedJsonResponse = {
   ok: boolean;
@@ -76,6 +76,7 @@ export type FastRenderInput = {
   logoBadgeMaxWidth: number;
   logoBadgesPerRow: number;
   posterRowHorizontalInset: number;
+  posterCleanOverlayEnabled?: boolean;
   posterTitleText?: string | null;
   posterLogoUrl?: string | null;
   posterReferenceBadgeHeight?: number;

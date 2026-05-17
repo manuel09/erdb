@@ -552,28 +552,21 @@ export const buildQualityBadgeSvg = (
   const h = Math.max(32, height);
   const isReferencePlain = style === 'plain';
   const radius =
-    style === 'solid-light'
-      ? Math.round(h * 0.20)
-      : style === 'glass'
-        ? Math.round(h / 2)
-        : Math.round(h * 0.18);
+    style === 'glass'
+      ? Math.round(h / 2)
+      : Math.round(h * 0.18);
   const strokeWidth =
     style === 'glass'
       ? 1
-      : style === 'solid-light'
-        ? 0
-        : style === 'square'
-          ? Math.max(1, Math.round(h * 0.05))
-          : Math.max(2, Math.round(h * 0.08));
+      : style === 'square'
+        ? Math.max(1, Math.round(h * 0.05))
+        : Math.max(2, Math.round(h * 0.08));
   const innerPadding = Math.max(10, Math.round(h * 0.16));
   const fontFamily = `'Noto Sans','DejaVu Sans','Arial Black',Arial,sans-serif`;
   const baseRect = (width: number, stroke: string, fill: string, extra = '') =>
     `<rect x="${strokeWidth / 2}" y="${strokeWidth / 2}" width="${Math.max(0, width - strokeWidth)}" height="${Math.max(0, h - strokeWidth)}" rx="${radius}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" ${extra}/>`;
   const resolveChrome = (accentColor: string) => {
     if (style === 'plain') return null;
-    if (style === 'solid-light') {
-      return { stroke: 'rgba(255,255,255,0.45)', strokeOpacity: '1', fill: 'url(#premium-grad)' };
-    }
     if (style === 'glass') {
       return {
         stroke: accentColor,
@@ -592,7 +585,6 @@ export const buildQualityBadgeSvg = (
   const universalStroke = ' stroke="rgba(0,0,0,0.80)" stroke-width="1.8" paint-order="stroke fill"';
 
   const generateGlowText = (attrs: string, content: string) => {
-    if (style === 'solid-light') return `<text ${attrs} fill="#000000" font-style="italic">${content}</text>`;
     if (!isReferencePlain) return `<text ${attrs}${universalStroke}>${content}</text>`;
     const glow = Array.from({ length: 8 }, (_, i) => {
       const strokeWidth = 20 - i * 2.5;
@@ -602,27 +594,11 @@ export const buildQualityBadgeSvg = (
     return `${glow}\\n<text ${attrs} fill="#f3f4f6"${universalStroke}>${content}</text>`;
   };
 
-  const wrapSvg = (content: string, width: number, height: number, useGlow = false) => {
-    const shadowFilter = style === 'solid-light' 
-      ? `<defs>
-<linearGradient id="premium-grad" x1="0" y1="0" x2="0" y2="1">
-  <stop offset="0%" stop-color="#ffffff" />
-  <stop offset="100%" stop-color="#d1d1d1" />
-</linearGradient>
-<filter id="badge-shadow" x="-20%" y="-20%" width="140%" height="140%">
-  <feGaussianBlur in="SourceAlpha" stdDeviation="0.6"/>
-  <feOffset dx="0" dy="0.8" result="offsetblur"/>
-  <feComponentTransfer><feFuncA type="linear" slope="0.25"/></feComponentTransfer>
-  <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
-</filter>
-</defs>`
-      : '';
-    const filterAttr = style === 'solid-light' ? ' filter="url(#badge-shadow)"' : '';
+  const wrapSvg = (content: string, width: number, height: number) => {
     const vbWidth = width + 4;
     const vbHeight = height + 4;
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="-2 -2 ${vbWidth} ${vbHeight}">
-${shadowFilter}
-<g${filterAttr}>
+<g>
 ${content}
 </g>
 </svg>`;
@@ -630,11 +606,10 @@ ${content}
 
   if (key === '4k') {
     const width = widthOverride ?? Math.round(h * 1.3);
-    if (isReferencePlain || style === 'solid-light') {
-      const bigSize = Math.round(h * (style === 'solid-light' ? 0.62 : 0.46));
-      const bigY = Math.round(h * (style === 'solid-light' ? 0.74 : 0.64));
-      const rect = style === 'solid-light' ? buildRect(width, '#e2e2e2') : '';
-      const content = `${rect}${generateGlowText(`x="${width / 2}" y="${bigY}" font-family="${fontFamily}" font-size="${bigSize}" font-weight="900" text-anchor="middle"`, '4K')}`;
+    if (isReferencePlain) {
+      const bigSize = Math.round(h * 0.46);
+      const bigY = Math.round(h * 0.64);
+      const content = generateGlowText(`x="${width / 2}" y="${bigY}" font-family="${fontFamily}" font-size="${bigSize}" font-weight="900" text-anchor="middle"`, '4K');
       return { svg: wrapSvg(content, width, h), width, height: h };
     }
     const bigSize = Math.round(h * 0.56);
@@ -653,11 +628,10 @@ ${rect}
 
   if (key === 'hdr') {
     const width = widthOverride ?? Math.round(h * 1.45);
-    if (isReferencePlain || style === 'solid-light') {
-      const textSize = Math.round(h * (style === 'solid-light' ? 0.62 : 0.46));
-      const textY = Math.round(h * (style === 'solid-light' ? 0.74 : 0.64));
-      const rect = style === 'solid-light' ? buildRect(width, '#e2e2e2') : '';
-      const content = `${rect}${generateGlowText(`x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="900" text-anchor="middle"`, 'HDR')}`;
+    if (isReferencePlain) {
+      const textSize = Math.round(h * 0.46);
+      const textY = Math.round(h * 0.64);
+      const content = generateGlowText(`x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="900" text-anchor="middle"`, 'HDR');
       return { svg: wrapSvg(content, width, h), width, height: h };
     }
     const bigSize = Math.round(h * 0.5);
@@ -685,14 +659,12 @@ ${rect}
 
   if (key === 'dolbyvision') {
     const width = widthOverride ?? Math.round(h * 1.7);
-    if (isReferencePlain || style === 'solid-light') {
-      const topSize = Math.round(h * (style === 'solid-light' ? 0.22 : 0.24));
-      const bottomSize = Math.round(h * (style === 'solid-light' ? 0.46 : 0.34));
-      const topY = Math.round(h * (style === 'solid-light' ? 0.36 : 0.35));
-      const bottomY = Math.round(h * (style === 'solid-light' ? 0.78 : 0.78));
-      const rect = style === 'solid-light' ? buildRect(width, '#e2e2e2') : '';
-      const content = `${rect}
-${generateGlowText(`x="${width / 2}" y="${topY}" font-family="${fontFamily}" font-size="${topSize}" font-weight="900" text-anchor="middle"`, 'DOLBY')}
+    if (isReferencePlain) {
+      const topSize = Math.round(h * 0.24);
+      const bottomSize = Math.round(h * 0.34);
+      const topY = Math.round(h * 0.35);
+      const bottomY = Math.round(h * 0.78);
+      const content = `${generateGlowText(`x="${width / 2}" y="${topY}" font-family="${fontFamily}" font-size="${topSize}" font-weight="900" text-anchor="middle"`, 'DOLBY')}
 ${generateGlowText(`x="${width / 2}" y="${bottomY}" font-family="${fontFamily}" font-size="${bottomSize}" font-weight="900" text-anchor="middle" letter-spacing="0.04em"`, 'VISION')}`;
       return { svg: wrapSvg(content, width, h), width, height: h };
     }
@@ -712,14 +684,12 @@ ${rect}
 
   if (key === 'dolbyatmos') {
     const width = widthOverride ?? Math.round(h * 1.7);
-    if (isReferencePlain || style === 'solid-light') {
-      const topSize = Math.round(h * (style === 'solid-light' ? 0.22 : 0.24));
-      const bottomSize = Math.round(h * (style === 'solid-light' ? 0.46 : 0.34));
-      const topY = Math.round(h * (style === 'solid-light' ? 0.36 : 0.35));
-      const bottomY = Math.round(h * (style === 'solid-light' ? 0.78 : 0.78));
-      const rect = style === 'solid-light' ? buildRect(width, '#e2e2e2') : '';
-      const content = `${rect}
-${generateGlowText(`x="${width / 2}" y="${topY}" font-family="${fontFamily}" font-size="${topSize}" font-weight="900" text-anchor="middle"`, 'DOLBY')}
+    if (isReferencePlain) {
+      const topSize = Math.round(h * 0.24);
+      const bottomSize = Math.round(h * 0.34);
+      const topY = Math.round(h * 0.35);
+      const bottomY = Math.round(h * 0.78);
+      const content = `${generateGlowText(`x="${width / 2}" y="${topY}" font-family="${fontFamily}" font-size="${topSize}" font-weight="900" text-anchor="middle"`, 'DOLBY')}
 ${generateGlowText(`x="${width / 2}" y="${bottomY}" font-family="${fontFamily}" font-size="${bottomSize}" font-weight="900" text-anchor="middle" letter-spacing="0.04em"`, 'ATMOS')}`;
       return { svg: wrapSvg(content, width, h), width, height: h };
     }
@@ -739,11 +709,10 @@ ${rect}
 
   if (key === 'remux') {
     const width = widthOverride ?? Math.round(h * 1.5);
-    if (isReferencePlain || style === 'solid-light') {
-      const textSize = Math.round(h * (style === 'solid-light' ? 0.58 : 0.42));
-      const textY = Math.round(h * (style === 'solid-light' ? 0.74 : 0.63));
-      const rect = style === 'solid-light' ? buildRect(width, '#e2e2e2') : '';
-      const content = `${rect}${generateGlowText(`x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="900" text-anchor="middle"`, 'REMUX')}`;
+    if (isReferencePlain) {
+      const textSize = Math.round(h * 0.42);
+      const textY = Math.round(h * 0.63);
+      const content = generateGlowText(`x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="900" text-anchor="middle"`, 'REMUX');
       return { svg: wrapSvg(content, width, h), width, height: h };
     }
     const textSize = Math.round(h * 0.42);

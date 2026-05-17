@@ -15,6 +15,9 @@ export const POSTER_QUALITY_BADGE_POSITION_OPTIONS: Array<{
   label: string;
 }> = [
   { id: 'auto', label: 'Auto' },
+  { id: 'top', label: 'Top' },
+  { id: 'bottom', label: 'Bottom' },
+  { id: 'above-logo', label: 'Above Logo' },
   { id: 'left', label: 'Left' },
   { id: 'right', label: 'Right' },
 ];

@@ -39,9 +39,9 @@ function PreviewImage({ previewUrl, previewType }: { previewUrl: string; preview
         initial={{ opacity: 0, filter: 'blur(10px)' }}
         animate={{ opacity: imageLoaded ? 1 : 0, filter: imageLoaded ? 'blur(0px)' : 'blur(10px)' }}
         transition={{ duration: 0.4 }}
-        className={`relative overflow-hidden rounded-[24px] border border-white/10 bg-[#030303] shadow-[0_24px_70px_-35px_rgba(0,0,0,1)] ring-1 ring-white/8 ${
+        className={`relative overflow-hidden rounded-[24px] border border-white/10 bg-[#030303] object-contain shadow-[0_24px_70px_-35px_rgba(0,0,0,1)] ring-1 ring-white/8 ${
           previewType === 'logo'
-            ? 'block h-auto w-full max-w-2xl'
+            ? 'block h-auto max-h-full w-full max-w-2xl'
             : 'block h-auto max-h-full max-w-full w-auto'
         }`}
       />
@@ -120,7 +120,7 @@ export function WorkspacePreviewPanel({ state, derived }: WorkspacePreviewPanelP
       )}
 
       {/* Desktop full preview */}
-      <div className={`xl:order-2 ${PREVIEW_PANEL_CLASS} hidden flex-col p-4 w-full xl:flex xl:flex-1`}>
+      <div className={`xl:order-2 ${PREVIEW_PANEL_CLASS} hidden flex-col p-4 w-full xl:flex xl:min-h-0 xl:flex-1`}>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-sky-100">
             <MonitorPlay className="h-3.5 w-3.5" />
@@ -134,7 +134,7 @@ export function WorkspacePreviewPanel({ state, derived }: WorkspacePreviewPanelP
         <div className={`relative mt-4 flex min-h-[200px] flex-1 items-center justify-center sm:min-h-[280px] xl:min-h-0 ${previewType === 'poster' ? 'xl:mx-auto xl:max-w-[28rem]' : previewType === 'logo' ? 'xl:mx-auto xl:max-w-[56rem]' : ''}`}>
           <AnimatePresence mode="wait">
             {previewUrl ? (
-              <div key="preview" className="relative w-full">
+              <div key="preview" className="relative flex h-full min-h-0 w-full items-center justify-center">
                 <PreviewImage previewUrl={previewUrl} previewType={previewType} />
               </div>
             ) : previewNotice ? (

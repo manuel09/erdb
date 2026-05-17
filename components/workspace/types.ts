@@ -18,7 +18,7 @@ export type ProxyType = PreviewType;
 export type ProxyEnabledTypes = Record<ProxyType, boolean>;
 export type StreamBadgesSetting = 'auto' | 'on' | 'off';
 export type QualityBadgesSide = 'left' | 'right';
-export type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide;
+export type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide | 'top' | 'bottom' | 'above-logo';
 export type { PosterGenrePosition, RankingPosition };
 export type PosterConfiguratorPreset = 'simple' | 'advanced';
 export type AiometadataPatternType = 'poster' | 'background' | 'logo' | 'episodeThumbnail';

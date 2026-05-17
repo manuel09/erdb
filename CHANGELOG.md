@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.79](https://github.com/realbestia1/erdb/compare/v0.4.78...v0.4.79) - 2026-05-17
+
+- Remove 'solid-light' quality badge style ([783b30f](https://github.com/realbestia1/erdb/commit/783b30f77faefe04e79fafd658f6602083f38a3a))
+  Drop special-case handling for the deprecated 'solid-light' badge style across the codebase. badgeLayoutSvg.ts: remove gradient, shadow/filter, and many conditional branches that customized radius, strokeWidth, text rendering and per-badge layouts for 'solid-light'; simplify wrapSvg and normalize sizing for several badges (4K, HDR, Dolby Vision/Atmos, Remux). ratingBadgeLogic.ts: stop accepting 'solid-light' in normalizeQualityBadgesStyle. ratingStyle.ts: remove the 'solid-light' option from QUALITY_BADGE_STYLE_OPTIONS. Behavior: any uses of 'solid-light' will now fall back to the default style (or be treated as plain/glass/square if set), so update configurations accordingly.
+- Prefer 4k badge when trimming badge column ([16609f0](https://github.com/realbestia1/erdb/commit/16609f0eabff9cd5e483259e9a07b177619b7c94))
+  Clone the quality badges into a local columnBadges array and, when reducing the badge column size, prefer to keep 4k badges by removing the last non-4k badge (or popping when none found). Use columnBadges for height calculations and when composing the badge column so the layout reflects the trimmed set. This prevents unintentionally dropping 4k badges while preserving spacing math and placement.
+- Refactor poster quality badge placement ([82a23be](https://github.com/realbestia1/erdb/commit/82a23be4b1dd538c63fbdf79a341b160a437a120))
+  Move and consolidate poster quality-badge placement logic later in renderWithSharp. Change qualityPlacement from const to let so 'auto' bottom placement can flip to 'top' when needed. Add top-placement flow that computes a quality layout, finds a safe Y via findPosterQualityRowY, composes the row at that Y and records top/bottom bounds (with a warning if collisions cannot be avoided). Keep the bottom-placement path but move it into an else-if. Also remove the preserveBadgeSize and contentLayoutOverride options from the poster row render call and perform minor related cleanup.
+- Add new poster badge positions ([a5874d9](https://github.com/realbestia1/erdb/commit/a5874d957f2f2495e1f6d0c9bd8c7f21292ce072))
+  Introduce new poster quality badge positions (top, bottom, above-logo) across types, UI options and workspace constants. Pass posterCleanOverlayEnabled through the route input and bump renderer cache version. Substantial renderer updates: flexible sizing for top badges, collision-avoidance placement for poster quality/column badges and ranking/genre badges, improved overlay composition and blocking-rect management, and handling for above-logo quality placement. Minor UI/preview tweaks and package version bump.
+
 ## [0.4.78](https://github.com/realbestia1/erdb/compare/v0.4.77...v0.4.78) - 2026-05-16
 
 - . ([968491a](https://github.com/realbestia1/erdb/commit/968491ab618fb116ab4c6f0b5cbc85cbe136a2af))

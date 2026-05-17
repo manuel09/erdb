@@ -10,7 +10,6 @@ export const RATING_STYLE_OPTIONS: Array<{ id: RatingStyle; label: string }> = [
 
 export const QUALITY_BADGE_STYLE_OPTIONS: Array<{ id: RatingStyle; label: string }> = [
   ...RATING_STYLE_OPTIONS,
-  { id: 'solid-light', label: 'Solid Light' },
 ];
 
 export const normalizeRatingStyle = (value?: string | null): RatingStyle => {

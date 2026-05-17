@@ -6,7 +6,7 @@ export type StreamBadgeKey = '4k' | 'hdr' | 'dolbyvision' | 'dolbyatmos' | 'remu
 export type RenderImageType = 'poster' | 'backdrop' | 'logo' | 'thumbnail';
 export type BadgeKey = RatingPreference | StreamBadgeKey | 'average' | 'genre' | 'ranking';
 export type QualityBadgesSide = 'left' | 'right';
-export type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide;
+export type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide | 'top' | 'bottom' | 'above-logo';
 export type RankingPosition = 'auto' | 'top' | 'bottom' | 'above-logo';
 export type PosterGenrePosition = 'off' | 'top' | 'bottom' | 'above-logo';
 export type StreamQualityFlags = {
@@ -139,8 +139,13 @@ export const normalizeQualityBadgesSide = (value?: string | null): QualityBadges
   return 'left';
 };
 export const normalizePosterQualityBadgesPosition = (value?: string | null): PosterQualityBadgesPosition => {
-  const normalized = (value || '').trim().toLowerCase();
+  const normalized = (value || '').trim().toLowerCase().replace(/[_\s]+/g, '-');
   if (!normalized || normalized === 'auto' || normalized === 'default') return 'auto';
+  if (['top', 't', 'up'].includes(normalized)) return 'top';
+  if (['bottom', 'bot', 'b', 'down'].includes(normalized)) return 'bottom';
+  if (['above-logo', 'above-clean', 'above-poster-text', 'logo', 'clean'].includes(normalized)) {
+    return 'above-logo';
+  }
   if (['right', 'r', 'end'].includes(normalized)) return 'right';
   if (['left', 'l', 'start'].includes(normalized)) return 'left';
   return 'auto';
@@ -166,25 +171,28 @@ export const resolvePosterQualityBadgePlacement = (
   layout: PosterRatingLayout,
   qualityBadgesSide: QualityBadgesSide,
   posterQualityBadgesPosition: PosterQualityBadgesPosition
-): 'top' | 'bottom' | QualityBadgesSide => {
+): 'top' | 'bottom' | 'above-logo' | QualityBadgesSide => {
+  if (posterQualityBadgesPosition !== 'auto') {
+    return posterQualityBadgesPosition;
+  }
   if (layout === 'left' || layout === 'right' || layout === 'left-right') {
     return 'bottom';
   }
   if (layout === 'top-bottom') {
-    return posterQualityBadgesPosition === 'auto' ? 'bottom' : posterQualityBadgesPosition;
+    return 'bottom';
   }
   if (layout === 'top') {
-    return posterQualityBadgesPosition === 'auto' ? 'bottom' : posterQualityBadgesPosition;
+    return 'bottom';
   }
   if (layout === 'bottom') {
-    return posterQualityBadgesPosition === 'auto' ? 'bottom' : posterQualityBadgesPosition;
+    return 'bottom';
   }
   return qualityBadgesSide;
 };
 
 export const normalizeQualityBadgesStyle = (value?: string | null): RatingStyle => {
   const normalized = (value || '').trim().toLowerCase();
-  if (normalized === 'glass' || normalized === 'square' || normalized === 'plain' || normalized === 'solid-light') {
+  if (normalized === 'glass' || normalized === 'square' || normalized === 'plain') {
     return normalized;
   }
   return DEFAULT_QUALITY_BADGES_STYLE;

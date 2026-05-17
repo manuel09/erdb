@@ -429,8 +429,7 @@ export function useHomePageController({
 
   const [copied, setCopied] = useState(false);
   const shouldShowPosterQualityBadgesSide = false;
-  const shouldShowPosterQualityBadgesPosition =
-    posterRatingsLayout === 'top' || posterRatingsLayout === 'bottom' || posterRatingsLayout === 'top-bottom';
+  const shouldShowPosterQualityBadgesPosition = true;
   const shouldShowQualityBadgesSide = previewType === 'poster' && shouldShowPosterQualityBadgesSide;
   const shouldShowQualityBadgesPosition =
     previewType === 'poster' && shouldShowPosterQualityBadgesPosition;
