@@ -50,7 +50,7 @@ export type ProxySeriesMetadataProvider = 'tmdb' | 'imdb';
 export type ProxyEpisodeProvider = 'custom' | 'realimdb' | 'tvdb';
 export type StreamBadgesSetting = 'auto' | 'on' | 'off';
 export type QualityBadgesSide = 'left' | 'right';
-export type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide;
+export type PosterQualityBadgesPosition = 'auto' | QualityBadgesSide | 'top' | 'bottom' | 'above-logo';
 export type { PosterGenrePosition };
 export type VerticalBadgeContent = 'standard' | 'stacked';
 export type PosterConfiguratorPreset = 'simple' | 'advanced';
@@ -68,10 +68,13 @@ export const POSTER_QUALITY_BADGE_POSITION_OPTIONS: Array<{
   id: PosterQualityBadgesPosition;
   label: string;
 }> = [
-    { id: 'auto', label: 'Auto' },
-    { id: 'left', label: 'Left' },
-    { id: 'right', label: 'Right' },
-  ];
+  { id: 'auto', label: 'Auto' },
+  { id: 'top', label: 'Top' },
+  { id: 'bottom', label: 'Bottom' },
+  { id: 'above-logo', label: 'Above Logo' },
+  { id: 'left', label: 'Left' },
+  { id: 'right', label: 'Right' },
+];
 export const TMDB_KEY_STORAGE_KEY = 'erdb_tmdb_key';
 export const MDBLIST_KEY_STORAGE_KEY = 'erdb_mdblist_key';
 export const SIMKL_CLIENT_ID_STORAGE_KEY = 'erdb_simkl_client_id';
@@ -93,7 +96,7 @@ export const isStreamBadgesSetting = (value: unknown): value is StreamBadgesSett
 export const isQualityBadgesSide = (value: unknown): value is QualityBadgesSide =>
   value === 'left' || value === 'right';
 export const isPosterQualityBadgesPosition = (value: unknown): value is PosterQualityBadgesPosition =>
-  value === 'auto' || value === 'left' || value === 'right';
+  value === 'auto' || value === 'left' || value === 'right' || value === 'top' || value === 'bottom' || value === 'above-logo';
 export const isPosterGenrePosition = (value: unknown): value is PosterGenrePosition =>
   value === 'off' || value === 'top' || value === 'bottom' || value === 'above-logo';
 export const isImageText = (value: unknown): value is 'default' | 'clean' | 'alternative' =>

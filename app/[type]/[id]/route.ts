@@ -3639,6 +3639,7 @@ export async function GET(
           logoBadgeMaxWidth,
           logoBadgesPerRow,
           posterRowHorizontalInset,
+          posterCleanOverlayEnabled: imageType === 'poster' && effectivePosterTextPreference === 'clean',
           posterTitleText,
           posterLogoUrl,
           posterReferenceBadgeHeight,
