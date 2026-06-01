@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.80](https://github.com/realbestia1/erdb/compare/v0.4.79...v0.4.80) - 2026-06-01
+
+- Cap quality badge height and bump cache version ([6362a21](https://github.com/realbestia1/erdb/commit/6362a214ea1a226a02cb8e8d8d44ed4120b5f479))
+  Limit quality badge height by replacing Math.max(32, ...) with Math.min(40, ...) in lib/imageRenderer.ts so badges are capped at 40px instead of forcing a 32px minimum. Bump FINAL_IMAGE_RENDERER_CACHE_VERSION to 'poster-backdrop-logo-thumbnail-v183' in lib/routeConfig.ts to invalidate caches after the rendering change.
+- Add glass style gradients & clip paths ([b78e014](https://github.com/realbestia1/erdb/commit/b78e014213a681837e019a5e1ed2aab1e04bff00))
+  Implement a new "glass" rendering style for badge SVGs: buildRect now handles 'plain' and 'glass' styles by emitting defs (clipPath, linearGradients, shadow filter) and glass-filled/bordered rects with unique IDs. Wrap text/content in clip-path groups for glass badges across multiple badge generators and add capsule-level defs/clipPath in buildBadgeSvg with a generated clipPathId. Also simplify chrome handling by removing strokeOpacity passthrough. Finally, bump FINAL_IMAGE_RENDERER_CACHE_VERSION to 'poster-backdrop-logo-thumbnail-v171'. These changes enable Apple-style glass appearance with proper clipping, borders, and shadowing.
+- Support stream badge icons, parsing & caching ([9d52ddc](https://github.com/realbestia1/erdb/commit/9d52ddcad5c9ada63b8aeb8a1a056e4379a3eb52))
+  Add broad support for stream/quality badges including icons, improved filename parsing, and stronger caching.
+
+  - ratingBadgeLogic: expanded StreamBadgeKey list, added STREAM_BADGE_META entries (labels, colors, icon URLs, iconWidthRatio), defined STREAM_BADGE_ORDER, categories and regex-based STREAM_BADGE_PATTERNS; replaced legacy flag handling with pattern-based parsing and scoring to choose best stream flags; avoid duplicate category badges.
+  - badgeLayoutSvg: render badges from provided icon data URIs, adjust default fills to white, and refine SVG generation for various badges.
+  - imageAssetPipeline: introduce PROVIDER_ICON_CACHE_VERSION and include size/tint/version in storage keys; support generating/resizing provider icons to requested output dimensions, corner radius based on actual size, optional tinting, and updated read/write to object storage.
+  - imageRenderer: fetch provider icons for quality badges (tinted when appropriate), compute variable badge widths from metadata, adapt layout to variable widths with iterative fitting, and pass icon data into SVG builder.
+  - workspace-controls-panel: remove the Quality Badge Style dropdown in certain simple poster preset cases.
+  - streamBadges & routeConfig: bump cache keys/versions for stream badges and final image renderer to force cache invalidation.
+  - package.json: bump package version to 0.4.80.
+
+  These changes enable icon-based quality badges with proper resizing/tinting, more accurate stream detection from filenames, and safer caching/versioning.
+
 ## [0.4.79](https://github.com/realbestia1/erdb/compare/v0.4.78...v0.4.79) - 2026-05-17
 
 - Remove 'solid-light' quality badge style ([783b30f](https://github.com/realbestia1/erdb/commit/783b30f77faefe04e79fafd658f6602083f38a3a))
