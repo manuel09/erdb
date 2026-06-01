@@ -578,10 +578,40 @@ export const buildQualityBadgeSvg = (
     return { stroke: accentColor, strokeOpacity: '1', fill: '#0b0b0b' };
   };
   const buildRect = (width: number, accentColor: string, extra = '') => {
+    if (style === 'plain') return '';
+    if (style === 'glass') {
+      const gradientId = `apple-glass-q-${key.replace(/[^a-z0-9]/gi, '-')}-${Math.round(accentColor.length)}`;
+      return `
+<defs>
+  <clipPath id="capsule-clip-${gradientId}">
+    <rect x="0" y="0" width="${width}" height="${h}" rx="${radius}" />
+  </clipPath>
+  <linearGradient id="apple-glass-fill-${gradientId}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="${accentColor}" stop-opacity="0.22" />
+    <stop offset="100%" stop-color="${accentColor}" stop-opacity="0.10" />
+  </linearGradient>
+  <linearGradient id="apple-glass-border-${gradientId}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="${accentColor}" stop-opacity="0.42" />
+    <stop offset="100%" stop-color="${accentColor}" stop-opacity="0.20" />
+  </linearGradient>
+  <filter id="apple-glass-shadow-${gradientId}" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="2.8" />
+    <feOffset dx="0" dy="3.2" result="offsetblur" />
+    <feFlood flood-color="#000000" flood-opacity="0.54" result="glowcolor" />
+    <feComposite in="glowcolor" in2="offsetblur" operator="in" result="glow" />
+    <feMerge>
+      <feMergeNode in="glow" />
+      <feMergeNode in="SourceGraphic" />
+    </feMerge>
+  </filter>
+</defs>
+<rect x="0.5" y="0.5" width="${width - 1}" height="${h - 1}" rx="${radius}" fill="url(#apple-glass-fill-${gradientId})" filter="url(#apple-glass-shadow-${gradientId})" ${extra} />
+<rect x="0.5" y="0.5" width="${width - 1}" height="${h - 1}" rx="${radius}" fill="none" stroke="url(#apple-glass-border-${gradientId})" stroke-width="1" ${extra} />
+`.trim();
+    }
     const chrome = resolveChrome(accentColor);
     if (!chrome) return '';
-    const chromeExtra = chrome.strokeOpacity ? `${extra} stroke-opacity="${chrome.strokeOpacity}"` : extra;
-    return baseRect(width, chrome.stroke, chrome.fill, chromeExtra);
+    return baseRect(width, chrome.stroke, chrome.fill, extra);
   };
   const universalStroke = ' stroke="rgba(0,0,0,0.80)" stroke-width="1.8" paint-order="stroke fill"';
 
@@ -633,10 +663,14 @@ ${content}
     const smallY = Math.round(h * 0.86);
     const color = '#f7c948';
     const rect = buildRect(width, color);
+    const clipStart = style === 'glass' ? `<g clip-path="url(#capsule-clip-apple-glass-q-4k-${Math.round(color.length)})">` : '';
+    const clipEnd = style === 'glass' ? '</g>' : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
 ${rect}
+${clipStart}
 <text x="${width / 2}" y="${bigY}" font-family="${fontFamily}" font-size="${bigSize}" font-weight="800" text-anchor="middle" fill="${color}"${universalStroke}>4K</text>
 <text x="${width / 2}" y="${smallY}" font-family="${fontFamily}" font-size="${smallSize}" font-weight="700" text-anchor="middle" fill="${color}" letter-spacing="0.06em"${universalStroke}>ULTRA HD</text>
+${clipEnd}
 </svg>`;
     return { svg, width, height: h };
   }
@@ -657,6 +691,8 @@ ${rect}
       style === 'square'
         ? baseRect(width, 'url(#hdrBorder)', '#0b0b0b')
         : buildRect(width, '#ffffff');
+    const clipStart = style === 'glass' ? `<g clip-path="url(#capsule-clip-apple-glass-q-hdr-7)">` : '';
+    const clipEnd = style === 'glass' ? '</g>' : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
 <defs>
   <linearGradient id="hdrBorder" x1="0" y1="0" x2="1" y2="1">
@@ -666,8 +702,10 @@ ${rect}
   </linearGradient>
 </defs>
 ${rect}
+${clipStart}
 <text x="${width / 2}" y="${bigY}" font-family="${fontFamily}" font-size="${bigSize}" font-weight="800" text-anchor="middle" fill="white"${universalStroke}>HDR</text>
 <text x="${width / 2}" y="${smallY}" font-family="${fontFamily}" font-size="${smallSize}" font-weight="700" text-anchor="middle" fill="#a7f3d0" letter-spacing="0.05em"${universalStroke}>TRUE COLOR</text>
+${clipEnd}
 </svg>`;
     return { svg, width, height: h };
   }
@@ -689,10 +727,14 @@ ${generateGlowText(`x="${width / 2}" y="${bottomY}" font-family="${fontFamily}" 
     const bottomY = Math.round(h * 0.73);
     const textLength = Math.max(40, Math.floor(width - innerPadding * 2));
     const rect = buildRect(width, '#ffffff');
+    const clipStart = style === 'glass' ? `<g clip-path="url(#capsule-clip-apple-glass-q-dolbyvision-7)">` : '';
+    const clipEnd = style === 'glass' ? '</g>' : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
 ${rect}
+${clipStart}
 <text x="${width / 2}" y="${topY}" font-family="${fontFamily}" font-size="${topSize}" font-weight="700" text-anchor="middle" fill="#ffffff" letter-spacing="0.18em" textLength="${textLength}" lengthAdjust="spacingAndGlyphs"${universalStroke}>DOLBY</text>
 <text x="${width / 2}" y="${bottomY}" font-family="${fontFamily}" font-size="${bottomSize}" font-weight="800" text-anchor="middle" fill="#ffffff" textLength="${textLength}" lengthAdjust="spacingAndGlyphs"${universalStroke}>VISION</text>
+${clipEnd}
 </svg>`;
     return { svg, width, height: h };
   }
@@ -709,9 +751,13 @@ ${rect}
     const textY = Math.round(h * 0.63);
     const color = '#ef4444';
     const rect = buildRect(width, color);
+    const clipStart = style === 'glass' ? `<g clip-path="url(#capsule-clip-apple-glass-q-remux-${Math.round(color.length)})">` : '';
+    const clipEnd = style === 'glass' ? '</g>' : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
 ${rect}
+${clipStart}
 <text x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="800" text-anchor="middle" fill="${color}" letter-spacing="0.08em"${universalStroke}>REMUX</text>
+${clipEnd}
 </svg>`;
     return { svg, width, height: h };
   }
@@ -727,9 +773,13 @@ ${rect}
       return { svg: wrapSvg(content, width, h), width, height: h };
     }
     const rect = buildRect(width, meta.accentColor);
+    const clipStart = style === 'glass' ? `<g clip-path="url(#capsule-clip-apple-glass-q-${key.replace(/[^a-z0-9]/gi, '-')}-${Math.round(meta.accentColor.length)})">` : '';
+    const clipEnd = style === 'glass' ? '</g>' : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
 ${rect}
+${clipStart}
 <text x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="800" text-anchor="middle" fill="${meta.accentColor}" textLength="${Math.max(20, width - innerPadding * 2)}" lengthAdjust="spacingAndGlyphs"${universalStroke}>${label}</text>
+${clipEnd}
 </svg>`;
     return { svg, width, height: h };
   }
@@ -773,6 +823,7 @@ export const buildBadgeSvg = ({
   const ratingStyle = initialRatingStyle === 'solid-light' ? 'glass' : initialRatingStyle;
   let value = initialValue;
   let iconDataUri = initialIconDataUri;
+  const clipPathId = `clip-${(monogram + value).replace(/[^a-zA-Z0-9]/g, '')}-${Math.round(accentColor.length)}`;
 
   if (
     contentLayout === 'stacked' &&
@@ -861,7 +912,33 @@ export const buildBadgeSvg = ({
       ? ''
       : ratingStyle === 'square'
         ? `<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="${outerRadius}" fill="#0b0b0b" stroke="${accentColor}" />`
-        : `<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="${outerRadius}" fill="rgba(17,24,39,0.70)" stroke="${accentColor}" stroke-opacity="0.58" />`;
+        : `
+<defs>
+  <clipPath id="capsule-clip-${clipPathId}">
+    <rect x="0" y="0" width="${width}" height="${height}" rx="${outerRadius}" />
+  </clipPath>
+  <linearGradient id="apple-glass-fill-${clipPathId}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="${accentColor}" stop-opacity="0.22" />
+    <stop offset="100%" stop-color="${accentColor}" stop-opacity="0.10" />
+  </linearGradient>
+  <linearGradient id="apple-glass-border-${clipPathId}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="${accentColor}" stop-opacity="0.42" />
+    <stop offset="100%" stop-color="${accentColor}" stop-opacity="0.20" />
+  </linearGradient>
+  <filter id="apple-glass-shadow-${clipPathId}" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="2.8" />
+    <feOffset dx="0" dy="3.2" result="offsetblur" />
+    <feFlood flood-color="#000000" flood-opacity="0.54" result="glowcolor" />
+    <feComposite in="glowcolor" in2="offsetblur" operator="in" result="glow" />
+    <feMerge>
+      <feMergeNode in="glow" />
+      <feMergeNode in="SourceGraphic" />
+    </feMerge>
+  </filter>
+</defs>
+<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="${outerRadius}" fill="url(#apple-glass-fill-${clipPathId})" filter="url(#apple-glass-shadow-${clipPathId})" />
+<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="${outerRadius}" fill="none" stroke="url(#apple-glass-border-${clipPathId})" stroke-width="1" />
+`.trim();
   const monogramFill = ratingStyle === 'glass' ? 'white' : accentColor;
   const textShadowFilter = `
     <filter id="text-shadow" x="-50%" y="-50%" width="200%" height="200%">
@@ -877,7 +954,6 @@ export const buildBadgeSvg = ({
     </filter>
   `.trim();
   const itemFilter = '';
-  const clipPathId = `clip-${(monogram + value).replace(/[^a-zA-Z0-9]/g, '')}-${Math.round(accentColor.length)}`;
   const iconImage =
     !iconDataUri
       ? ''
@@ -920,14 +996,19 @@ export const buildBadgeSvg = ({
     : '';
 
   const valueText = `${glowLayers}<text ${commonAttrs} fill="white"${valueStroke} filter="url(#text-shadow)">${textInnerContent}</text>`;
+  const capsuleClipStart = ratingStyle === 'glass' ? `<g clip-path="url(#capsule-clip-${clipPathId})">` : '';
+  const capsuleClipEnd = ratingStyle === 'glass' ? '</g>' : '';
+
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="-4 -4 ${width + 8} ${height + 8}">
 ${textShadowFilter}
 ${outerRect}
 ${plainGroupStart}
+${capsuleClipStart}
 ${iconShape}
 ${iconImage}
 ${monogramText}
 ${valueText}
+${capsuleClipEnd}
 ${plainGroupEnd}
 </svg>`;
 };
