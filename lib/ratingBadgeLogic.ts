@@ -558,7 +558,7 @@ export const buildStreamBadgesFromFlags = (flags: StreamQualityFlags): RatingBad
       label: meta.label,
       value: meta.value,
       iconUrl: meta.iconUrl,
-      accentColor: meta.accentColor,
+      accentColor: '#ffffff',
     });
   }
   return badges;

@@ -614,21 +614,89 @@ export const buildQualityBadgeSvg = (
     return baseRect(width, chrome.stroke, chrome.fill, extra);
   };
   const universalStroke = ' stroke="rgba(0,0,0,0.80)" stroke-width="1.8" paint-order="stroke fill"';
+  const qualityBadgeColor = '#ffffff';
+
+  const textShadowFilter = `
+    <filter id="text-shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.8" result="blur" />
+      <feOffset dx="0" dy="1.2" in="blur" result="offsetBlur" />
+      <feComponentTransfer in="offsetBlur" result="shadow">
+        <feFuncA type="linear" slope="0.85" />
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode in="shadow" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  `.trim();
+
+  const premiumGlowFilter = `
+    <filter id="premium-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <!-- Wide ambient shadow -->
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6.5" result="blurWide" />
+      <feComponentTransfer in="blurWide" result="glowWide">
+        <feFuncA type="linear" slope="1.2" />
+      </feComponentTransfer>
+
+      <!-- Medium soft shadow -->
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3.6" result="blurMed" />
+      <feComponentTransfer in="blurMed" result="glowMed">
+        <feFuncA type="linear" slope="2.0" />
+      </feComponentTransfer>
+
+      <!-- Core dark shadow -->
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.6" result="blurCore" />
+      <feComponentTransfer in="blurCore" result="glowCore">
+        <feFuncA type="linear" slope="3.0" />
+      </feComponentTransfer>
+
+      <!-- Sharp drop shadow for depth -->
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0.8" result="blurSharp" />
+      <feOffset dx="0" dy="1.5" in="blurSharp" result="offsetSharp" />
+      <feComponentTransfer in="offsetSharp" result="shadowSharp">
+        <feFuncA type="linear" slope="3.0" />
+      </feComponentTransfer>
+
+      <feMerge>
+        <feMergeNode in="glowWide" />
+        <feMergeNode in="glowMed" />
+        <feMergeNode in="glowCore" />
+        <feMergeNode in="shadowSharp" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  `.trim();
 
   const generateGlowText = (attrs: string, content: string) => {
-    if (!isReferencePlain) return `<text ${attrs}${universalStroke}>${content}</text>`;
-    const glow = Array.from({ length: 8 }, (_, i) => {
-      const strokeWidth = 20 - i * 2.5;
-      const opacity = 0.05 + (i * 0.05);
-      return `<text ${attrs} fill="none" stroke="rgba(0,0,0,${opacity})" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round">${content}</text>`;
-    }).join('\\n');
-    return `${glow}\\n<text ${attrs} fill="#f3f4f6"${universalStroke}>${content}</text>`;
+    if (isReferencePlain) {
+      const glowLayers = Array.from({ length: 10 }, (_, i) => {
+        const strokeWidth = 18 - i * 1.6;
+        const opacity = 0.03 + (i * 0.04);
+        return `<text ${attrs} fill="none" stroke="black" stroke-opacity="${opacity}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round">${content}</text>`;
+      }).join('\n');
+      return `${glowLayers}\n<text ${attrs} fill="white" stroke="black" stroke-width="1.8" paint-order="stroke fill" filter="url(#premium-glow)">${content}</text>`;
+    }
+    return `<text ${attrs} fill="white"${universalStroke} filter="url(#premium-glow)">${content}</text>`;
   };
 
   const wrapSvg = (content: string, width: number, height: number) => {
-    const vbWidth = width + 4;
-    const vbHeight = height + 4;
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="-2 -2 ${vbWidth} ${vbHeight}">
+    const vbWidth = width + 8;
+    const vbHeight = height + 8;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="-4 -4 ${vbWidth} ${vbHeight}">
+${textShadowFilter}
+${premiumGlowFilter}
+<g>
+${content}
+</g>
+</svg>`;
+  };
+
+  const wrapSvgPadded = (content: string, width: number, height: number) => {
+    const parentWidth = width + 24;
+    const parentHeight = height + 24;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${parentWidth}" height="${parentHeight}" viewBox="-12 -12 ${parentWidth} ${parentHeight}">
+${textShadowFilter}
+${premiumGlowFilter}
 <g>
 ${content}
 </g>
@@ -639,11 +707,19 @@ ${content}
   if (iconMeta && iconDataUri) {
     const width = widthOverride ?? Math.round(h * (iconMeta.iconWidthRatio ?? Math.max(1.35, 0.72 + iconMeta.label.length * 0.34)));
     const imageHref = escapeXml(iconDataUri);
+    const rect = isReferencePlain ? '' : buildRect(width, qualityBadgeColor);
     const imagePaddingX = Math.max(2, Math.round(h * 0.04));
     const imagePaddingY = Math.max(2, Math.round(h * 0.04));
     const imageWidth = Math.max(1, width - imagePaddingX * 2);
     const imageHeight = Math.max(1, h - imagePaddingY * 2);
+
+    if (isReferencePlain) {
+      const content = `<image href="${imageHref}" x="${imagePaddingX}" y="${imagePaddingY}" width="${imageWidth}" height="${imageHeight}" preserveAspectRatio="xMidYMid meet" filter="url(#premium-glow)"/>`;
+      return { svg: wrapSvgPadded(content, width, h), width, height: h, isPadded: true };
+    }
+
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
+${rect}
 <image href="${imageHref}" x="${imagePaddingX}" y="${imagePaddingY}" width="${imageWidth}" height="${imageHeight}" preserveAspectRatio="xMidYMid meet"/>
 </svg>`;
     return { svg, width, height: h };
@@ -655,7 +731,7 @@ ${content}
       const bigSize = Math.round(h * 0.46);
       const bigY = Math.round(h * 0.64);
       const content = generateGlowText(`x="${width / 2}" y="${bigY}" font-family="${fontFamily}" font-size="${bigSize}" font-weight="900" text-anchor="middle"`, '4K');
-      return { svg: wrapSvg(content, width, h), width, height: h };
+      return { svg: wrapSvgPadded(content, width, h), width, height: h, isPadded: true };
     }
     const bigSize = Math.round(h * 0.56);
     const smallSize = Math.round(h * 0.2);
@@ -681,7 +757,7 @@ ${clipEnd}
       const textSize = Math.round(h * 0.46);
       const textY = Math.round(h * 0.64);
       const content = generateGlowText(`x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="900" text-anchor="middle"`, 'HDR');
-      return { svg: wrapSvg(content, width, h), width, height: h };
+      return { svg: wrapSvgPadded(content, width, h), width, height: h, isPadded: true };
     }
     const bigSize = Math.round(h * 0.5);
     const smallSize = Math.round(h * 0.2);
@@ -719,7 +795,7 @@ ${clipEnd}
       const bottomY = Math.round(h * 0.78);
       const content = `${generateGlowText(`x="${width / 2}" y="${topY}" font-family="${fontFamily}" font-size="${topSize}" font-weight="900" text-anchor="middle"`, 'DOLBY')}
 ${generateGlowText(`x="${width / 2}" y="${bottomY}" font-family="${fontFamily}" font-size="${bottomSize}" font-weight="900" text-anchor="middle" letter-spacing="0.04em"`, 'VISION')}`;
-      return { svg: wrapSvg(content, width, h), width, height: h };
+      return { svg: wrapSvgPadded(content, width, h), width, height: h, isPadded: true };
     }
     const topSize = Math.round(h * 0.22);
     const bottomSize = Math.round(h * 0.42);
@@ -745,7 +821,7 @@ ${clipEnd}
       const textSize = Math.round(h * 0.42);
       const textY = Math.round(h * 0.63);
       const content = generateGlowText(`x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="900" text-anchor="middle"`, 'REMUX');
-      return { svg: wrapSvg(content, width, h), width, height: h };
+      return { svg: wrapSvgPadded(content, width, h), width, height: h, isPadded: true };
     }
     const textSize = Math.round(h * 0.42);
     const textY = Math.round(h * 0.63);
@@ -770,7 +846,7 @@ ${clipEnd}
     const textY = Math.round(h * 0.63);
     if (isReferencePlain) {
       const content = generateGlowText(`x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="900" text-anchor="middle"`, label);
-      return { svg: wrapSvg(content, width, h), width, height: h };
+      return { svg: wrapSvgPadded(content, width, h), width, height: h, isPadded: true };
     }
     const rect = buildRect(width, meta.accentColor);
     const clipStart = style === 'glass' ? `<g clip-path="url(#capsule-clip-apple-glass-q-${key.replace(/[^a-z0-9]/gi, '-')}-${Math.round(meta.accentColor.length)})">` : '';

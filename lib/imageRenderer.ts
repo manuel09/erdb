@@ -1066,7 +1066,8 @@ export const renderWithSharp = async (
           rowY += badgeHeightForRow + qualityGap;
           continue;
         }
-        overlays.push({ input: Buffer.from(spec.svg), top: freeRowY, left: rowX });
+        const pad = (spec as any).isPadded ? 12 : 0;
+        overlays.push({ input: Buffer.from(spec.svg), top: freeRowY - pad, left: rowX - pad });
         addPosterBlockingRect(rowX, freeRowY, badgeWidth, badgeHeightForRow);
         rowY = freeRowY + badgeHeightForRow + qualityGap;
       }
@@ -1149,7 +1150,8 @@ export const renderWithSharp = async (
           iconByProvider.get(badge.key)
         );
         if (!spec) continue;
-        overlays.push({ input: Buffer.from(spec.svg), top: rowY, left: rowX });
+        const pad = (spec as any).isPadded ? 12 : 0;
+        overlays.push({ input: Buffer.from(spec.svg), top: rowY - pad, left: rowX - pad });
         addPosterBlockingRect(rowX, rowY, badgeWidth, spec.height);
         rowX += badgeWidth + rowGap;
       }
@@ -1252,7 +1254,8 @@ export const renderWithSharp = async (
           iconByProvider.get(badge.key)
         );
         if (!spec) continue;
-        overlays.push({ input: Buffer.from(spec.svg), top: rowY, left: clampedX });
+        const pad = (spec as any).isPadded ? 12 : 0;
+        overlays.push({ input: Buffer.from(spec.svg), top: rowY - pad, left: clampedX - pad });
         addPosterBlockingRect(clampedX, rowY, uniformBadgeWidth, spec.height);
         rowY += spec.height + input.badgeGap;
       }
