@@ -39,6 +39,7 @@ const ERDB_TYPE_OPTIONAL_PARAMS = {
   poster: [
     'posterStreamBadges',
     'posterQualityBadgesStyle',
+    'posterQualityBadgesColorMode',
     'posterRatings',
     'posterRatingsMode',
     'posterConfiguratorPreset',
@@ -51,9 +52,9 @@ const ERDB_TYPE_OPTIONAL_PARAMS = {
     'posterAverageRatingsEnabled',
     'posterVignette',
   ],
-  backdrop: ['backdropStreamBadges', 'backdropQualityBadgesStyle', 'backdropRatings', 'backdropRatingsMax'],
+  backdrop: ['backdropStreamBadges', 'backdropQualityBadgesStyle', 'backdropQualityBadgesColorMode', 'backdropRatings', 'backdropRatingsMax'],
   logo: ['logoRatings', 'logoRatingsMax', 'logoMode', 'logoFontVariant', 'logoPrimary', 'logoSecondary', 'logoOutline'],
-  thumbnail: ['backdropStreamBadges', 'backdropQualityBadgesStyle', 'thumbnailRatings'],
+  thumbnail: ['backdropStreamBadges', 'backdropQualityBadgesStyle', 'backdropQualityBadgesColorMode', 'thumbnailRatings'],
 } as const;
 const ERDB_FANART_PARAMS = ['fanartKey'] as const;
 const ERDB_OPTIONAL_PARAM_KEYS = [
@@ -144,7 +145,9 @@ export type ProxyConfig = {
   posterQualityBadgesPosition?: string;
   qualityBadgesStyle?: string;
   posterQualityBadgesStyle?: string;
+  posterQualityBadgesColorMode?: string;
   backdropQualityBadgesStyle?: string;
+  backdropQualityBadgesColorMode?: string;
   ratingStyle?: string;
   imageText?: string;
   posterRatingStyle?: string;
@@ -217,7 +220,9 @@ const PROXY_OPTIONAL_STRING_KEYS = [
   'posterQualityBadgesPosition',
   'qualityBadgesStyle',
   'posterQualityBadgesStyle',
+  'posterQualityBadgesColorMode',
   'backdropQualityBadgesStyle',
+  'backdropQualityBadgesColorMode',
   'ratingStyle',
   'imageText',
   'posterRatingStyle',

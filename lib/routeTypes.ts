@@ -101,6 +101,7 @@ export type FastRenderInput = {
   qualityBadgesSide: QualityBadgesSide;
   posterQualityBadgesPosition: PosterQualityBadgesPosition;
   qualityBadgesStyle: RatingStyle;
+  qualityBadgesColorMode?: 'colored' | 'white';
   posterRatingsLayout: PosterRatingLayout;
   posterRatingsMaxPerSide: number | null;
   backdropRatingsLayout: BackdropRatingLayout | ThumbnailRatingLayout;

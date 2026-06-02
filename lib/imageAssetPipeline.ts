@@ -30,7 +30,7 @@ import { parseNonNegativeInt } from '@/lib/routeUtils';
 
 const sourceImageInFlight = new Map<string, Promise<RenderedImagePayload>>();
 const providerIconInFlight = new Map<string, Promise<string | null>>();
-const PROVIDER_ICON_CACHE_VERSION = 'v5';
+const PROVIDER_ICON_CACHE_VERSION = 'v17';
 const generatedLogoVariantCache = new Map<string, { dataUrl: string; aspectRatio: number }>();
 const generatedLogoVariantInFlight = new Map<string, Promise<{ dataUrl: string; aspectRatio: number }>>();
 const getGeneratedLogoVariantCacheKey = (
@@ -365,11 +365,21 @@ export const getProviderIconDataUri = async (
 
       const sourceBuffer = Buffer.from(await response.arrayBuffer());
       const sharp = await getSharpFactory();
+      // 1. Resize slightly smaller and extend with transparent padding to prevent outline/shadow clipping
+      const contentWidth = Math.max(8, outputWidth - 8);
+      const contentHeight = Math.max(8, outputHeight - 8);
       let pipeline = sharp(sourceBuffer)
         .trim()
-        .resize(outputWidth, outputHeight, {
+        .resize(contentWidth, contentHeight, {
           fit: 'contain',
           background: { r: 0, g: 0, b: 0, alpha: 0 },
+        })
+        .extend({
+          top: 4,
+          bottom: 4,
+          left: 4,
+          right: 4,
+          background: { r: 0, g: 0, b: 0, alpha: 0 }
         });
       if (iconCornerRadius > 0) {
         const radius = Math.max(1, Math.min(Math.round(Math.min(outputWidth, outputHeight) / 2), Math.round(iconCornerRadius)));
@@ -382,22 +392,157 @@ export const getProviderIconDataUri = async (
 
       if (tintColor) {
         const iconMetadata = await sharp(outputBuffer).metadata();
-        const overlayWidth = iconMetadata.width || outputWidth;
-        const overlayHeight = iconMetadata.height || outputHeight;
-        outputBuffer = await sharp(outputBuffer)
-          .composite([{
-            input: {
-              create: {
-                width: overlayWidth,
-                height: overlayHeight,
-                channels: 4,
-                background: tintColor,
-              }
-            },
-            blend: 'in'
-          }])
+        const w = iconMetadata.width || outputWidth;
+        const h = iconMetadata.height || outputHeight;
+
+        // Extract raw alpha channel and apply threshold to make it fully solid, and smooth the edges with blur
+        const alphaBuffer = await sharp(outputBuffer)
+          .extractChannel('alpha')
+          .threshold(10)
+          .blur(0.8)
+          .toBuffer();
+
+        const hexToRgb = (hex: string) => {
+          const cleaned = hex.replace(/^#/, '');
+          if (cleaned.length === 3) {
+            const r = parseInt(cleaned[0] + cleaned[0], 16);
+            const g = parseInt(cleaned[1] + cleaned[1], 16);
+            const b = parseInt(cleaned[2] + cleaned[2], 16);
+            return { r, g, b };
+          }
+          const r = parseInt(cleaned.slice(0, 2), 16) || 255;
+          const g = parseInt(cleaned.slice(2, 4), 16) || 255;
+          const b = parseInt(cleaned.slice(4, 6), 16) || 255;
+          return { r, g, b };
+        };
+
+        const isHexColor = /^#[0-9a-fA-F]{3,6}$/.test(tintColor);
+
+        let mainImageBuffer;
+        if (tintColor === 'colored') {
+          mainImageBuffer = outputBuffer;
+        } else if (isHexColor) {
+          const rgb = hexToRgb(tintColor);
+          const coloredRGBBuffer = await sharp({
+            create: {
+              width: w,
+              height: h,
+              channels: 3,
+              background: { r: rgb.r, g: rgb.g, b: rgb.b }
+            }
+          })
+          .raw()
+          .toBuffer();
+
+          mainImageBuffer = await sharp(coloredRGBBuffer, {
+            raw: {
+              width: w,
+              height: h,
+              channels: 3
+            }
+          })
+          .joinChannel(alphaBuffer)
           .png({ compressionLevel: 6 })
           .toBuffer();
+        } else {
+          // Create solid white RGB version
+          const whiteRGBBuffer = await sharp({
+            create: {
+              width: w,
+              height: h,
+              channels: 3,
+              background: { r: 255, g: 255, b: 255 }
+            }
+          })
+          .raw()
+          .toBuffer();
+
+          mainImageBuffer = await sharp(whiteRGBBuffer, {
+            raw: {
+              width: w,
+              height: h,
+              channels: 3
+            }
+          })
+          .joinChannel(alphaBuffer)
+          .png({ compressionLevel: 6 })
+          .toBuffer();
+        }
+
+        // Create solid black RGB version for crisp outline
+        const blackRGBBuffer = await sharp({
+          create: {
+            width: w,
+            height: h,
+            channels: 3,
+            background: { r: 0, g: 0, b: 0 }
+          }
+        })
+        .raw()
+        .toBuffer();
+
+        const blackImageBuffer = await sharp(blackRGBBuffer, {
+          raw: {
+            width: w,
+            height: h,
+            channels: 3
+          }
+        })
+        .joinChannel(alphaBuffer)
+        .png({ compressionLevel: 6 })
+        .toBuffer();
+
+        // Create blurred black shadow version for soft glow
+        const blurredShadowBuffer = await sharp(blackImageBuffer)
+          .blur(3.6)
+          .png({ compressionLevel: 6 })
+          .toBuffer();
+
+        // Combine onto a slightly larger parent canvas to prevent outline/shadow clipping
+        const parentWidth = w + 12;
+        const parentHeight = h + 12;
+        const offsets = [
+          // Outer outline (thickness ~4px)
+          { x: 0, y: 4 }, { x: 4, y: 0 }, { x: 0, y: -4 }, { x: -4, y: 0 },
+          { x: 3, y: 3 }, { x: -3, y: -3 }, { x: 3, y: -3 }, { x: -3, y: 3 },
+          // Inner outline for perfect solidness
+          { x: 0, y: 2 }, { x: 2, y: 0 }, { x: 0, y: -2 }, { x: -2, y: 0 },
+          { x: 1, y: 1 }, { x: -1, y: -1 }, { x: 1, y: -1 }, { x: -1, y: 1 }
+        ];
+
+        outputBuffer = await sharp({
+          create: {
+            width: parentWidth,
+            height: parentHeight,
+            channels: 4,
+            background: { r: 0, g: 0, b: 0, alpha: 0 }
+          }
+        })
+        .composite([
+          // A. Blurred black shadow, offset slightly down-right
+          {
+            input: blurredShadowBuffer,
+            left: 6 + 4,
+            top: 6 + 4,
+            blend: 'over' as const
+          },
+          // B. Crisp black outline (16 directions)
+          ...offsets.map(offset => ({
+            input: blackImageBuffer,
+            left: 6 + offset.x,
+            top: 6 + offset.y,
+            blend: 'over' as const
+          })),
+          // C. Logo in center
+          {
+            input: mainImageBuffer,
+            left: 6,
+            top: 6,
+            blend: 'over' as const
+          }
+        ])
+        .png({ compressionLevel: 6 })
+        .toBuffer();
       }
 
       const outputContentType = 'image/png';

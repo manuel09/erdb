@@ -228,6 +228,8 @@ export function useHomePageController({
     useState<PosterQualityBadgesPosition>('auto');
   const [posterQualityBadgesStyle, setPosterQualityBadgesStyle] = useState<RatingStyle>('glass');
   const [backdropQualityBadgesStyle, setBackdropQualityBadgesStyle] = useState<RatingStyle>(DEFAULT_QUALITY_BADGES_STYLE);
+  const [posterQualityBadgesColorMode, setPosterQualityBadgesColorMode] = useState<'colored' | 'white'>('white');
+  const [backdropQualityBadgesColorMode, setBackdropQualityBadgesColorMode] = useState<'colored' | 'white'>('white');
   const [ranking, setRanking] = useState('daily');
   const setPosterConfiguratorPreset = useCallback((value: PosterConfiguratorPreset) => {
     setPosterConfiguratorPresetState(value);
@@ -236,6 +238,7 @@ export function useHomePageController({
       setPosterAnimeImageText('default');
       setPosterStreamBadges('on');
       setPosterQualityBadgesStyle('plain');
+      setPosterQualityBadgesColorMode('white');
       setRanking('daily');
       setPosterGenrePosition('top');
       setPosterVignetteEnabled(true);
@@ -452,6 +455,14 @@ export function useHomePageController({
     previewType === 'backdrop' || previewType === 'thumbnail'
       ? setBackdropQualityBadgesStyle
       : setPosterQualityBadgesStyle;
+  const activeQualityBadgesColorMode =
+    previewType === 'backdrop' || previewType === 'thumbnail'
+      ? backdropQualityBadgesColorMode
+      : posterQualityBadgesColorMode;
+  const setActiveQualityBadgesColorMode =
+    previewType === 'backdrop' || previewType === 'thumbnail'
+      ? setBackdropQualityBadgesColorMode
+      : setPosterQualityBadgesColorMode;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -766,6 +777,10 @@ export function useHomePageController({
         : isSimplePosterPreset
           ? 'plain'
           : posterQualityBadgesStyle;
+    const qualityBadgesColorModeForType =
+      previewType === 'backdrop' || previewType === 'thumbnail'
+        ? backdropQualityBadgesColorMode
+        : posterQualityBadgesColorMode;
     const query = new URLSearchParams({
       ratingStyle: ratingStyleForType,
       lang: effectiveLang,
@@ -845,6 +860,14 @@ export function useHomePageController({
           ? 'backdropQualityBadgesStyle'
           : 'posterQualityBadgesStyle',
         qualityBadgesStyleForType
+      );
+    }
+    if (previewType !== 'logo' && previewType !== 'thumbnail' && qualityBadgesColorModeForType !== 'white') {
+      query.set(
+        previewType === 'backdrop'
+          ? 'backdropQualityBadgesColorMode'
+          : 'posterQualityBadgesColorMode',
+        qualityBadgesColorModeForType
       );
     }
 
@@ -971,6 +994,8 @@ export function useHomePageController({
     posterQualityBadgesPosition,
     posterQualityBadgesStyle,
     backdropQualityBadgesStyle,
+    posterQualityBadgesColorMode,
+    backdropQualityBadgesColorMode,
     posterRatingStyle,
     backdropRatingStyle,
     logoRatingStyle,
@@ -1072,11 +1097,22 @@ export function useHomePageController({
     }
     if (posterConfiguratorPreset === 'simple') {
       config.posterQualityBadgesStyle = 'plain';
-    } else if (posterQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
-      config.posterQualityBadgesStyle = posterQualityBadgesStyle;
+      if (posterQualityBadgesColorMode !== 'white') {
+        config.posterQualityBadgesColorMode = posterQualityBadgesColorMode;
+      }
+    } else {
+      if (posterQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
+        config.posterQualityBadgesStyle = posterQualityBadgesStyle;
+      }
+      if (posterQualityBadgesColorMode !== 'white') {
+        config.posterQualityBadgesColorMode = posterQualityBadgesColorMode;
+      }
     }
     if (backdropQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
       config.backdropQualityBadgesStyle = backdropQualityBadgesStyle;
+    }
+    if (backdropQualityBadgesColorMode !== 'white') {
+      config.backdropQualityBadgesColorMode = backdropQualityBadgesColorMode;
     }
     if (posterConfiguratorPreset !== 'simple' && posterRatingStyle) {
       config.posterRatingStyle = posterRatingStyle;
@@ -1203,6 +1239,8 @@ export function useHomePageController({
     posterQualityBadgesPosition,
     posterQualityBadgesStyle,
     backdropQualityBadgesStyle,
+    posterQualityBadgesColorMode,
+    backdropQualityBadgesColorMode,
     effectiveLang,
     effectivePosterLang,
     effectivePosterAnimeLang,
@@ -1367,11 +1405,22 @@ export function useHomePageController({
     }
     if (posterConfiguratorPreset === 'simple') {
       config.posterQualityBadgesStyle = 'plain';
-    } else if (posterQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
-      config.posterQualityBadgesStyle = posterQualityBadgesStyle;
+      if (posterQualityBadgesColorMode !== 'white') {
+        config.posterQualityBadgesColorMode = posterQualityBadgesColorMode;
+      }
+    } else {
+      if (posterQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
+        config.posterQualityBadgesStyle = posterQualityBadgesStyle;
+      }
+      if (posterQualityBadgesColorMode !== 'white') {
+        config.posterQualityBadgesColorMode = posterQualityBadgesColorMode;
+      }
     }
     if (backdropQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
       config.backdropQualityBadgesStyle = backdropQualityBadgesStyle;
+    }
+    if (backdropQualityBadgesColorMode !== 'white') {
+      config.backdropQualityBadgesColorMode = backdropQualityBadgesColorMode;
     }
     if (posterConfiguratorPreset === 'simple') {
       config.posterConfiguratorPreset = 'simple';
@@ -1539,6 +1588,8 @@ export function useHomePageController({
     posterQualityBadgesPosition,
     posterQualityBadgesStyle,
     backdropQualityBadgesStyle,
+    posterQualityBadgesColorMode,
+    backdropQualityBadgesColorMode,
     posterRatingStyle,
     backdropRatingStyle,
     logoRatingStyle,
@@ -1909,8 +1960,14 @@ export function useHomePageController({
     if (typeof payload.posterQualityBadgesStyle === 'string' && isRatingStyle(payload.posterQualityBadgesStyle)) {
       setPosterQualityBadgesStyle(payload.posterQualityBadgesStyle);
     }
+    if (payload.posterQualityBadgesColorMode === 'colored' || payload.posterQualityBadgesColorMode === 'white') {
+      setPosterQualityBadgesColorMode(payload.posterQualityBadgesColorMode);
+    }
     if (typeof payload.backdropQualityBadgesStyle === 'string' && isRatingStyle(payload.backdropQualityBadgesStyle)) {
       setBackdropQualityBadgesStyle(payload.backdropQualityBadgesStyle);
+    }
+    if (payload.backdropQualityBadgesColorMode === 'colored' || payload.backdropQualityBadgesColorMode === 'white') {
+      setBackdropQualityBadgesColorMode(payload.backdropQualityBadgesColorMode);
     }
     if (typeof payload.posterRatingStyle === 'string' && isRatingStyle(payload.posterRatingStyle)) {
       setPosterRatingStyle(payload.posterRatingStyle);
@@ -2523,7 +2580,9 @@ export function useHomePageController({
       qualityBadgesSide,
       posterQualityBadgesPosition,
       posterQualityBadgesStyle,
+      posterQualityBadgesColorMode,
       backdropQualityBadgesStyle,
+      backdropQualityBadgesColorMode,
       posterRatingStyle,
       backdropRatingStyle,
       thumbnailRatingStyle,
@@ -2579,7 +2638,9 @@ export function useHomePageController({
       qualityBadgesSide,
       posterQualityBadgesPosition,
       posterQualityBadgesStyle,
+      posterQualityBadgesColorMode,
       backdropQualityBadgesStyle,
+      backdropQualityBadgesColorMode,
       posterRatingStyle,
       backdropRatingStyle,
       thumbnailRatingStyle,
@@ -2855,6 +2916,7 @@ export function useHomePageController({
       qualityBadgeTypeLabel,
       activeStreamBadges,
       activeQualityBadgesStyle,
+      activeQualityBadgesColorMode,
       aiometadataPatterns,
       userCount,
     },
@@ -2911,6 +2973,7 @@ export function useHomePageController({
       setImageTextForType,
       setActiveStreamBadges,
       setActiveQualityBadgesStyle,
+      setActiveQualityBadgesColorMode,
       toggleRatingPreference,
       enableAllRatingPreferences,
       disableAllRatingPreferences,

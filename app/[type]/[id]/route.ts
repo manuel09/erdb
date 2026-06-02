@@ -86,7 +86,7 @@ import { HttpError, type PhaseDurations, type RenderImageType, type RenderedImag
 import { FALLBACK_IMAGE_LANGUAGE, getDeterministicTtlMs, getTmdbLanguageFallbackChain, isImdbId, isOriginalLanguageSetting, resolveOriginalAwareImageLanguage, resolveRequestedImageLanguage } from '@/lib/routeUtils';
 import { normalizeRatingValue } from '@/lib/ratingProviderParsing';
 import { isTextlessPosterSelection, matchesImageLanguage, pickBackdropByPreference, pickByLanguageWithFallback, pickPosterByPreference, type PosterTextPreference } from '@/lib/tmdbImageSelection';
-import { ANIME_ONLY_RATING_PROVIDER_SET, LOGO_BASE_HEIGHT, RATING_PROVIDER_META, formatDisplayRatingValue, formatRatingNumber, normalizePosterGenrePosition, normalizePosterQualityBadgesPosition, normalizeQualityBadgesSide, normalizeQualityBadgesStyle, normalizeRankingPosition, normalizeStreamBadgesSetting, outputFormatToExtension, parseDisplayRatingValue, pickOutputFormat, resolvePosterQualityBadgePlacement, shouldRenderRatingValue, type BadgeKey, type RankingBadge, type RatingBadge } from '@/lib/ratingBadgeLogic';
+import { ANIME_ONLY_RATING_PROVIDER_SET, LOGO_BASE_HEIGHT, RATING_PROVIDER_META, formatDisplayRatingValue, formatRatingNumber, normalizePosterGenrePosition, normalizePosterQualityBadgesPosition, normalizeQualityBadgesSide, normalizeQualityBadgesStyle, normalizeQualityBadgesColorMode, normalizeRankingPosition, normalizeStreamBadgesSetting, outputFormatToExtension, parseDisplayRatingValue, pickOutputFormat, resolvePosterQualityBadgePlacement, shouldRenderRatingValue, type BadgeKey, type RankingBadge, type RatingBadge } from '@/lib/ratingBadgeLogic';
 import { buildTransparentLogoDataUrl } from '@/lib/imageSvgText';
 
 export const runtime = 'nodejs';
@@ -345,12 +345,35 @@ export async function GET(
     request.nextUrl.searchParams.get('qualityBadgesStyle')
   );
 
+  const globalQualityBadgesColorMode = normalizeQualityBadgesColorMode(
+    tokenConfig.qualityBadgesColorMode || request.nextUrl.searchParams.get('qualityBadgesColorMode')
+  );
+  const posterQualityBadgesColorMode = normalizeQualityBadgesColorMode(
+    tokenConfig.posterQualityBadgesColorMode ||
+    tokenConfig.qualityBadgesColorMode ||
+    request.nextUrl.searchParams.get('posterQualityBadgesColorMode') ||
+    request.nextUrl.searchParams.get('qualityBadgesColorMode')
+  );
+  const backdropQualityBadgesColorMode = normalizeQualityBadgesColorMode(
+    tokenConfig.backdropQualityBadgesColorMode ||
+    tokenConfig.qualityBadgesColorMode ||
+    request.nextUrl.searchParams.get('backdropQualityBadgesColorMode') ||
+    request.nextUrl.searchParams.get('qualityBadgesColorMode')
+  );
+
   const qualityBadgesStyle =
     imageType === 'poster'
       ? posterQualityBadgesStyle
       : imageType === 'backdrop'
         ? backdropQualityBadgesStyle
         : globalQualityBadgesStyle;
+
+  const qualityBadgesColorMode =
+    imageType === 'poster'
+      ? posterQualityBadgesColorMode
+      : imageType === 'backdrop'
+        ? backdropQualityBadgesColorMode
+        : globalQualityBadgesColorMode;
 
   const globalRatingStyleParam =
     tokenConfig.ratingStyle || request.nextUrl.searchParams.get('ratingStyle') || request.nextUrl.searchParams.get('style');
@@ -581,6 +604,7 @@ export async function GET(
       ? posterQualityBadgesPosition
       : '-',
     imageType !== 'logo' ? qualityBadgesStyle : '-',
+    imageType !== 'logo' ? qualityBadgesColorMode : '-',
     imageType === 'backdrop' ? backdropRatingsLayout : imageType === 'thumbnail' ? thumbnailRatingsLayout : '-',
     imageType === 'backdrop' ? backdropRatingsSize : '-',
     imageType === 'thumbnail' ? thumbnailSize : '-',
@@ -1403,6 +1427,7 @@ export async function GET(
           ? posterQualityBadgesPosition
           : '-',
         imageType !== 'logo' ? qualityBadgesStyle : '-',
+        imageType !== 'logo' ? qualityBadgesColorMode : '-',
         imageType === 'backdrop' ? backdropRatingsLayout : imageType === 'thumbnail' ? thumbnailRatingsLayout : '-',
         imageType === 'backdrop' ? backdropRatingsSize : '-',
         imageType === 'thumbnail' ? thumbnailSize : '-',
@@ -3664,6 +3689,7 @@ export async function GET(
           qualityBadgesSide,
           posterQualityBadgesPosition,
           qualityBadgesStyle,
+          qualityBadgesColorMode,
           posterRatingsLayout,
           posterRatingsMaxPerSide,
           backdropRatingsLayout: activeBackdropLikeLayout,

@@ -49,7 +49,9 @@ export const buildProxyConfigFromToken = (
   mapStr('qualityBadgesSide', 'qualityBadgesSide');
   mapStr('posterQualityBadgesPosition', 'posterQualityBadgesPosition');
   mapStr('posterQualityBadgesStyle', 'posterQualityBadgesStyle');
+  mapStr('posterQualityBadgesColorMode', 'posterQualityBadgesColorMode');
   mapStr('backdropQualityBadgesStyle', 'backdropQualityBadgesStyle');
+  mapStr('backdropQualityBadgesColorMode', 'backdropQualityBadgesColorMode');
   mapStr('posterRatingStyle', 'posterRatingStyle');
   mapStr('backdropRatingStyle', 'backdropRatingStyle');
   mapStr('thumbnailRatingStyle', 'thumbnailRatingStyle');
