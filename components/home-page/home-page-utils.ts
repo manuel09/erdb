@@ -310,6 +310,8 @@ export const buildAiometadataPattern = (options: {
   posterGenrePosition: PosterGenrePosition;
   posterQualityBadgesStyle: RatingStyle;
   backdropQualityBadgesStyle: RatingStyle;
+  posterQualityBadgesColorMode: 'colored' | 'white';
+  backdropQualityBadgesColorMode: 'colored' | 'white';
   posterRatingStyle: RatingStyle;
   backdropRatingStyle: RatingStyle;
   thumbnailRatingStyle: RatingStyle;
@@ -368,6 +370,8 @@ export const buildAiometadataPattern = (options: {
     posterGenrePosition,
     posterQualityBadgesStyle,
     backdropQualityBadgesStyle,
+    posterQualityBadgesColorMode,
+    backdropQualityBadgesColorMode,
     posterRatingStyle,
     backdropRatingStyle,
     thumbnailRatingStyle,
@@ -452,6 +456,9 @@ export const buildAiometadataPattern = (options: {
     if (posterQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
       params.push(['posterQualityBadgesStyle', posterQualityBadgesStyle]);
     }
+    if (posterQualityBadgesColorMode !== 'white') {
+      params.push(['posterQualityBadgesColorMode', posterQualityBadgesColorMode]);
+    }
     params.push(['ratingStyle', posterRatingStyle]);
     params.push(['imageText', posterImageText]);
     params.push(['posterRatingsLayout', posterRatingsLayout]);
@@ -475,6 +482,9 @@ export const buildAiometadataPattern = (options: {
     }
     if (backdropQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
       params.push(['backdropQualityBadgesStyle', backdropQualityBadgesStyle]);
+    }
+    if (backdropQualityBadgesColorMode !== 'white') {
+      params.push(['backdropQualityBadgesColorMode', backdropQualityBadgesColorMode]);
     }
     params.push(['ratingStyle', backdropRatingStyle]);
     params.push(['imageText', backdropImageText]);
@@ -597,6 +607,8 @@ export const buildAiometadataPatternBlock = (options: {
     pushIfString('qualityBadgesStyle');
     pushIfString('posterQualityBadgesStyle');
     pushIfString('backdropQualityBadgesStyle');
+    pushIfString('posterQualityBadgesColorMode');
+    pushIfString('backdropQualityBadgesColorMode');
     pushIfString('streamBadges');
     pushIfString('posterStreamBadges');
     pushIfString('backdropStreamBadges');

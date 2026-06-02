@@ -30,7 +30,7 @@ import { parseNonNegativeInt } from '@/lib/routeUtils';
 
 const sourceImageInFlight = new Map<string, Promise<RenderedImagePayload>>();
 const providerIconInFlight = new Map<string, Promise<string | null>>();
-const PROVIDER_ICON_CACHE_VERSION = 'v13';
+const PROVIDER_ICON_CACHE_VERSION = 'v17';
 const generatedLogoVariantCache = new Map<string, { dataUrl: string; aspectRatio: number }>();
 const generatedLogoVariantInFlight = new Map<string, Promise<{ dataUrl: string; aspectRatio: number }>>();
 const getGeneratedLogoVariantCacheKey = (
@@ -402,28 +402,72 @@ export const getProviderIconDataUri = async (
           .blur(0.8)
           .toBuffer();
 
-        // Create solid white RGB version
-        const whiteRGBBuffer = await sharp({
-          create: {
-            width: w,
-            height: h,
-            channels: 3,
-            background: { r: 255, g: 255, b: 255 }
+        const hexToRgb = (hex: string) => {
+          const cleaned = hex.replace(/^#/, '');
+          if (cleaned.length === 3) {
+            const r = parseInt(cleaned[0] + cleaned[0], 16);
+            const g = parseInt(cleaned[1] + cleaned[1], 16);
+            const b = parseInt(cleaned[2] + cleaned[2], 16);
+            return { r, g, b };
           }
-        })
-        .raw()
-        .toBuffer();
+          const r = parseInt(cleaned.slice(0, 2), 16) || 255;
+          const g = parseInt(cleaned.slice(2, 4), 16) || 255;
+          const b = parseInt(cleaned.slice(4, 6), 16) || 255;
+          return { r, g, b };
+        };
 
-        const whiteImageBuffer = await sharp(whiteRGBBuffer, {
-          raw: {
-            width: w,
-            height: h,
-            channels: 3
-          }
-        })
-        .joinChannel(alphaBuffer)
-        .png({ compressionLevel: 6 })
-        .toBuffer();
+        const isHexColor = /^#[0-9a-fA-F]{3,6}$/.test(tintColor);
+
+        let mainImageBuffer;
+        if (tintColor === 'colored') {
+          mainImageBuffer = outputBuffer;
+        } else if (isHexColor) {
+          const rgb = hexToRgb(tintColor);
+          const coloredRGBBuffer = await sharp({
+            create: {
+              width: w,
+              height: h,
+              channels: 3,
+              background: { r: rgb.r, g: rgb.g, b: rgb.b }
+            }
+          })
+          .raw()
+          .toBuffer();
+
+          mainImageBuffer = await sharp(coloredRGBBuffer, {
+            raw: {
+              width: w,
+              height: h,
+              channels: 3
+            }
+          })
+          .joinChannel(alphaBuffer)
+          .png({ compressionLevel: 6 })
+          .toBuffer();
+        } else {
+          // Create solid white RGB version
+          const whiteRGBBuffer = await sharp({
+            create: {
+              width: w,
+              height: h,
+              channels: 3,
+              background: { r: 255, g: 255, b: 255 }
+            }
+          })
+          .raw()
+          .toBuffer();
+
+          mainImageBuffer = await sharp(whiteRGBBuffer, {
+            raw: {
+              width: w,
+              height: h,
+              channels: 3
+            }
+          })
+          .joinChannel(alphaBuffer)
+          .png({ compressionLevel: 6 })
+          .toBuffer();
+        }
 
         // Create solid black RGB version for crisp outline
         const blackRGBBuffer = await sharp({
@@ -489,9 +533,9 @@ export const getProviderIconDataUri = async (
             top: 6 + offset.y,
             blend: 'over' as const
           })),
-          // C. Pure white logo in center
+          // C. Logo in center
           {
-            input: whiteImageBuffer,
+            input: mainImageBuffer,
             left: 6,
             top: 6,
             blend: 'over' as const

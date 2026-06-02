@@ -548,7 +548,8 @@ export const buildQualityBadgeSvg = (
   height: number,
   widthOverride?: number,
   style: RatingStyle = DEFAULT_QUALITY_BADGES_STYLE,
-  iconDataUri?: string | null
+  iconDataUri?: string | null,
+  colorMode: 'colored' | 'white' = 'white'
 ) => {
   const h = Math.max(32, height);
   const isReferencePlain = style === 'plain';
@@ -667,6 +668,15 @@ export const buildQualityBadgeSvg = (
     </filter>
   `.trim();
 
+  const getTextColor = () => {
+    if (colorMode === 'white') return '#ffffff';
+    if (key === '4k') return '#f7c948';
+    if (key === 'hdr') return '#ffbe01';
+    const meta = STREAM_BADGE_META.get(key);
+    return meta?.accentColor || '#ffffff';
+  };
+  const textColor = getTextColor();
+
   const generateGlowText = (attrs: string, content: string) => {
     if (isReferencePlain) {
       const glowLayers = Array.from({ length: 10 }, (_, i) => {
@@ -674,9 +684,9 @@ export const buildQualityBadgeSvg = (
         const opacity = 0.03 + (i * 0.04);
         return `<text ${attrs} fill="none" stroke="black" stroke-opacity="${opacity}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round">${content}</text>`;
       }).join('\n');
-      return `${glowLayers}\n<text ${attrs} fill="white" stroke="black" stroke-width="1.8" paint-order="stroke fill" filter="url(#premium-glow)">${content}</text>`;
+      return `${glowLayers}\n<text ${attrs} fill="${textColor}" stroke="black" stroke-width="1.8" paint-order="stroke fill" filter="url(#premium-glow)">${content}</text>`;
     }
-    return `<text ${attrs} fill="white"${universalStroke} filter="url(#premium-glow)">${content}</text>`;
+    return `<text ${attrs} fill="${textColor}"${universalStroke} filter="url(#premium-glow)">${content}</text>`;
   };
 
   const wrapSvg = (content: string, width: number, height: number) => {
@@ -707,7 +717,8 @@ ${content}
   if (iconMeta && iconDataUri) {
     const width = widthOverride ?? Math.round(h * (iconMeta.iconWidthRatio ?? Math.max(1.35, 0.72 + iconMeta.label.length * 0.34)));
     const imageHref = escapeXml(iconDataUri);
-    const rect = isReferencePlain ? '' : buildRect(width, qualityBadgeColor);
+    const rectColor = colorMode === 'white' ? '#ffffff' : (iconMeta.accentColor || '#ffffff');
+    const rect = isReferencePlain ? '' : buildRect(width, rectColor);
     const imagePaddingX = Math.max(2, Math.round(h * 0.04));
     const imagePaddingY = Math.max(2, Math.round(h * 0.04));
     const imageWidth = Math.max(1, width - imagePaddingX * 2);
@@ -737,7 +748,7 @@ ${rect}
     const smallSize = Math.round(h * 0.2);
     const bigY = Math.round(h * 0.58);
     const smallY = Math.round(h * 0.86);
-    const color = '#f7c948';
+    const color = colorMode === 'white' ? '#ffffff' : '#f7c948';
     const rect = buildRect(width, color);
     const clipStart = style === 'glass' ? `<g clip-path="url(#capsule-clip-apple-glass-q-4k-${Math.round(color.length)})">` : '';
     const clipEnd = style === 'glass' ? '</g>' : '';
@@ -763,10 +774,13 @@ ${clipEnd}
     const smallSize = Math.round(h * 0.2);
     const bigY = Math.round(h * 0.57);
     const smallY = Math.round(h * 0.86);
+    const rectBorder = colorMode === 'white' ? '#ffffff' : 'url(#hdrBorder)';
+    const nonSquareAccent = colorMode === 'white' ? '#ffffff' : '#ffbe01';
+    const smallTextColor = colorMode === 'white' ? '#ffffff' : '#a7f3d0';
     const rect =
       style === 'square'
-        ? baseRect(width, 'url(#hdrBorder)', '#0b0b0b')
-        : buildRect(width, '#ffffff');
+        ? baseRect(width, rectBorder, '#0b0b0b')
+        : buildRect(width, nonSquareAccent);
     const clipStart = style === 'glass' ? `<g clip-path="url(#capsule-clip-apple-glass-q-hdr-7)">` : '';
     const clipEnd = style === 'glass' ? '</g>' : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
@@ -780,7 +794,7 @@ ${clipEnd}
 ${rect}
 ${clipStart}
 <text x="${width / 2}" y="${bigY}" font-family="${fontFamily}" font-size="${bigSize}" font-weight="800" text-anchor="middle" fill="white"${universalStroke}>HDR</text>
-<text x="${width / 2}" y="${smallY}" font-family="${fontFamily}" font-size="${smallSize}" font-weight="700" text-anchor="middle" fill="#a7f3d0" letter-spacing="0.05em"${universalStroke}>TRUE COLOR</text>
+<text x="${width / 2}" y="${smallY}" font-family="${fontFamily}" font-size="${smallSize}" font-weight="700" text-anchor="middle" fill="${smallTextColor}" letter-spacing="0.05em"${universalStroke}>TRUE COLOR</text>
 ${clipEnd}
 </svg>`;
     return { svg, width, height: h };
@@ -825,7 +839,7 @@ ${clipEnd}
     }
     const textSize = Math.round(h * 0.42);
     const textY = Math.round(h * 0.63);
-    const color = '#ef4444';
+    const color = colorMode === 'white' ? '#ffffff' : '#27c04f';
     const rect = buildRect(width, color);
     const clipStart = style === 'glass' ? `<g clip-path="url(#capsule-clip-apple-glass-q-remux-${Math.round(color.length)})">` : '';
     const clipEnd = style === 'glass' ? '</g>' : '';
@@ -848,13 +862,14 @@ ${clipEnd}
       const content = generateGlowText(`x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="900" text-anchor="middle"`, label);
       return { svg: wrapSvgPadded(content, width, h), width, height: h, isPadded: true };
     }
-    const rect = buildRect(width, meta.accentColor);
-    const clipStart = style === 'glass' ? `<g clip-path="url(#capsule-clip-apple-glass-q-${key.replace(/[^a-z0-9]/gi, '-')}-${Math.round(meta.accentColor.length)})">` : '';
+    const accentColor = colorMode === 'white' ? '#ffffff' : meta.accentColor;
+    const rect = buildRect(width, accentColor);
+    const clipStart = style === 'glass' ? `<g clip-path="url(#capsule-clip-apple-glass-q-${key.replace(/[^a-z0-9]/gi, '-')}-${Math.round(accentColor.length)})">` : '';
     const clipEnd = style === 'glass' ? '</g>' : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
 ${rect}
 ${clipStart}
-<text x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="800" text-anchor="middle" fill="${meta.accentColor}" textLength="${Math.max(20, width - innerPadding * 2)}" lengthAdjust="spacingAndGlyphs"${universalStroke}>${label}</text>
+<text x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="800" text-anchor="middle" fill="${accentColor}" textLength="${Math.max(20, width - innerPadding * 2)}" lengthAdjust="spacingAndGlyphs"${universalStroke}>${label}</text>
 ${clipEnd}
 </svg>`;
     return { svg, width, height: h };

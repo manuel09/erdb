@@ -113,6 +113,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     qualityBadgeTypeLabel,
     activeStreamBadges,
     activeQualityBadgesStyle,
+    activeQualityBadgesColorMode,
   } = derived;
 
   const {
@@ -153,6 +154,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     setLogoRatingsMax,
     setActiveStreamBadges,
     setActiveQualityBadgesStyle,
+    setActiveQualityBadgesColorMode,
     setPosterQualityBadgesPosition,
     setQualityBadgesSide,
     toggleRatingPreference,
@@ -471,9 +473,18 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
 
         {previewType !== 'logo' && previewType !== 'thumbnail' && (
           <Section title={`Quality Badges (${qualityBadgeTypeLabel})`}>
-            <div>
-              <h3 className="text-xs font-medium text-slate-400 mb-2">Mode</h3>
-              {renderDropdown(activeStreamBadges, setActiveStreamBadges, STREAM_BADGE_OPTIONS)}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-xs font-medium text-slate-400 mb-2">Mode</h3>
+                {renderDropdown(activeStreamBadges, setActiveStreamBadges, STREAM_BADGE_OPTIONS)}
+              </div>
+              <div>
+                <h3 className="text-xs font-medium text-slate-400 mb-2">Badge Style</h3>
+                {renderDropdown(activeQualityBadgesColorMode, setActiveQualityBadgesColorMode, [
+                  { id: 'white', label: 'White' },
+                  { id: 'colored', label: 'Colored' },
+                ])}
+              </div>
             </div>
             <div className="flex flex-wrap gap-4 pt-2">
               {shouldShowQualityBadgesPosition && (

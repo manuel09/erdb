@@ -88,7 +88,17 @@ export const renderWithSharp = async (
       const iconEntries = await Promise.all(
         badgesWithIcons.map(async (badge) => {
           const isQualityBadge = STREAM_BADGE_META.has(badge.key as StreamBadgeKey);
-          const tintColor = isQualityBadge ? badge.accentColor : undefined;
+          const tintColor = isQualityBadge
+            ? (input.qualityBadgesColorMode === 'colored'
+                ? (['remux', 'bluray', 'webdl', 'webrip'].includes(badge.key)
+                    ? 'colored'
+                    : (badge.accentColor || '#ffffff'))
+                : '#ffffff')
+            : undefined;
+          
+          if (isQualityBadge) {
+            console.log(`[ERDB LOG] Badge: ${badge.key}, AccentColor: ${badge.accentColor}, Mode: ${input.qualityBadgesColorMode}, Tint: ${tintColor}`);
+          }
           
           const outputSize = (() => {
             if (isQualityBadge) {
@@ -1050,7 +1060,8 @@ export const renderWithSharp = async (
           qualityHeight,
           uniformBadgeWidth,
           input.qualityBadgesStyle,
-          iconByProvider.get(badge.key)
+          iconByProvider.get(badge.key),
+          input.qualityBadgesColorMode
         );
         if (!spec) continue;
         const badgeWidth = Math.min(spec.width, uniformBadgeWidth);
@@ -1147,7 +1158,8 @@ export const renderWithSharp = async (
           qualityHeight,
           badgeWidth,
           input.qualityBadgesStyle,
-          iconByProvider.get(badge.key)
+          iconByProvider.get(badge.key),
+          input.qualityBadgesColorMode
         );
         if (!spec) continue;
         const pad = (spec as any).isPadded ? 12 : 0;
@@ -1251,7 +1263,8 @@ export const renderWithSharp = async (
           qualityHeight,
           uniformBadgeWidth,
           input.qualityBadgesStyle,
-          iconByProvider.get(badge.key)
+          iconByProvider.get(badge.key),
+          input.qualityBadgesColorMode
         );
         if (!spec) continue;
         const pad = (spec as any).isPadded ? 12 : 0;

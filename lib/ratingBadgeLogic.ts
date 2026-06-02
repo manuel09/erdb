@@ -478,6 +478,14 @@ export const normalizeQualityBadgesStyle = (value?: string | null): RatingStyle 
   return DEFAULT_QUALITY_BADGES_STYLE;
 };
 
+export const normalizeQualityBadgesColorMode = (value?: string | null): 'colored' | 'white' => {
+  const normalized = (value || '').trim().toLowerCase();
+  if (normalized === 'colored' || normalized === 'white') {
+    return normalized;
+  }
+  return 'white';
+};
+
 export const createEmptyStreamFlags = (): StreamQualityFlags => ({});
 
 export const parseStreamFlagsFromFilename = (filename: string): StreamQualityFlags => {
@@ -558,7 +566,7 @@ export const buildStreamBadgesFromFlags = (flags: StreamQualityFlags): RatingBad
       label: meta.label,
       value: meta.value,
       iconUrl: meta.iconUrl,
-      accentColor: '#ffffff',
+      accentColor: meta.accentColor || '#ffffff',
     });
   }
   return badges;

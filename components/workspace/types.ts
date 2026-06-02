@@ -118,6 +118,7 @@ export type HomePageViewDerived = {
   qualityBadgeTypeLabel: string;
   activeStreamBadges: StreamBadgesSetting;
   activeQualityBadgesStyle: RatingStyle;
+  activeQualityBadgesColorMode: 'colored' | 'white';
   aiometadataPatterns: Record<AiometadataPatternType, string>;
 };
 
@@ -174,6 +175,7 @@ export type HomePageViewActions = {
   setImageTextForType: (value: 'default' | 'clean' | 'alternative') => void;
   setActiveStreamBadges: Dispatch<SetStateAction<StreamBadgesSetting>>;
   setActiveQualityBadgesStyle: Dispatch<SetStateAction<RatingStyle>>;
+  setActiveQualityBadgesColorMode: Dispatch<SetStateAction<'colored' | 'white'>>;
   toggleRatingPreference: (rating: RatingPreference) => void;
   enableAllRatingPreferences: () => void;
   disableAllRatingPreferences: () => void;
