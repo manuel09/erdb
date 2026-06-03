@@ -249,6 +249,7 @@ const PROXY_OPTIONAL_STRING_KEYS = [
   'imageText',
   'posterRatingStyle',
   'backdropRatingStyle',
+  'thumbnailRatingStyle',
   'logoRatingStyle',
   'posterImageText',
   'posterAnimeImageText',
@@ -277,8 +278,14 @@ const PROXY_OPTIONAL_STRING_KEYS = [
   'aiometadataProvider',
   'erdbBase',
   'baseUrl',
+  'posterRatingsColorMode',
+  'backdropRatingsColorMode',
+  'thumbnailRatingsColorMode',
+  'logoRatingsColorMode',
+  'ratingsColorMode',
 ] as const satisfies readonly (keyof ProxyConfig)[];
 type ProxyOptionalStringKey = (typeof PROXY_OPTIONAL_STRING_KEYS)[number];
+
 
 const PROXY_OPTIONAL_BOOLEAN_KEYS = [
   'translateMeta',
