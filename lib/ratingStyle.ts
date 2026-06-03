@@ -19,3 +19,11 @@ export const normalizeRatingStyle = (value?: string | null): RatingStyle => {
   }
   return DEFAULT_RATING_STYLE;
 };
+
+export const normalizeRatingsColorMode = (value?: string | null): 'colored' | 'transparent' => {
+  const normalized = (value || '').trim().toLowerCase();
+  if (normalized === 'transparent' || normalized === 'colored') {
+    return normalized;
+  }
+  return 'colored';
+};

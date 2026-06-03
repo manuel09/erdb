@@ -312,6 +312,10 @@ export const buildAiometadataPattern = (options: {
   backdropQualityBadgesStyle: RatingStyle;
   posterQualityBadgesColorMode: 'colored' | 'white';
   backdropQualityBadgesColorMode: 'colored' | 'white';
+  posterRatingsColorMode: 'colored' | 'transparent';
+  backdropRatingsColorMode: 'colored' | 'transparent';
+  thumbnailRatingsColorMode: 'colored' | 'transparent';
+  logoRatingsColorMode: 'colored' | 'transparent';
   posterRatingStyle: RatingStyle;
   backdropRatingStyle: RatingStyle;
   thumbnailRatingStyle: RatingStyle;
@@ -372,6 +376,10 @@ export const buildAiometadataPattern = (options: {
     backdropQualityBadgesStyle,
     posterQualityBadgesColorMode,
     backdropQualityBadgesColorMode,
+    posterRatingsColorMode,
+    backdropRatingsColorMode,
+    thumbnailRatingsColorMode,
+    logoRatingsColorMode,
     posterRatingStyle,
     backdropRatingStyle,
     thumbnailRatingStyle,
@@ -459,6 +467,9 @@ export const buildAiometadataPattern = (options: {
     if (posterQualityBadgesColorMode !== 'white') {
       params.push(['posterQualityBadgesColorMode', posterQualityBadgesColorMode]);
     }
+    if (posterRatingsColorMode !== 'colored') {
+      params.push(['posterRatingsColorMode', posterRatingsColorMode]);
+    }
     params.push(['ratingStyle', posterRatingStyle]);
     params.push(['imageText', posterImageText]);
     params.push(['posterRatingsLayout', posterRatingsLayout]);
@@ -486,6 +497,9 @@ export const buildAiometadataPattern = (options: {
     if (backdropQualityBadgesColorMode !== 'white') {
       params.push(['backdropQualityBadgesColorMode', backdropQualityBadgesColorMode]);
     }
+    if (backdropRatingsColorMode !== 'colored') {
+      params.push(['backdropRatingsColorMode', backdropRatingsColorMode]);
+    }
     params.push(['ratingStyle', backdropRatingStyle]);
     params.push(['imageText', backdropImageText]);
     params.push(['backdropRatingsLayout', backdropRatingsLayout]);
@@ -498,6 +512,9 @@ export const buildAiometadataPattern = (options: {
     }
   } else if (imageType === 'thumbnail') {
     params.push(['thumbnailRatings', thumbnailRatings]);
+    if (thumbnailRatingsColorMode !== 'colored') {
+      params.push(['thumbnailRatingsColorMode', thumbnailRatingsColorMode]);
+    }
     params.push(['ratingStyle', thumbnailRatingStyle]);
     params.push(['thumbnailRatingsLayout', thumbnailRatingsLayout]);
     params.push(['thumbnailSize', thumbnailSize]);
@@ -521,6 +538,9 @@ export const buildAiometadataPattern = (options: {
       params.push(['logoPrimary', logoCustomPrimary]);
       params.push(['logoSecondary', logoCustomSecondary]);
       params.push(['logoOutline', logoCustomOutline]);
+    }
+    if (logoRatingsColorMode !== 'colored') {
+      params.push(['logoRatingsColorMode', logoRatingsColorMode]);
     }
     params.push(['ratingStyle', logoRatingStyle]);
   }
@@ -616,6 +636,9 @@ export const buildAiometadataPatternBlock = (options: {
 
   if (options.imageType === 'poster') {
     pushIfString('posterRatings');
+    if (typeof config.posterRatingsColorMode === 'string' && config.posterRatingsColorMode !== '') {
+      params.push(['ratingsColorMode', config.posterRatingsColorMode]);
+    }
     if (typeof config.posterRatingStyle === 'string' && config.posterRatingStyle !== '') {
       params.push(['ratingStyle', config.posterRatingStyle]);
     }
@@ -638,6 +661,10 @@ export const buildAiometadataPatternBlock = (options: {
       pushIfString('backdropAnimeImageText');
     }
     const typeRatingStyle = options.imageType === 'thumbnail' ? config.thumbnailRatingStyle : config.backdropRatingStyle;
+    const typeRatingsColorMode = options.imageType === 'thumbnail' ? config.thumbnailRatingsColorMode : config.backdropRatingsColorMode;
+    if (typeof typeRatingsColorMode === 'string' && typeRatingsColorMode !== '') {
+      params.push(['ratingsColorMode', typeRatingsColorMode]);
+    }
     if (typeof typeRatingStyle === 'string' && typeRatingStyle !== '') {
       params.push(['ratingStyle', typeRatingStyle]);
     }
@@ -678,6 +705,9 @@ export const buildAiometadataPatternBlock = (options: {
     }
     if (typeof config.logoOutline === 'string' && config.logoOutline !== '') {
       params.push(['logoOutline', config.logoOutline]);
+    }
+    if (typeof config.logoRatingsColorMode === 'string' && config.logoRatingsColorMode !== '') {
+      params.push(['ratingsColorMode', config.logoRatingsColorMode]);
     }
     if (typeof config.logoRatingStyle === 'string' && config.logoRatingStyle !== '') {
       params.push(['ratingStyle', config.logoRatingStyle]);

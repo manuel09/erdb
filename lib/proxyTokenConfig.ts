@@ -43,7 +43,7 @@ export const buildProxyConfigFromToken = (
     }
   }
 
-  const mapStr = (tk: string, pk: keyof ProxyConfig | 'thumbnailRatingStyle') => { if (typeof t[tk] === 'string') (config as any)[pk] = t[tk]; };
+  const mapStr = (tk: string, pk: keyof ProxyConfig) => { if (typeof t[tk] === 'string') (config as any)[pk] = t[tk]; };
   mapStr('posterStreamBadges', 'posterStreamBadges');
   mapStr('backdropStreamBadges', 'backdropStreamBadges');
   mapStr('qualityBadgesSide', 'qualityBadgesSide');
@@ -53,9 +53,13 @@ export const buildProxyConfigFromToken = (
   mapStr('backdropQualityBadgesStyle', 'backdropQualityBadgesStyle');
   mapStr('backdropQualityBadgesColorMode', 'backdropQualityBadgesColorMode');
   mapStr('posterRatingStyle', 'posterRatingStyle');
+  mapStr('posterRatingsColorMode', 'posterRatingsColorMode');
   mapStr('backdropRatingStyle', 'backdropRatingStyle');
+  mapStr('backdropRatingsColorMode', 'backdropRatingsColorMode');
   mapStr('thumbnailRatingStyle', 'thumbnailRatingStyle');
+  mapStr('thumbnailRatingsColorMode', 'thumbnailRatingsColorMode');
   mapStr('logoRatingStyle', 'logoRatingStyle');
+  mapStr('logoRatingsColorMode', 'logoRatingsColorMode');
   mapStr('logoMode', 'logoMode');
   mapStr('logoFontVariant', 'logoFontVariant');
   mapStr('logoCustomPrimary', 'logoPrimary');

@@ -110,6 +110,7 @@ export type FastRenderInput = {
   thumbnailSize: ThumbnailSize;
   verticalBadgeContent: 'standard' | 'stacked';
   ratingStyle: RatingStyle;
+  ratingsColorMode?: 'colored' | 'transparent';
   topBadges: RatingBadge[];
   bottomBadges: RatingBadge[];
   leftBadges: RatingBadge[];

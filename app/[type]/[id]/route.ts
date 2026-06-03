@@ -52,6 +52,7 @@ import {
 import {
   DEFAULT_RATING_STYLE,
   normalizeRatingStyle,
+  normalizeRatingsColorMode,
   type RatingStyle,
 } from '@/lib/ratingStyle';
 import {
@@ -402,6 +403,33 @@ export async function GET(
             ? logoRatingStyle
             : normalizeRatingStyle(globalRatingStyleParam);
 
+  const globalRatingsColorModeParam =
+    tokenConfig.ratingsColorMode || request.nextUrl.searchParams.get('ratingsColorMode') || request.nextUrl.searchParams.get('ratingColorMode');
+
+  const posterRatingsColorMode = normalizeRatingsColorMode(
+    tokenConfig.posterRatingsColorMode || globalRatingsColorModeParam || request.nextUrl.searchParams.get('posterRatingsColorMode')
+  );
+  const backdropRatingsColorMode = normalizeRatingsColorMode(
+    tokenConfig.backdropRatingsColorMode || globalRatingsColorModeParam || request.nextUrl.searchParams.get('backdropRatingsColorMode')
+  );
+  const thumbnailRatingsColorMode = normalizeRatingsColorMode(
+    tokenConfig.thumbnailRatingsColorMode || globalRatingsColorModeParam || request.nextUrl.searchParams.get('thumbnailRatingsColorMode')
+  );
+  const logoRatingsColorMode = normalizeRatingsColorMode(
+    tokenConfig.logoRatingsColorMode || globalRatingsColorModeParam || request.nextUrl.searchParams.get('logoRatingsColorMode')
+  );
+
+  const ratingsColorMode =
+    imageType === 'poster'
+      ? posterRatingsColorMode
+      : imageType === 'backdrop'
+        ? backdropRatingsColorMode
+        : imageType === 'thumbnail'
+          ? thumbnailRatingsColorMode
+          : imageType === 'logo'
+            ? logoRatingsColorMode
+            : normalizeRatingsColorMode(globalRatingsColorModeParam);
+
   const mdblistKey = tokenConfig.mdblistKey || request.nextUrl.searchParams.get('mdblistKey') || request.nextUrl.searchParams.get('mdblist_key');
   const tmdbKey = tokenConfig.tmdbKey || request.nextUrl.searchParams.get('tmdbKey') || request.nextUrl.searchParams.get('tmdb_key');
   const simklClientId =
@@ -610,6 +638,7 @@ export async function GET(
     imageType === 'thumbnail' ? thumbnailSize : '-',
     imageType === 'thumbnail' ? aiometadataEpisodeProvider || '-' : '-',
     ratingStyle,
+    ratingsColorMode,
     effectiveRatingPreferences.join(',') || 'none',
     mdblistCacheSeed,
     simklCacheSeed,
@@ -1434,6 +1463,7 @@ export async function GET(
         imageType === 'thumbnail' ? aiometadataEpisodeProvider || '-' : '-',
         verticalBadgeContent,
         ratingStyle,
+        ratingsColorMode,
         effectiveRatingPreferences.join(',') || 'none',
         mdblistCacheSeed,
         simklCacheSeed,
@@ -3698,6 +3728,7 @@ export async function GET(
           thumbnailSize,
           verticalBadgeContent,
           ratingStyle,
+          ratingsColorMode,
           topBadges: topRatingBadges,
           bottomBadges: bottomRatingBadges,
           leftBadges: leftRatingBadges,

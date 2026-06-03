@@ -82,6 +82,10 @@ type HomePageViewState = {
   posterConfiguratorPreset: PosterConfiguratorPreset;
   posterAverageRatingsEnabled: boolean;
   posterVignetteEnabled: boolean;
+  posterRatingsColorMode: 'colored' | 'transparent';
+  backdropRatingsColorMode: 'colored' | 'transparent';
+  thumbnailRatingsColorMode: 'colored' | 'transparent';
+  logoRatingsColorMode: 'colored' | 'transparent';
   posterGenrePosition: PosterGenrePosition;
   posterSimpleRatingSource: 'average' | import('@/lib/ratingPreferences').RatingPreference;
   qualityBadgesSide: QualityBadgesSide;
@@ -123,6 +127,7 @@ type HomePageViewDerived = {
   activeStreamBadges: StreamBadgesSetting;
   activeQualityBadgesStyle: RatingStyle;
   activeQualityBadgesColorMode: 'colored' | 'white';
+  activeRatingsColorMode: 'colored' | 'transparent';
   aiometadataPatterns: Record<AiometadataPatternType, string>;
   userCount: number | null;
 };
@@ -177,6 +182,7 @@ type HomePageViewActions = {
   setPosterQualityBadgesPosition: Dispatch<SetStateAction<PosterQualityBadgesPosition>>;
   setQualityBadgesSide: Dispatch<SetStateAction<QualityBadgesSide>>;
   setRatingStyleForType: (value: RatingStyle) => void;
+  setRatingsColorModeForType: (value: 'colored' | 'transparent') => void;
   setImageTextForType: (value: 'default' | 'clean' | 'alternative') => void;
   setActiveStreamBadges: Dispatch<SetStateAction<StreamBadgesSetting>>;
   setActiveQualityBadgesStyle: Dispatch<SetStateAction<RatingStyle>>;

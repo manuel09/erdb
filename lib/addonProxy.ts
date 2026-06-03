@@ -34,6 +34,12 @@ const ERDB_OPTIONAL_PARAMS = [
   'thumbnailSize',
   'aiometadataProvider',
   'posterSimpleRatingSource',
+  'thumbnailRatingStyle',
+  'posterRatingsColorMode',
+  'backdropRatingsColorMode',
+  'thumbnailRatingsColorMode',
+  'logoRatingsColorMode',
+  'ratingsColorMode',
 ];
 const ERDB_TYPE_OPTIONAL_PARAMS = {
   poster: [
@@ -69,18 +75,22 @@ const ERDB_OPTIONAL_PARAM_KEYS = [
 const ERDB_TYPE_STYLE_PARAMS = {
   poster: {
     ratingStyle: ['posterRatingStyle', 'ratingStyle'],
+    ratingsColorMode: ['posterRatingsColorMode', 'ratingsColorMode'],
     imageText: ['posterImageText', 'imageText'],
   },
   backdrop: {
     ratingStyle: ['backdropRatingStyle', 'ratingStyle'],
+    ratingsColorMode: ['backdropRatingsColorMode', 'ratingsColorMode'],
     imageText: ['backdropImageText', 'imageText'],
   },
   logo: {
     ratingStyle: ['logoRatingStyle', 'ratingStyle'],
+    ratingsColorMode: ['logoRatingsColorMode', 'ratingsColorMode'],
     imageText: [],
   },
   thumbnail: {
-    ratingStyle: ['backdropRatingStyle', 'ratingStyle'],
+    ratingStyle: ['thumbnailRatingStyle', 'backdropRatingStyle', 'ratingStyle'],
+    ratingsColorMode: ['thumbnailRatingsColorMode', 'ratingsColorMode'],
     imageText: ['backdropImageText', 'imageText'],
   },
 } as const;
@@ -104,8 +114,14 @@ export const ERDB_RESERVED_PARAMS = new Set<string>([
   'discoverOnlyCatalogs',
   'ratingStyle',
   'imageText',
+  'ratingsColorMode',
+  'posterRatingsColorMode',
+  'backdropRatingsColorMode',
+  'thumbnailRatingsColorMode',
+  'logoRatingsColorMode',
   'posterRatingStyle',
   'backdropRatingStyle',
+  'thumbnailRatingStyle',
   'logoRatingStyle',
   'posterImageText',
   'backdropImageText',
@@ -149,9 +165,15 @@ export type ProxyConfig = {
   backdropQualityBadgesStyle?: string;
   backdropQualityBadgesColorMode?: string;
   ratingStyle?: string;
+  ratingsColorMode?: string;
+  posterRatingsColorMode?: string;
+  backdropRatingsColorMode?: string;
+  thumbnailRatingsColorMode?: string;
+  logoRatingsColorMode?: string;
   imageText?: string;
   posterRatingStyle?: string;
   backdropRatingStyle?: string;
+  thumbnailRatingStyle?: string;
   logoRatingStyle?: string;
   posterImageText?: string;
   posterAnimeImageText?: string;
@@ -530,8 +552,12 @@ export const buildErdbImageUrl = (options: {
 
   const styleParams = ERDB_TYPE_STYLE_PARAMS[imageType];
   const ratingStyle =
-    styleParams.ratingStyle.map((key) => getProxyParam(reqUrl, config, key)).find((value) => value) || null;
+    styleParams.ratingStyle.map((key) => getProxyParam(reqUrl, config, key as any)).find((value) => value) || null;
   if (ratingStyle) base.searchParams.set('ratingStyle', ratingStyle);
+
+  const ratingsColorMode =
+    styleParams.ratingsColorMode.map((key) => getProxyParam(reqUrl, config, key as any)).find((value) => value) || null;
+  if (ratingsColorMode) base.searchParams.set('ratingsColorMode', ratingsColorMode);
 
   if (styleParams.imageText.length > 0) {
     const imageText =
