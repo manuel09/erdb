@@ -114,6 +114,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     activeStreamBadges,
     activeQualityBadgesStyle,
     activeQualityBadgesColorMode,
+    activeRatingsColorMode,
   } = derived;
 
   const {
@@ -128,6 +129,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     setLogoLang,
     setLogoAnimeLang,
     setRatingStyleForType,
+    setRatingsColorModeForType,
     setImageTextForType,
     setPosterAnimeImageText,
     setBackdropAnimeImageText,
@@ -299,6 +301,15 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
         {!(previewType === 'poster' && posterConfiguratorPreset === 'simple') && (
           <Section title={styleLabel}>
             {renderDropdown(activeRatingStyle, (v) => setRatingStyleForType(v as RatingStyle), RATING_STYLE_OPTIONS)}
+            {activeRatingStyle === 'glass' && (
+              <div className="mt-3 pt-3 border-t border-slate-800 space-y-2">
+                <h4 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Glass Style</h4>
+                {renderDropdown(activeRatingsColorMode, (v) => setRatingsColorModeForType(v as 'colored' | 'transparent'), [
+                  { id: 'colored', label: 'Colored' },
+                  { id: 'transparent', label: 'Transparent' },
+                ])}
+              </div>
+            )}
           </Section>
         )}
 

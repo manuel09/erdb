@@ -243,6 +243,7 @@ export function useHomePageController({
       setPosterGenrePosition('top');
       setPosterVignetteEnabled(true);
       setPosterRatingsLayout('top');
+      setPosterRatingsColorMode('colored');
     } else {
       setPosterAverageRatingsEnabled(false);
     }
@@ -257,6 +258,8 @@ export function useHomePageController({
   const [thumbnailSize, setThumbnailSize] = useState<ThumbnailSize>('large');
   const [posterRatingStyle, setPosterRatingStyle] = useState<RatingStyle>('glass');
   const [backdropRatingStyle, setBackdropRatingStyle] = useState<RatingStyle>('glass');
+  const [posterRatingsColorMode, setPosterRatingsColorMode] = useState<'colored' | 'transparent'>('colored');
+  const [backdropRatingsColorMode, setBackdropRatingsColorMode] = useState<'colored' | 'transparent'>('colored');
   const [rankingCountry, setRankingCountry] = useState('global');
   const [rankingCountryTouched, setRankingCountryTouched] = useState(false);
   const [rankingNoBox, setRankingNoBox] = useState(false);
@@ -268,6 +271,8 @@ export function useHomePageController({
   }, []);
   const [thumbnailRatingStyle, setThumbnailRatingStyle] = useState<RatingStyle>('glass');
   const [logoRatingStyle, setLogoRatingStyle] = useState<RatingStyle>('plain');
+  const [thumbnailRatingsColorMode, setThumbnailRatingsColorMode] = useState<'colored' | 'transparent'>('colored');
+  const [logoRatingsColorMode, setLogoRatingsColorMode] = useState<'colored' | 'transparent'>('colored');
   const [posterRatingsMaxPerSide, setPosterRatingsMaxPerSide] = useState<number | null>(DEFAULT_POSTER_RATINGS_MAX_PER_SIDE);
   const [logoRatingsMax, setLogoRatingsMax] = useState<number | null>(5);
   const [backdropRatingsMax, setBackdropRatingsMax] = useState<number | null>(DEFAULT_BACKDROP_RATINGS_MAX);
@@ -781,10 +786,21 @@ export function useHomePageController({
       previewType === 'backdrop' || previewType === 'thumbnail'
         ? backdropQualityBadgesColorMode
         : posterQualityBadgesColorMode;
+    const ratingsColorModeForType =
+      previewType === 'poster'
+        ? posterRatingsColorMode
+        : previewType === 'backdrop'
+          ? backdropRatingsColorMode
+          : previewType === 'thumbnail'
+            ? thumbnailRatingsColorMode
+            : logoRatingsColorMode;
     const query = new URLSearchParams({
       ratingStyle: ratingStyleForType,
       lang: effectiveLang,
     });
+    if (ratingsColorModeForType !== 'colored') {
+      query.set('ratingsColorMode', ratingsColorModeForType);
+    }
     if (previewType === 'poster') {
       if (posterLang) {
         query.set('posterLang', effectivePosterLang);
@@ -996,6 +1012,10 @@ export function useHomePageController({
     backdropQualityBadgesStyle,
     posterQualityBadgesColorMode,
     backdropQualityBadgesColorMode,
+    posterRatingsColorMode,
+    backdropRatingsColorMode,
+    thumbnailRatingsColorMode,
+    logoRatingsColorMode,
     posterRatingStyle,
     backdropRatingStyle,
     logoRatingStyle,
@@ -1117,14 +1137,26 @@ export function useHomePageController({
     if (posterConfiguratorPreset !== 'simple' && posterRatingStyle) {
       config.posterRatingStyle = posterRatingStyle;
     }
+    if (posterConfiguratorPreset !== 'simple' && posterRatingsColorMode !== 'colored') {
+      config.posterRatingsColorMode = posterRatingsColorMode;
+    }
     if (backdropRatingStyle) {
       config.backdropRatingStyle = backdropRatingStyle;
+    }
+    if (backdropRatingsColorMode !== 'colored') {
+      config.backdropRatingsColorMode = backdropRatingsColorMode;
     }
     if (thumbnailRatingStyle) {
       config.thumbnailRatingStyle = thumbnailRatingStyle;
     }
+    if (thumbnailRatingsColorMode !== 'colored') {
+      config.thumbnailRatingsColorMode = thumbnailRatingsColorMode;
+    }
     if (logoRatingStyle) {
       config.logoRatingStyle = logoRatingStyle;
+    }
+    if (logoRatingsColorMode !== 'colored') {
+      config.logoRatingsColorMode = logoRatingsColorMode;
     }
     if (posterImageText) {
       config.posterImageText = posterConfiguratorPreset === 'simple' ? 'clean' : posterImageText;
@@ -1278,6 +1310,10 @@ export function useHomePageController({
     thumbnailVerticalBadgeContent,
     thumbnailSize,
     thumbnailRatingStyle,
+    posterRatingsColorMode,
+    backdropRatingsColorMode,
+    thumbnailRatingsColorMode,
+    logoRatingsColorMode,
     ranking,
     effectiveRankingCountry,
     rankingNoBox,
@@ -1434,8 +1470,9 @@ export function useHomePageController({
         config.posterGenrePosition = posterGenrePosition;
       }
     } else {
-      if (posterRatingStyle) config.posterRatingStyle = posterRatingStyle;
-      if (posterRatingsLayout) {
+       if (posterRatingStyle) config.posterRatingStyle = posterRatingStyle;
+       if (posterRatingsColorMode) config.posterRatingsColorMode = posterRatingsColorMode;
+       if (posterRatingsLayout) {
         if (posterAverageRatingsEnabled) {
           config.posterRatingsMode = 'average';
         }
@@ -1449,8 +1486,11 @@ export function useHomePageController({
       config.posterRatingsMaxPerSide = posterRatingsMaxPerSide;
     }
     if (backdropRatingStyle) config.backdropRatingStyle = backdropRatingStyle;
+    if (backdropRatingsColorMode) config.backdropRatingsColorMode = backdropRatingsColorMode;
     if (thumbnailRatingStyle) config.thumbnailRatingStyle = thumbnailRatingStyle;
+    if (thumbnailRatingsColorMode) config.thumbnailRatingsColorMode = thumbnailRatingsColorMode;
     if (logoRatingStyle) config.logoRatingStyle = logoRatingStyle;
+    if (logoRatingsColorMode) config.logoRatingsColorMode = logoRatingsColorMode;
     config.logoMode = logoMode;
     config.logoFontVariant = logoFontVariant;
     config.logoPrimary = logoCustomPrimary;
@@ -1623,6 +1663,10 @@ export function useHomePageController({
     sanitizedProxyDiscoverOnlyCatalogs,
     baseUrl,
     thumbnailRatingStyle,
+    posterRatingsColorMode,
+    backdropRatingsColorMode,
+    thumbnailRatingsColorMode,
+    logoRatingsColorMode,
     activeToken,
     posterConfiguratorPreset,
     posterAverageRatingsEnabled,
@@ -1972,14 +2016,26 @@ export function useHomePageController({
     if (typeof payload.posterRatingStyle === 'string' && isRatingStyle(payload.posterRatingStyle)) {
       setPosterRatingStyle(payload.posterRatingStyle);
     }
+    if (payload.posterRatingsColorMode === 'colored' || payload.posterRatingsColorMode === 'transparent') {
+      setPosterRatingsColorMode(payload.posterRatingsColorMode);
+    }
     if (typeof payload.backdropRatingStyle === 'string' && isRatingStyle(payload.backdropRatingStyle)) {
       setBackdropRatingStyle(payload.backdropRatingStyle);
+    }
+    if (payload.backdropRatingsColorMode === 'colored' || payload.backdropRatingsColorMode === 'transparent') {
+      setBackdropRatingsColorMode(payload.backdropRatingsColorMode);
     }
     if (typeof payload.thumbnailRatingStyle === 'string' && isRatingStyle(payload.thumbnailRatingStyle)) {
       setThumbnailRatingStyle(payload.thumbnailRatingStyle);
     }
+    if (payload.thumbnailRatingsColorMode === 'colored' || payload.thumbnailRatingsColorMode === 'transparent') {
+      setThumbnailRatingsColorMode(payload.thumbnailRatingsColorMode);
+    }
     if (typeof payload.logoRatingStyle === 'string' && isRatingStyle(payload.logoRatingStyle)) {
       setLogoRatingStyle(payload.logoRatingStyle);
+    }
+    if (payload.logoRatingsColorMode === 'colored' || payload.logoRatingsColorMode === 'transparent') {
+      setLogoRatingsColorMode(payload.logoRatingsColorMode);
     }
     if (typeof payload.logoMode === 'string') {
       setLogoMode(normalizeLogoMode(payload.logoMode));
@@ -2584,9 +2640,13 @@ export function useHomePageController({
       backdropQualityBadgesStyle,
       backdropQualityBadgesColorMode,
       posterRatingStyle,
+      posterRatingsColorMode,
       backdropRatingStyle,
+      backdropRatingsColorMode,
       thumbnailRatingStyle,
+      thumbnailRatingsColorMode,
       logoRatingStyle,
+      logoRatingsColorMode,
       logoMode,
       logoFontVariant,
       logoCustomPrimary,
@@ -2642,9 +2702,13 @@ export function useHomePageController({
       backdropQualityBadgesStyle,
       backdropQualityBadgesColorMode,
       posterRatingStyle,
+      posterRatingsColorMode,
       backdropRatingStyle,
+      backdropRatingsColorMode,
       thumbnailRatingStyle,
+      thumbnailRatingsColorMode,
       logoRatingStyle,
+      logoRatingsColorMode,
       logoMode,
       logoFontVariant,
       logoCustomPrimary,
@@ -2729,6 +2793,14 @@ export function useHomePageController({
           : previewType === 'thumbnail'
             ? thumbnailRatingStyle
             : logoRatingStyle;
+  const activeRatingsColorMode =
+    previewType === 'poster'
+      ? posterRatingsColorMode
+      : previewType === 'backdrop'
+        ? backdropRatingsColorMode
+        : previewType === 'thumbnail'
+          ? thumbnailRatingsColorMode
+          : logoRatingsColorMode;
   const activeImageText =
     isSimplePosterPreset ? 'clean' : previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : posterImageText;
   const styleLabel =
@@ -2804,6 +2876,22 @@ export function useHomePageController({
     setLogoRatingStyle(value);
   };
 
+  const setRatingsColorModeForType = (value: 'colored' | 'transparent') => {
+    if (previewType === 'poster') {
+      setPosterRatingsColorMode(value);
+      return;
+    }
+    if (previewType === 'backdrop') {
+      setBackdropRatingsColorMode(value);
+      return;
+    }
+    if (previewType === 'thumbnail') {
+      setThumbnailRatingsColorMode(value);
+      return;
+    }
+    setLogoRatingsColorMode(value);
+  };
+
   const setImageTextForType = (value: 'default' | 'clean' | 'alternative') => {
     if (previewType === 'backdrop' || previewType === 'thumbnail') {
       setBackdropImageText(value);
@@ -2876,6 +2964,10 @@ export function useHomePageController({
       posterAverageRatingsEnabled,
       posterVignetteEnabled,
       posterGenrePosition,
+      posterRatingsColorMode,
+      backdropRatingsColorMode,
+      thumbnailRatingsColorMode,
+      logoRatingsColorMode,
       posterSimpleRatingSource,
       qualityBadgesSide,
       posterQualityBadgesPosition,
@@ -2917,6 +3009,7 @@ export function useHomePageController({
       activeStreamBadges,
       activeQualityBadgesStyle,
       activeQualityBadgesColorMode,
+      activeRatingsColorMode,
       aiometadataPatterns,
       userCount,
     },
@@ -2970,6 +3063,7 @@ export function useHomePageController({
       setPosterQualityBadgesPosition,
       setQualityBadgesSide,
       setRatingStyleForType,
+      setRatingsColorModeForType,
       setImageTextForType,
       setActiveStreamBadges,
       setActiveQualityBadgesStyle,

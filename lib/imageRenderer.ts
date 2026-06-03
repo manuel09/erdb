@@ -458,6 +458,7 @@ export const renderWithSharp = async (
           iconScale: entry.badge.iconScale,
           value: entry.badge.value,
           ratingStyle: input.ratingStyle,
+          ratingsColorMode: input.ratingsColorMode,
           compactText: rowCompactText,
           contentLayout: rowContentLayout,
         });
@@ -505,6 +506,7 @@ export const renderWithSharp = async (
                 iconScale: entry.badge.iconScale,
                 value: entry.badge.value,
           ratingStyle: input.ratingStyle,
+          ratingsColorMode: input.ratingsColorMode,
                 compactText: rowCompactText,
                 contentLayout: rowContentLayout,
               });
@@ -544,6 +546,7 @@ export const renderWithSharp = async (
               iconScale: entry.badge.iconScale,
               value: entry.badge.value,
               ratingStyle: input.ratingStyle,
+              ratingsColorMode: input.ratingsColorMode,
               compactText: rowCompactText,
               contentLayout: rowContentLayout,
             });
@@ -595,6 +598,7 @@ export const renderWithSharp = async (
           iconScale: entry.badge.iconScale,
           value: entry.badge.value,
           ratingStyle: input.ratingStyle,
+          ratingsColorMode: input.ratingsColorMode,
           compactText: rowCompactText,
           contentLayout: rowContentLayout,
         });
@@ -729,6 +733,7 @@ export const renderWithSharp = async (
         iconScale: badge.iconScale,
         value: badge.value,
         ratingStyle: input.ratingStyle,
+        ratingsColorMode: input.ratingsColorMode,
         contentLayout,
       });
       overlays.push({ input: Buffer.from(badgeSvg), top, left });
@@ -783,6 +788,7 @@ export const renderWithSharp = async (
           iconScale: badge.iconScale,
           value: badge.value,
           ratingStyle: input.ratingStyle,
+          ratingsColorMode: input.ratingsColorMode,
           compactText: true,
           contentLayout: 'standard',
         });
@@ -904,6 +910,7 @@ export const renderWithSharp = async (
           iconScale: badge.iconScale,
           value: badge.value,
           ratingStyle: input.ratingStyle,
+          ratingsColorMode: input.ratingsColorMode,
           contentLayout: input.verticalBadgeContent,
         });
         overlays.push({ input: Buffer.from(badgeSvg), top: rowY, left: rowX });
@@ -988,6 +995,7 @@ export const renderWithSharp = async (
             iconScale: badge.iconScale,
             value: badge.value,
             ratingStyle: input.ratingStyle,
+            ratingsColorMode: input.ratingsColorMode,
             contentLayout: input.verticalBadgeContent,
           });
           overlays.push({ input: Buffer.from(badgeSvg), top: rowY, left: rowX });

@@ -33,7 +33,9 @@ export function Dropdown<T extends string>({ value, onChange, options, className
         position: 'fixed',
         left: rect.left,
         top: openUp ? rect.top - estimatedHeight : rect.bottom,
-        minWidth: Math.max(rect.width, 180),
+        width: 'max-content',
+        minWidth: Math.max(rect.width, 160),
+        maxWidth: Math.min(320, window.innerWidth - rect.left - 16),
         zIndex: 9999,
       });
     }
@@ -52,7 +54,7 @@ export function Dropdown<T extends string>({ value, onChange, options, className
       <div className="max-h-[50vh] overflow-y-auto">
         {options.map(opt => (
           <button key={opt.id} type="button" onClick={() => { onChange(opt.id); setOpen(false); }}
-            className={`w-full px-3 py-2 text-left text-sm transition-colors duration-150 whitespace-nowrap ${value === opt.id ? 'bg-orange-500/15 text-orange-300' : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'}`}>
+            className={`w-full px-3 py-2 text-left text-sm transition-colors duration-150 truncate ${value === opt.id ? 'bg-orange-500/15 text-orange-300' : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'}`}>
             {opt.label}
           </button>
         ))}

@@ -582,18 +582,23 @@ export const buildQualityBadgeSvg = (
     if (style === 'plain') return '';
     if (style === 'glass') {
       const gradientId = `apple-glass-q-${key.replace(/[^a-z0-9]/gi, '-')}-${Math.round(accentColor.length)}`;
+      const isWhite = accentColor.toLowerCase() === '#ffffff' || colorMode === 'white';
+      const fillOpacityStart = isWhite ? '0.12' : '0.22';
+      const fillOpacityEnd = isWhite ? '0.04' : '0.10';
+      const borderOpacityStart = isWhite ? '0.25' : '0.42';
+      const borderOpacityEnd = isWhite ? '0.10' : '0.20';
       return `
 <defs>
   <clipPath id="capsule-clip-${gradientId}">
     <rect x="0" y="0" width="${width}" height="${h}" rx="${radius}" />
   </clipPath>
   <linearGradient id="apple-glass-fill-${gradientId}" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="${accentColor}" stop-opacity="0.22" />
-    <stop offset="100%" stop-color="${accentColor}" stop-opacity="0.10" />
+    <stop offset="0%" stop-color="${accentColor}" stop-opacity="${fillOpacityStart}" />
+    <stop offset="100%" stop-color="${accentColor}" stop-opacity="${fillOpacityEnd}" />
   </linearGradient>
   <linearGradient id="apple-glass-border-${gradientId}" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="${accentColor}" stop-opacity="0.42" />
-    <stop offset="100%" stop-color="${accentColor}" stop-opacity="0.20" />
+    <stop offset="0%" stop-color="${accentColor}" stop-opacity="${borderOpacityStart}" />
+    <stop offset="100%" stop-color="${accentColor}" stop-opacity="${borderOpacityEnd}" />
   </linearGradient>
   <filter id="apple-glass-shadow-${gradientId}" x="-30%" y="-30%" width="160%" height="160%">
     <feGaussianBlur in="SourceAlpha" stdDeviation="2.8" />
@@ -892,6 +897,7 @@ export const buildBadgeSvg = ({
   iconScale,
   value: initialValue,
   ratingStyle: initialRatingStyle,
+  ratingsColorMode = 'colored',
   compactText = false,
   contentLayout = 'standard',
 }: {
@@ -908,6 +914,7 @@ export const buildBadgeSvg = ({
   iconScale?: number;
   value: string;
   ratingStyle: RatingStyle;
+  ratingsColorMode?: 'colored' | 'transparent';
   compactText?: boolean;
   contentLayout?: 'standard' | 'stacked';
 }) => {
@@ -998,6 +1005,12 @@ export const buildBadgeSvg = ({
           ? `<rect x="${iconX + 1.5}" y="${iconY + 1.5}" width="${Math.max(0, iconSize - 3)}" height="${Math.max(0, iconSize - 3)}" rx="${Math.max(4, iconCornerRadius || iconRadius - 1)}" fill="none" stroke="rgba(255,255,255,0.18)" />`
           : ''
         : `<circle cx="${iconCx}" cy="${iconCy}" r="${iconRadius}" fill="none" stroke="rgba(255,255,255,0.45)" />`;
+  const glassColor = ratingsColorMode === 'transparent' ? '#ffffff' : accentColor;
+  const glassFillOpacityStart = ratingsColorMode === 'transparent' ? '0.12' : '0.22';
+  const glassFillOpacityEnd = ratingsColorMode === 'transparent' ? '0.04' : '0.10';
+  const glassBorderOpacityStart = ratingsColorMode === 'transparent' ? '0.25' : '0.42';
+  const glassBorderOpacityEnd = ratingsColorMode === 'transparent' ? '0.10' : '0.20';
+
   const outerRect =
     ratingStyle === 'plain'
       ? ''
@@ -1009,12 +1022,12 @@ export const buildBadgeSvg = ({
     <rect x="0" y="0" width="${width}" height="${height}" rx="${outerRadius}" />
   </clipPath>
   <linearGradient id="apple-glass-fill-${clipPathId}" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="${accentColor}" stop-opacity="0.22" />
-    <stop offset="100%" stop-color="${accentColor}" stop-opacity="0.10" />
+    <stop offset="0%" stop-color="${glassColor}" stop-opacity="${glassFillOpacityStart}" />
+    <stop offset="100%" stop-color="${glassColor}" stop-opacity="${glassFillOpacityEnd}" />
   </linearGradient>
   <linearGradient id="apple-glass-border-${clipPathId}" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="${accentColor}" stop-opacity="0.42" />
-    <stop offset="100%" stop-color="${accentColor}" stop-opacity="0.20" />
+    <stop offset="0%" stop-color="${glassColor}" stop-opacity="${glassBorderOpacityStart}" />
+    <stop offset="100%" stop-color="${glassColor}" stop-opacity="${glassBorderOpacityEnd}" />
   </linearGradient>
   <filter id="apple-glass-shadow-${clipPathId}" x="-30%" y="-30%" width="160%" height="160%">
     <feGaussianBlur in="SourceAlpha" stdDeviation="2.8" />
