@@ -21,6 +21,16 @@ type GlobalObjectStorageState = typeof globalThis & {
 // Ensure cache directory exists
 mkdirSync(CACHE_DIR, { recursive: true });
 
+// Clean up legacy source image cache directory to save disk space
+try {
+  const sourceCacheDir = join(CACHE_DIR, 'source');
+  if (existsSync(sourceCacheDir)) {
+    rmSync(sourceCacheDir, { recursive: true, force: true });
+  }
+} catch (error) {
+  console.error('Failed to clean up source image cache directory:', error);
+}
+
 const sanitizePathSegment = (segment: string) => segment.replace(/[^a-zA-Z0-9._-]/g, '_');
 
 const getFilePath = (key: string) => {

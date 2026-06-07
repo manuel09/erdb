@@ -261,71 +261,8 @@ export const getSourceImagePayload = async (
     throw new HttpError('Image not found', 404);
   }
 
-  const sharedCacheable = isTmdbSourceImageUrl(normalizedImgUrl);
-  if (!sharedCacheable) {
-    return fetchSourceImageUncached(normalizedImgUrl, fallbackTtlMs);
-  }
-
-  // Local image cache removed in favor of objectStorage
-
-  const sourceHash = sha1Hex(normalizedImgUrl);
-  const sourceObjectStorageKey = `source/${sourceHash}`;
-  const objectStorageEnabled = isObjectStorageConfigured();
-
-  const readSharedSourcePayload = async () => {
-    if (!objectStorageEnabled) return null;
-
-
-    const objectPayload = await getCachedImageFromObjectStorage(sourceObjectStorageKey);
-    if (!objectPayload) {
-      return null;
-    }
-
-    const payload: RenderedImagePayload = {
-      body: objectPayload.body,
-      contentType: objectPayload.contentType,
-      cacheControl: objectPayload.cacheControl,
-    };
-    return payload;
-  };
-
-  if (objectStorageEnabled) {
-    try {
-      const sharedPayload = await readSharedSourcePayload();
-      if (sharedPayload) {
-        return sharedPayload;
-      }
-    } catch {
-      // Ignore distributed cache read failures and continue with fetch path.
-    }
-  }
-
   return withDedupe(sourceImageInFlight, normalizedImgUrl, async () => {
-    // Local warming removed
-
-    if (objectStorageEnabled) {
-      try {
-        const sharedPayload = await readSharedSourcePayload();
-        if (sharedPayload) {
-          return sharedPayload;
-        }
-      } catch {
-        // Ignore distributed cache read failures inside in-flight dedupe path.
-      }
-    }
-
-
-    const payload = await fetchSourceImageUncached(normalizedImgUrl, fallbackTtlMs);
-
-    if (objectStorageEnabled) {
-      try {
-        await putCachedImageToObjectStorage(sourceObjectStorageKey, payload);
-      } catch {
-        // Ignore distributed cache persistence failures for source images.
-      }
-    }
-
-    return payload;
+    return fetchSourceImageUncached(normalizedImgUrl, fallbackTtlMs);
   });
 };
 
