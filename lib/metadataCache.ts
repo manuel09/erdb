@@ -1,6 +1,20 @@
 import { getDb, ensureDbInitialized } from './db';
 
+const PRUNE_INTERVAL_MS = 5 * 60 * 1000;
+
+type GlobalMetadataState = typeof globalThis & {
+  __erdbMetadataPruneTimer?: ReturnType<typeof setInterval>;
+};
+
+export const ensureMetadataPruneStarted = () => {
+  const g = globalThis as GlobalMetadataState;
+  if (g.__erdbMetadataPruneTimer) return;
+  g.__erdbMetadataPruneTimer = setInterval(pruneExpiredMetadata, PRUNE_INTERVAL_MS);
+  pruneExpiredMetadata();
+};
+
 export const getMetadata = <T = any>(key: string): T | null => {
+    ensureMetadataPruneStarted();
     ensureDbInitialized();
     const db = getDb();
     const now = Date.now();
@@ -24,6 +38,7 @@ export const getMetadata = <T = any>(key: string): T | null => {
 };
 
 export const setMetadata = (key: string, value: any, ttlMs: number) => {
+    ensureMetadataPruneStarted();
     ensureDbInitialized();
     const db = getDb();
     const now = Date.now();
@@ -43,6 +58,7 @@ export const setMetadata = (key: string, value: any, ttlMs: number) => {
 };
 
 export const pruneExpiredMetadata = () => {
+    ensureMetadataPruneStarted();
     ensureDbInitialized();
     const db = getDb();
     const now = Date.now();
@@ -50,6 +66,7 @@ export const pruneExpiredMetadata = () => {
 };
 
 export const pruneOldestMetadata = (maxEntries: number) => {
+    ensureMetadataPruneStarted();
     ensureDbInitialized();
     const db = getDb();
     const currentCount = (db.prepare('SELECT COUNT(*) as count FROM metadata_cache').get() as any).count;
