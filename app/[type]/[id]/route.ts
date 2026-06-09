@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import { randomUUID } from 'node:crypto';
-import fs from 'node:fs';
 import path from 'node:path';
 import {
   ALL_RATING_PREFERENCES,
@@ -146,10 +145,6 @@ export async function GET(
   // Extract configuration from token or query parameters
   const token = request.nextUrl.searchParams.get('token') || request.headers.get('x-erdb-token');
   const tokenData = token ? getTokenConfig(token) : null;
-  try {
-    const logPath = 'C:\\Users\\Bestia\\justwatch_debug.log';
-    fs.appendFileSync(logPath, `[${new Date().toISOString()}] GET Request: ${request.nextUrl.toString()}\n`);
-  } catch (e) { }
 
   const tokenConfig = (tokenData?.config ? { ...tokenData.config } : {}) as any;
   const tokenUpdatedAt = tokenData?.updatedAt || 0;
@@ -596,66 +591,68 @@ export async function GET(
   const selectedRatings = new Set<RatingPreference>(effectiveRatingPreferences);
   const mdblistCacheSeed = buildMdbListCacheSeed(mdblistKey);
   const simklCacheSeed = buildSecretCacheSeed('simkl', simklClientId);
-  const renderSeedKey = [
-    FINAL_IMAGE_RENDERER_CACHE_VERSION,
-    imageType,
-    outputFormat,
-    cleanId,
-    requestedImageLang,
-    imageType === 'poster'
-      ? `${posterTextPreference}:${posterAnimeTextPreference}`
-      : imageType === 'backdrop'
-        ? `${posterTextPreference}:${backdropAnimeTextPreference}`
-        : posterTextPreference,
-    imageType === 'poster' ? posterRatingsLayout : '-',
-    imageType === 'poster' ? String(posterRatingsMode || '-') : '-',
-    imageType === 'poster' ? posterGenrePosition : '-',
-    imageType === 'poster' ? String(posterConfiguratorPreset || '-') : '-',
-    imageType === 'poster' ? String(posterRatingsMaxPerSide ?? 'auto') : '-',
-    imageType === 'poster' ? String(posterLang || '-') : '-',
-    imageType === 'poster' ? String(posterAnimeLang || '-') : '-',
-    imageType === 'backdrop' ? String(backdropLang || '-') : '-',
-    imageType === 'backdrop' ? String(backdropAnimeLang || '-') : '-',
-    imageType === 'logo' ? String(logoLang || '-') : '-',
-    imageType === 'logo' ? String(logoAnimeLang || '-') : '-',
-    imageType === 'poster' ? String(posterAnimeImageTextParam || '-') : '-',
-    imageType === 'backdrop' ? String(backdropAnimeImageTextParam || '-') : '-',
-    imageType === 'logo' ? String(logoRatingsMax ?? 'auto') : '-',
-    imageType === 'backdrop' ? String(backdropRatingsMax ?? 'auto') : '-',
-    imageType === 'logo' ? logoMode : DEFAULT_LOGO_MODE,
-    imageType === 'logo' ? logoFontVariant : DEFAULT_LOGO_FONT_VARIANT,
-    imageType === 'logo' ? logoPrimary : DEFAULT_LOGO_CUSTOM_PRIMARY,
-    imageType === 'logo' ? logoSecondary : DEFAULT_LOGO_CUSTOM_SECONDARY,
-    imageType === 'logo' ? logoOutline : DEFAULT_LOGO_CUSTOM_OUTLINE,
-    imageType === 'poster' ? qualityBadgesSide : '-',
-    imageType === 'poster' && (posterRatingsLayout === 'top' || posterRatingsLayout === 'bottom' || posterRatingsLayout === 'top-bottom')
-      ? posterQualityBadgesPosition
-      : '-',
-    imageType !== 'logo' ? qualityBadgesStyle : '-',
-    imageType !== 'logo' ? qualityBadgesColorMode : '-',
-    imageType === 'backdrop' ? backdropRatingsLayout : imageType === 'thumbnail' ? thumbnailRatingsLayout : '-',
-    imageType === 'backdrop' ? backdropRatingsSize : '-',
-    imageType === 'thumbnail' ? thumbnailSize : '-',
-    imageType === 'thumbnail' ? aiometadataEpisodeProvider || '-' : '-',
-    ratingStyle,
-    ratingsColorMode,
-    effectiveRatingPreferences.join(',') || 'none',
-    mdblistCacheSeed,
-    simklCacheSeed,
-    fanartKey ? 'fanart' : 'no-fanart',
-    tokenUpdatedAt.toString(),
-  ].join('|');
+  const buildCacheKey = (extra: string[]) =>
+    [
+      FINAL_IMAGE_RENDERER_CACHE_VERSION,
+      imageType,
+      outputFormat,
+      cleanId,
+      requestedImageLang,
+      imageType === 'poster'
+        ? `${posterTextPreference}:${posterAnimeTextPreference}`
+        : imageType === 'backdrop'
+          ? `${posterTextPreference}:${backdropAnimeTextPreference}`
+          : posterTextPreference,
+      imageType === 'poster' ? posterRatingsLayout : '-',
+      imageType === 'poster' ? String(posterRatingsMode || '-') : '-',
+      imageType === 'poster' ? posterGenrePosition : '-',
+      imageType === 'poster' ? String(posterConfiguratorPreset || '-') : '-',
+      imageType === 'poster' ? String(posterRatingsMaxPerSide ?? 'auto') : '-',
+      imageType === 'poster' ? String(posterLang || '-') : '-',
+      imageType === 'poster' ? String(posterAnimeLang || '-') : '-',
+      imageType === 'backdrop' ? String(backdropLang || '-') : '-',
+      imageType === 'backdrop' ? String(backdropAnimeLang || '-') : '-',
+      imageType === 'logo' ? String(logoLang || '-') : '-',
+      imageType === 'logo' ? String(logoAnimeLang || '-') : '-',
+      imageType === 'poster' ? String(posterAnimeImageTextParam || '-') : '-',
+      imageType === 'backdrop' ? String(backdropAnimeImageTextParam || '-') : '-',
+      imageType === 'logo' ? String(logoRatingsMax ?? 'auto') : '-',
+      imageType === 'backdrop' ? String(backdropRatingsMax ?? 'auto') : '-',
+      imageType === 'logo' ? logoMode : DEFAULT_LOGO_MODE,
+      imageType === 'logo' ? logoFontVariant : DEFAULT_LOGO_FONT_VARIANT,
+      imageType === 'logo' ? logoPrimary : DEFAULT_LOGO_CUSTOM_PRIMARY,
+      imageType === 'logo' ? logoSecondary : DEFAULT_LOGO_CUSTOM_SECONDARY,
+      imageType === 'logo' ? logoOutline : DEFAULT_LOGO_CUSTOM_OUTLINE,
+      imageType === 'poster' ? qualityBadgesSide : '-',
+      imageType === 'poster' && (posterRatingsLayout === 'top' || posterRatingsLayout === 'bottom' || posterRatingsLayout === 'top-bottom')
+        ? posterQualityBadgesPosition
+        : '-',
+      imageType !== 'logo' ? qualityBadgesStyle : '-',
+      imageType !== 'logo' ? qualityBadgesColorMode : '-',
+      imageType === 'backdrop' ? backdropRatingsLayout : imageType === 'thumbnail' ? thumbnailRatingsLayout : '-',
+      imageType === 'backdrop' ? backdropRatingsSize : '-',
+      imageType === 'thumbnail' ? thumbnailSize : '-',
+      imageType === 'thumbnail' ? aiometadataEpisodeProvider || '-' : '-',
+      verticalBadgeContent,
+      ratingStyle,
+      ratingsColorMode,
+      effectiveRatingPreferences.join(',') || 'none',
+      mdblistCacheSeed,
+      simklCacheSeed,
+      ...extra,
+    ].join('|');
+  const dedupeKey = buildCacheKey([fanartKey ? 'fanart' : 'no-fanart', tokenUpdatedAt.toString()]);
   const objectStorageEnabled = isObjectStorageConfigured();
 
   if (!tmdbKey) {
     return respond('TMDB API Key (tmdbKey) is required', 400);
   }
 
-  const hadSharedRender = shouldCacheFinalImage && finalImageInFlight.has(renderSeedKey);
+  const hadSharedRender = shouldCacheFinalImage && finalImageInFlight.has(dedupeKey);
   let objectStorageHit = false;
 
   try {
-    let renderedImage = await withDedupe(finalImageInFlight, renderSeedKey, async () => {
+    let renderedImage = await withDedupe(finalImageInFlight, dedupeKey, async () => {
       let media = null;
       let mediaType: 'movie' | 'tv' | null = null;
       let useRawAnimeImageFallback = false;
@@ -1422,51 +1419,7 @@ export async function GET(
       const streamBadgesCacheKey = shouldRenderStreamBadges
         ? `streambadges:${streamBadgesCacheWindow ?? 0}`
         : 'off';
-      const finalImageCacheKey = [
-        FINAL_IMAGE_RENDERER_CACHE_VERSION,
-        imageType,
-        outputFormat,
-        cleanId,
-        requestedImageLang,
-        imageType === 'poster'
-          ? `${posterTextPreference}:${posterAnimeTextPreference}`
-          : posterTextPreference,
-        imageType === 'poster' ? posterRatingsLayout : '-',
-        imageType === 'poster' ? String(posterRatingsMode || '-') : '-',
-        imageType === 'poster' ? posterGenrePosition : '-',
-        imageType === 'poster' ? String(posterConfiguratorPreset || '-') : '-',
-        imageType === 'poster' ? String(posterRatingsMaxPerSide ?? 'auto') : '-',
-        imageType === 'poster' ? String(posterLang || '-') : '-',
-        imageType === 'poster' ? String(posterAnimeLang || '-') : '-',
-        imageType === 'backdrop' ? String(backdropLang || '-') : '-',
-        imageType === 'backdrop' ? String(backdropAnimeLang || '-') : '-',
-        imageType === 'logo' ? String(logoLang || '-') : '-',
-        imageType === 'logo' ? String(logoAnimeLang || '-') : '-',
-        imageType === 'poster' ? String(posterAnimeImageTextParam || '-') : '-',
-        imageType === 'backdrop' ? String(backdropAnimeImageTextParam || '-') : '-',
-        imageType === 'logo' ? String(logoRatingsMax ?? 'auto') : '-',
-        imageType === 'backdrop' ? String(backdropRatingsMax ?? 'auto') : '-',
-        imageType === 'logo' ? logoMode : DEFAULT_LOGO_MODE,
-        imageType === 'logo' ? logoFontVariant : DEFAULT_LOGO_FONT_VARIANT,
-        imageType === 'logo' ? logoPrimary : DEFAULT_LOGO_CUSTOM_PRIMARY,
-        imageType === 'logo' ? logoSecondary : DEFAULT_LOGO_CUSTOM_SECONDARY,
-        imageType === 'logo' ? logoOutline : DEFAULT_LOGO_CUSTOM_OUTLINE,
-        imageType === 'poster' ? qualityBadgesSide : '-',
-        imageType === 'poster' && (posterRatingsLayout === 'top' || posterRatingsLayout === 'bottom' || posterRatingsLayout === 'top-bottom')
-          ? posterQualityBadgesPosition
-          : '-',
-        imageType !== 'logo' ? qualityBadgesStyle : '-',
-        imageType !== 'logo' ? qualityBadgesColorMode : '-',
-        imageType === 'backdrop' ? backdropRatingsLayout : imageType === 'thumbnail' ? thumbnailRatingsLayout : '-',
-        imageType === 'backdrop' ? backdropRatingsSize : '-',
-        imageType === 'thumbnail' ? thumbnailSize : '-',
-        imageType === 'thumbnail' ? aiometadataEpisodeProvider || '-' : '-',
-        verticalBadgeContent,
-        ratingStyle,
-        ratingsColorMode,
-        effectiveRatingPreferences.join(',') || 'none',
-        mdblistCacheSeed,
-        simklCacheSeed,
+      const finalImageCacheKey = buildCacheKey([
         streamBadgesCacheKey,
         rankingParam,
         rankingCountry,
@@ -1476,7 +1429,7 @@ export async function GET(
         posterVignetteEnabled ? 'vignette' : 'no-vignette',
         fanartKey ? 'fanart' : 'no-fanart',
         'v1',
-      ].join('|');
+      ]);
       const finalCacheHash = sha1Hex(finalImageCacheKey);
       const finalObjectStorageKey = buildObjectStorageImageKey(
         imageType,

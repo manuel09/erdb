@@ -19,14 +19,22 @@ export const measurePhase = async <T,>(phases: PhaseDurations, phase: keyof Phas
   }
 };
 
+const DEDUPE_TIMEOUT_MS = 30_000;
+
 export const withDedupe = async <T,>(
   inFlightMap: Map<string, Promise<T>>,
   key: string,
-  factory: () => Promise<T>
+  factory: () => Promise<T>,
+  timeoutMs: number = DEDUPE_TIMEOUT_MS
 ) => {
   const existing = inFlightMap.get(key);
   if (existing) return existing;
-  const promise = factory().finally(() => {
+  const promise = Promise.race([
+    factory(),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Dedupe timeout: ${key}`)), timeoutMs)
+    ),
+  ]).finally(() => {
     inFlightMap.delete(key);
   });
   inFlightMap.set(key, promise);

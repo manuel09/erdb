@@ -767,20 +767,20 @@ export const fetchNativeAnimeDirectFallbackAsset = async (args: {
   return null;
 };
 
-// Older proxy URLs may still include a placeholder season: `kitsu:id:season:episode`.
+// Older proxy URLs: `kitsu:id` (no season/episode) or `kitsu:id:season:episode`.
 export const parseKitsuInputParts = (parts: string[]) => {
   const mediaId = parts[1] || '';
   if (parts.length >= 4) {
     return {
       mediaId,
-      season: null,
+      season: parts[2] || null,
       episode: parts[3] || null,
     };
   }
   return {
     mediaId,
-    season: null,
-    episode: parts.length > 2 ? parts[2] : null,
+    season: parts.length > 2 ? parts[2] : null,
+    episode: null,
   };
 };
 
