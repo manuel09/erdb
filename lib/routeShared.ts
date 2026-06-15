@@ -29,8 +29,17 @@ export const withDedupe = async <T,>(
 ) => {
   const existing = inFlightMap.get(key);
   if (existing) return existing;
+
+  const fetchPromise = factory();
+
+  // Attach a silent catch handler to prevent unhandled rejection warnings in Node.js
+  // if fetchPromise rejects after Promise.race has already settled due to a timeout.
+  fetchPromise.catch(() => {
+    // Handle silently as the caller will have already received the timeout error
+  });
+
   const promise = Promise.race([
-    factory(),
+    fetchPromise,
     new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error(`Dedupe timeout: ${key}`)), timeoutMs)
     ),
