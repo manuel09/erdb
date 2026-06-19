@@ -2,6 +2,43 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.88](https://github.com/realbestia1/erdb/compare/v0.4.87...v0.4.88) - 2026-06-19
+
+- Increase badge fonts and bump versions ([f2be7fa](https://github.com/realbestia1/erdb/commit/f2be7faad0643b0c006d374964481b5d3e8f91e9))
+  Improve ranking badge appearance by increasing rank, label, and compact font sizes and making badge corners rounder (rx 10 -> 20). Bump FINAL_IMAGE_RENDERER_CACHE_VERSION to poster-backdrop-logo-thumbnail-v237 to invalidate image caches and increment package version to 0.4.88. Updated TypeScript build metadata.
+- Default poster and ranking positions to top ([daf8d61](https://github.com/realbestia1/erdb/commit/daf8d619f8f9e894f9334ffa64ec89820293c755))
+  Change defaults so posterQualityBadgesPosition and rankingPosition initialize to 'top' instead of 'auto'. Also add explicit setPosterQualityBadgesPosition('top') and setRankingPosition('top') in the preset/settings block to ensure these values are applied when switching presets.
+
+## [0.4.87](https://github.com/realbestia1/erdb/compare/v0.4.86...v0.4.87) - 2026-06-19
+
+- Add fallback ranking badge and adjust rendering ([45e4b2b](https://github.com/realbestia1/erdb/commit/45e4b2bb01bd0ec97ee5c130906461dcab153257))
+  Introduce fallback ranking badges when external ratings are unavailable: add buildFallbackBadge with Cinemeta award parsing and top-rated logic (tmdbMetadata.ts), and call it in the route to populate rankingBadge when appropriate. Improve badge SVG layout to better handle compact/text badges (font size/style/weight and width estimation) in badgeLayoutSvg.ts. Constrain and reposition rendered ranking badge sizes in imageRenderer.ts so badges fit reference heights and align correctly. Bump image renderer cache/version and package version to reflect these changes.
+- Add quality badges and bump image cache version ([af2ae8f](https://github.com/realbestia1/erdb/commit/af2ae8fc476031ded0bfa48c56ad91b16ca863a3))
+  Treat additional stream badge keys (dolbyvision, hdr10plus, hdr10, hdr, imaxenhanced, imax, sdr) as colored badges in imageRenderer so they receive the colored tint when qualityBadgesColorMode is 'colored'. Also increment FINAL_IMAGE_RENDERER_CACHE_VERSION to 'poster-backdrop-logo-thumbnail-v222' to force cache invalidation for the updated rendering behavior.
+- Update routeConfig.ts ([e5732e4](https://github.com/realbestia1/erdb/commit/e5732e41da7aae4778e51acdb4ea8feb044b6613))
+- Update imageRenderer.ts ([1f9670a](https://github.com/realbestia1/erdb/commit/1f9670a798a296b01c27fdcbfdc12b6059995750))
+
+## [0.4.86](https://github.com/realbestia1/erdb/compare/v0.4.85...v0.4.86) - 2026-06-19
+
+- Improve badge rendering, assets and cache versions ([a788141](https://github.com/realbestia1/erdb/commit/a788141c79e6fd1e2926e8a489ce2f7033a9c1b9))
+  Multiple fixes and enhancements to badge rendering, asset sources, and cache versions:
+
+  - UI: default poster ratings layout changed from 'top' to 'bottom' and payload handling updated to ignore posterRatingsLayout when posterConfiguratorPreset is 'simple'.
+  - SVG: add special-case SVG generation for badges with an icon but no label to render icon + rank properly (with glow layers and optional box).
+  - Image pipeline: bump provider icon cache version (v17 -> v19).
+  - Image renderer: several layout and collision-avoidance improvements — clamped quality badge height, row alignment options (left/center/right), track/align quality, ranking and genre positions so they can share rows when safe, adjust gaps/overlays, and move genre composition to avoid clipping.
+  - Rating metadata: replace multiple stream badge icon URLs and adjust icon width ratios to new asset repository; exclude 'quality' and 'audio' categories when building stream badges from flags to avoid duplicates.
+  - Routing/cache: bump final image renderer cache version to v220.
+  - TMDB: simplify ranking label logic to default to 'Today' and return empty for WEEKLY/MONTHLY in some cases.
+  - Misc: add /scripts to .gitignore and bump package version to 0.4.86.
+
+  These changes address visual clipping, badge collisions, asset consistency, and cache invalidation for updated assets.
+- Update imageRenderer.ts ([ce296c3](https://github.com/realbestia1/erdb/commit/ce296c339d062d9871e2779bae991c5299188b76))
+- Use cachedFetch for TMDB and fix dedupe timer ([3d5194c](https://github.com/realbestia1/erdb/commit/3d5194c805f7538e1628b52847c0e3c1ca4dfb27))
+  Replace manual in-memory TMDB/text fetch caches with fetchJsonCached/fetchTextCached (using TMDB_CACHE_TTL_MS) in proxyMetaTransform.ts, add PhaseDurations import and an emptyPhases helper, and simplify fetchTmdbJson/fetchText to use the cached fetch responses. Also fix a potential timeout handle leak in routeShared.ts by tracking the dedupe timeout timer and clearing it in finally. (tsbuildinfo updated by the build.)
+- Silently catch fetchPromise in withDedupe ([c686fd1](https://github.com/realbestia1/erdb/commit/c686fd17cf1d1ad094fbc83f1dff192f142f7b84))
+  Store the result of factory() in fetchPromise and use it in Promise.race to avoid invoking factory twice. Attach a silent .catch handler to fetchPromise to prevent unhandled rejection warnings in Node.js if the promise rejects after the race has already settled due to a timeout. Adds a brief explanatory comment.
+
 ## [0.4.85](https://github.com/realbestia1/erdb/compare/v0.4.84...v0.4.85) - 2026-06-09
 
 - Refactor cache/dedupe, add metadata pruning, Kitsu ([ac6c6bb](https://github.com/realbestia1/erdb/commit/ac6c6bb2b59916e356177971fe20910d52b84f28))

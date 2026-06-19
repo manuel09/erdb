@@ -225,7 +225,7 @@ export function useHomePageController({
   const [backdropStreamBadges, setBackdropStreamBadges] = useState<StreamBadgesSetting>('off');
   const [qualityBadgesSide, setQualityBadgesSide] = useState<QualityBadgesSide>('left');
   const [posterQualityBadgesPosition, setPosterQualityBadgesPosition] =
-    useState<PosterQualityBadgesPosition>('auto');
+    useState<PosterQualityBadgesPosition>('top');
   const [posterQualityBadgesStyle, setPosterQualityBadgesStyle] = useState<RatingStyle>('glass');
   const [backdropQualityBadgesStyle, setBackdropQualityBadgesStyle] = useState<RatingStyle>(DEFAULT_QUALITY_BADGES_STYLE);
   const [posterQualityBadgesColorMode, setPosterQualityBadgesColorMode] = useState<'colored' | 'white'>('white');
@@ -239,16 +239,18 @@ export function useHomePageController({
       setPosterStreamBadges('on');
       setPosterQualityBadgesStyle('plain');
       setPosterQualityBadgesColorMode('white');
+      setPosterQualityBadgesPosition('top');
       setRanking('daily');
+      setRankingPosition('top');
       setPosterGenrePosition('top');
       setPosterVignetteEnabled(true);
-      setPosterRatingsLayout('top');
+      setPosterRatingsLayout('bottom');
       setPosterRatingsColorMode('colored');
     } else {
       setPosterAverageRatingsEnabled(false);
     }
   }, []);
-  const [posterRatingsLayout, setPosterRatingsLayout] = useState<PosterRatingLayout>('top');
+  const [posterRatingsLayout, setPosterRatingsLayout] = useState<PosterRatingLayout>('bottom');
   const [backdropRatingsLayout, setBackdropRatingsLayout] = useState<BackdropRatingLayout>('right-vertical');
   const [backdropRatingsSize, setBackdropRatingsSize] = useState<BackdropRatingsSize>('large');
   const [thumbnailRatingsLayout, setThumbnailRatingsLayout] = useState<ThumbnailRatingLayout>('left-vertical');
@@ -264,7 +266,7 @@ export function useHomePageController({
   const [rankingCountryTouched, setRankingCountryTouched] = useState(false);
   const [rankingNoBox, setRankingNoBox] = useState(false);
   const [rankingCompact, setRankingCompact] = useState(false);
-  const [rankingPosition, setRankingPosition] = useState<RankingPosition>('auto');
+  const [rankingPosition, setRankingPosition] = useState<RankingPosition>('top');
   const updateRankingCountry = useCallback((value: SetStateAction<string>) => {
     setRankingCountryTouched(true);
     setRankingCountry(value);
@@ -2089,7 +2091,7 @@ export function useHomePageController({
     if (typeof payload.rankingPosition === 'string') {
       setRankingPosition(normalizeRankingPosition(payload.rankingPosition));
     }
-    if (typeof payload.posterRatingsLayout === 'string' && isPosterRatingLayout(payload.posterRatingsLayout)) {
+    if (typeof payload.posterRatingsLayout === 'string' && isPosterRatingLayout(payload.posterRatingsLayout) && payload.posterConfiguratorPreset !== 'simple') {
       setPosterRatingsLayout(payload.posterRatingsLayout);
     }
     if (typeof payload.backdropRatingsLayout === 'string') {
