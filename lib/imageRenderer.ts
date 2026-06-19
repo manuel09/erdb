@@ -90,7 +90,7 @@ export const renderWithSharp = async (
           const isQualityBadge = STREAM_BADGE_META.has(badge.key as StreamBadgeKey);
           const tintColor = isQualityBadge
             ? (input.qualityBadgesColorMode === 'colored'
-                ? (['remux', 'bluray', 'webdl', 'webrip'].includes(badge.key)
+                ? (['remux', 'bluray', 'webdl', 'webrip', 'hdr10', 'hdr10plus'].includes(badge.key)
                     ? 'colored'
                     : (badge.accentColor || '#ffffff'))
                 : '#ffffff')
