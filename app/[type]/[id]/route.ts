@@ -1208,7 +1208,7 @@ export async function GET(
       if (!hasNativeAnimeInput) {
         allowAnimeOnlyRatings = hasConfirmedAnimeMapping && mediaLooksAnimated;
       }
-      const isAnimeContent = hasNativeAnimeInput || hasConfirmedAnimeMapping || mediaLooksAnimated;
+      const isAnimeContent = hasNativeAnimeInput || hasConfirmedAnimeMapping;
       const isGenericCatalogId = isTmdb || isTvdb || isRealImdb || idPrefix === 'imdb' || idPrefix.startsWith('tt');
       const shouldApplyAnimeTextPreference = isAnimeContent && !isGenericCatalogId;
 
@@ -3022,7 +3022,7 @@ export async function GET(
           noBox: rankingNoBox,
           compact: rankingCompact,
         };
-      } else if (rankingParam !== 'off') {
+      } else {
         const detailsBundle = detailsBundlePromise ? await detailsBundlePromise : null;
         const voteAverage = detailsBundle?.details?.vote_average ?? null;
         const fallbackBadge = await buildFallbackBadge({

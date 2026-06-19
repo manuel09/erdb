@@ -89,11 +89,9 @@ export const renderWithSharp = async (
         badgesWithIcons.map(async (badge) => {
           const isQualityBadge = STREAM_BADGE_META.has(badge.key as StreamBadgeKey);
           const tintColor = isQualityBadge
-            ? (input.qualityBadgesColorMode === 'colored'
-                ? (['remux', 'bluray', 'webdl', 'webrip', 'dolbyvision', 'hdr10plus', 'hdr10', 'hdr', 'imaxenhanced', 'imax', 'sdr'].includes(badge.key)
-                    ? 'colored'
-                    : (badge.accentColor || '#ffffff'))
-                : '#ffffff')
+            ? (['remux', 'bluray', 'webdl', 'webrip', 'dolbyvision', 'hdr10plus', 'hdr10', 'hdr', 'imaxenhanced', 'imax', 'sdr'].includes(badge.key)
+              ? 'colored'
+              : (input.qualityBadgesColorMode === 'colored' ? (badge.accentColor || '#ffffff') : '#ffffff'))
             : undefined;
           const outputSize = (() => {
             if (isQualityBadge) {
