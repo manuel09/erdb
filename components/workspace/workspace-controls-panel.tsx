@@ -1,6 +1,6 @@
 'use client';
 
-import { Settings2, ChevronDown, KeyRound, Palette, Globe2, Layers } from 'lucide-react';
+import { Settings2, ChevronDown, KeyRound, Palette, Globe2, Layers, Info } from 'lucide-react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useRef, useEffect } from 'react';
@@ -235,31 +235,23 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
         {previewType === 'poster' && (
           <Section title="Poster Preset">
             <div>
-              <h3 className="text-xs font-medium text-slate-400 mb-2">Mode</h3>
-              {renderDropdown(posterConfiguratorPreset, setPosterConfiguratorPreset, [{ id: 'simple', label: 'Simple' }, { id: 'advanced', label: 'Advanced' }])}
+              <h3 className="text-xs font-medium text-slate-400 mb-2">Preset</h3>
+              {renderDropdown(posterConfiguratorPreset, setPosterConfiguratorPreset, [
+                { id: 'preset1', label: 'Preset 1' },
+                { id: 'preset2', label: 'Preset 2' },
+                { id: 'preset3', label: 'Preset 3' },
+                { id: 'preset4', label: 'Preset 4' },
+                { id: 'preset5', label: 'Preset 5' },
+                { id: 'preset6', label: 'Preset 6' },
+                { id: 'preset7', label: 'Preset 7' },
+              ])}
             </div>
-            {posterConfiguratorPreset === 'simple' && (
-              <div>
-                <h3 className="text-xs font-medium text-slate-400 mb-2">Rating Source</h3>
-                <div className="relative">
-                  <select value={posterSimpleRatingSource} onChange={(e) => setPosterSimpleRatingSource(e.target.value as typeof posterSimpleRatingSource)} className={`h-10 w-full appearance-none pr-8 text-sm font-medium ${INPUT_COMPACT_CLASS}`}>
-                    <option value="average" className="bg-[#0a0a0a]">Average</option>
-                    {RATING_PROVIDER_OPTIONS.map(p => (
-                      <option key={p.id} value={p.id} className="bg-[#0a0a0a]">{p.label}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                  </div>
-                </div>
-              </div>
-            )}
           </Section>
         )}
 
-        {(previewType === 'poster' && tmdbKey && posterConfiguratorPreset !== 'simple') || previewType === 'backdrop' && tmdbKey || previewType === 'logo' && tmdbKey ? (
+        {(previewType === 'poster' && tmdbKey && !posterConfiguratorPreset.startsWith('preset')) || previewType === 'backdrop' && tmdbKey || previewType === 'logo' && tmdbKey ? (
           <Section title="Languages">
-            {previewType === 'poster' && (
+            {previewType === 'poster' && !posterConfiguratorPreset.startsWith('preset') && (
               <div className="space-y-4">
                 <div>
                   <h3 className="text-xs font-medium text-slate-300 mb-3">Poster Language</h3>
@@ -298,7 +290,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
           </Section>
         ) : null}
 
-        {!(previewType === 'poster' && posterConfiguratorPreset === 'simple') && (
+        {(previewType !== 'poster' || posterConfiguratorPreset === 'preset1' || posterConfiguratorPreset === 'preset2' || posterConfiguratorPreset === 'preset3' || posterConfiguratorPreset === 'preset4' || posterConfiguratorPreset === 'preset5' || posterConfiguratorPreset === 'preset6') && (
           <Section title={styleLabel}>
             {renderDropdown(activeRatingStyle, (v) => setRatingStyleForType(v as RatingStyle), RATING_STYLE_OPTIONS)}
             {activeRatingStyle === 'glass' && (
@@ -313,177 +305,193 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
           </Section>
         )}
 
-        {!(previewType === 'poster' && posterConfiguratorPreset === 'simple') && previewType !== 'logo' && previewType !== 'thumbnail' && (
+        {previewType === 'backdrop' && (
           <Section title={textLabel}>
             {renderDropdown(activeImageText, setImageTextForType, [
               { id: 'default', label: 'Default' },
               { id: 'clean', label: 'Clean' },
               { id: 'alternative', label: 'Alternative' },
             ])}
-            {previewType === 'poster' && (
-              <div>
-                <h3 className="text-xs font-medium text-slate-400 mb-1">Anime Override (Kitsu/MAL)</h3>
-                <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">
-                  Works for Kitsu/MAL IDs (separate seasons). Does not work with IMDB, TMDB or TVDB.
-                </p>
-                {renderDropdown(posterAnimeImageText, setPosterAnimeImageText, [
-                  { id: 'default', label: 'Default' },
-                  { id: 'clean', label: 'Clean' },
-                  { id: 'alternative', label: 'Alternative' },
-                ])}
-              </div>
-            )}
-            {previewType === 'backdrop' && (
-              <div>
-                <h3 className="text-xs font-medium text-slate-400 mb-2">Anime Override (Kitsu/MAL)</h3>
-                {renderDropdown(backdropAnimeImageText, setBackdropAnimeImageText, [
-                  { id: 'default', label: 'Default' },
-                  { id: 'clean', label: 'Clean' },
-                  { id: 'alternative', label: 'Alternative' },
-                ])}
-              </div>
-            )}
+            <div>
+              <h3 className="text-xs font-medium text-slate-400 mb-2">Anime Override (Kitsu/MAL)</h3>
+              {renderDropdown(backdropAnimeImageText, setBackdropAnimeImageText, [
+                { id: 'default', label: 'Default' },
+                { id: 'clean', label: 'Clean' },
+                { id: 'alternative', label: 'Alternative' },
+              ])}
+            </div>
           </Section>
         )}
 
-        {!(previewType === 'poster' && posterConfiguratorPreset === 'simple') && (
+        {previewType === 'poster' && (
           <Section title="Layout">
-            {previewType === 'poster' && (
-              <div className="space-y-4">
-                <h3 className="text-xs font-medium text-slate-400 mb-2">Ratings Position</h3>
-                {renderDropdown(posterRatingsLayout, (v) => setPosterRatingsLayout(v as PosterRatingLayout), POSTER_RATING_LAYOUT_OPTIONS)}
-                {isVerticalPosterRatingLayout(posterRatingsLayout) && (
-                  <div className="flex flex-wrap items-center gap-2 pt-2">
-                    <span className="text-xs font-medium text-slate-400">Max / Side</span>
-                    <input type="number" value={posterRatingsMaxPerSide ?? ''} onChange={(e) => setPosterRatingsMaxPerSide(e.target.value === '' ? null : parseInt(e.target.value))} placeholder="Auto" className={`w-20 ${INPUT_CLASS}`} />
-                    <button onClick={() => setPosterRatingsMaxPerSide(null)} className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS}>Auto</button>
-                  </div>
-                )}
-                {shouldShowVerticalBadgeContent && (
-                  <div>
-                    <h3 className="text-xs font-medium text-slate-400 mb-2">Vertical Badge Style</h3>
-                    {renderDropdown(posterVerticalBadgeContent, setPosterVerticalBadgeContent, VERTICAL_BADGE_CONTENT_OPTIONS)}
-                  </div>
-                )}
-                <label className="flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-[#0a0a0a] px-4 py-3">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-xs font-medium text-slate-300">Vignette</span>
-                    <span className="text-[10px] text-slate-500">Darken poster edges</span>
-                  </div>
+            <div className="space-y-4">
+              <label className="flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-[#0a0a0a] px-4 py-3">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs font-medium text-slate-300">Vignette</span>
+                  <span className="text-[10px] text-slate-500">Darken poster edges</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPosterVignetteEnabled((value) => !value)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-1 transition-colors ${posterVignetteEnabled ? 'bg-orange-500/80' : 'bg-white/10'}`}
+                  aria-pressed={posterVignetteEnabled}
+                >
+                  <span className={`block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${posterVignetteEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </label>
+
+              {posterConfiguratorPreset === 'preset7' && (
+                <div className="pt-2 flex flex-wrap items-center gap-2 border-t border-slate-800">
+                  <span className="text-xs font-medium text-slate-400">Max Badges per Side</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={posterRatingsMaxPerSide ?? ''}
+                    onChange={(e) => setPosterRatingsMaxPerSide(e.target.value === '' ? null : parseInt(e.target.value, 10))}
+                    placeholder="Auto"
+                    className={`w-20 ${INPUT_CLASS}`}
+                  />
                   <button
-                    type="button"
-                    onClick={() => setPosterVignetteEnabled((value) => !value)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-1 transition-colors ${posterVignetteEnabled ? 'bg-orange-500/80' : 'bg-white/10'}`}
-                    aria-pressed={posterVignetteEnabled}
+                    onClick={() => setPosterRatingsMaxPerSide(null)}
+                    className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS}
                   >
-                    <span className={`block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${posterVignetteEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                    Auto
                   </button>
-                </label>
+                </div>
+              )}
+            </div>
+          </Section>
+        )}
+
+        {previewType === 'backdrop' && (
+          <Section title="Layout">
+            <div className="space-y-4">
+              <h3 className="text-xs font-medium text-slate-400 mb-2">Ratings Position</h3>
+              {renderDropdown(backdropRatingsLayout, (v) => setBackdropRatingsLayout(v as BackdropRatingLayout), BACKDROP_RATING_LAYOUT_OPTIONS)}
+              <div>
+                <h3 className="text-xs font-medium text-slate-400 mb-2">Ratings Size</h3>
+                {renderDropdown(backdropRatingsSize, (v) => setBackdropRatingsSize(v as BackdropRatingsSize), BACKDROP_RATINGS_SIZE_OPTIONS)}
               </div>
-            )}
-            {previewType === 'backdrop' && (
-              <div className="space-y-4">
-                <h3 className="text-xs font-medium text-slate-400 mb-2">Ratings Position</h3>
-                {renderDropdown(backdropRatingsLayout, (v) => setBackdropRatingsLayout(v as BackdropRatingLayout), BACKDROP_RATING_LAYOUT_OPTIONS)}
+              {shouldShowVerticalBadgeContent && (
                 <div>
-                  <h3 className="text-xs font-medium text-slate-400 mb-2">Ratings Size</h3>
-                  {renderDropdown(backdropRatingsSize, (v) => setBackdropRatingsSize(v as BackdropRatingsSize), BACKDROP_RATINGS_SIZE_OPTIONS)}
+                  <h3 className="text-xs font-medium text-slate-400 mb-2">Vertical Badge Style</h3>
+                  {renderDropdown(backdropVerticalBadgeContent, setBackdropVerticalBadgeContent, VERTICAL_BADGE_CONTENT_OPTIONS)}
                 </div>
-                {shouldShowVerticalBadgeContent && (
-                  <div>
-                    <h3 className="text-xs font-medium text-slate-400 mb-2">Vertical Badge Style</h3>
-                    {renderDropdown(backdropVerticalBadgeContent, setBackdropVerticalBadgeContent, VERTICAL_BADGE_CONTENT_OPTIONS)}
-                  </div>
-                )}
-                <div className="pt-2 flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-slate-400">Max Badges</span>
-                  <input type="number" min={1} max={20} value={backdropRatingsMax ?? ''} onChange={(e) => setBackdropRatingsMax(e.target.value === '' ? null : parseInt(e.target.value, 10))} placeholder="Auto" className={`w-20 ${INPUT_CLASS}`} />
-                  <button onClick={() => setBackdropRatingsMax(null)} className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS}>Auto</button>
-                </div>
+              )}
+              <div className="pt-2 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-medium text-slate-400">Max Badges</span>
+                <input type="number" min={1} max={20} value={backdropRatingsMax ?? ''} onChange={(e) => setBackdropRatingsMax(e.target.value === '' ? null : parseInt(e.target.value, 10))} placeholder="Auto" className={`w-20 ${INPUT_CLASS}`} />
+                <button onClick={() => setBackdropRatingsMax(null)} className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS}>Auto</button>
               </div>
-            )}
-            {previewType === 'thumbnail' && (
-              <div className="space-y-4">
-                <h3 className="text-xs font-medium text-slate-400 mb-2">Ratings Position</h3>
-                {renderDropdown(thumbnailRatingsLayout, (v) => setThumbnailRatingsLayout(v as ThumbnailRatingLayout), THUMBNAIL_RATING_LAYOUT_OPTIONS)}
+            </div>
+          </Section>
+        )}
+
+        {previewType === 'thumbnail' && (
+          <Section title="Layout">
+            <div className="space-y-4">
+              <h3 className="text-xs font-medium text-slate-400 mb-2">Ratings Position</h3>
+              {renderDropdown(thumbnailRatingsLayout, (v) => setThumbnailRatingsLayout(v as ThumbnailRatingLayout), THUMBNAIL_RATING_LAYOUT_OPTIONS)}
+              <div>
+                <h3 className="text-xs font-medium text-slate-400 mb-2">Thumbnail Size</h3>
+                {renderDropdown(thumbnailSize, (v) => setThumbnailSize(v as ThumbnailSize), THUMBNAIL_SIZE_OPTIONS)}
+              </div>
+              {shouldShowVerticalBadgeContent && (
                 <div>
-                  <h3 className="text-xs font-medium text-slate-400 mb-2">Thumbnail Size</h3>
-                  {renderDropdown(thumbnailSize, (v) => setThumbnailSize(v as ThumbnailSize), THUMBNAIL_SIZE_OPTIONS)}
+                  <h3 className="text-xs font-medium text-slate-400 mb-2">Vertical Badge Style</h3>
+                  {renderDropdown(thumbnailVerticalBadgeContent, setThumbnailVerticalBadgeContent, VERTICAL_BADGE_CONTENT_OPTIONS)}
                 </div>
-                {shouldShowVerticalBadgeContent && (
-                  <div>
-                    <h3 className="text-xs font-medium text-slate-400 mb-2">Vertical Badge Style</h3>
-                    {renderDropdown(thumbnailVerticalBadgeContent, setThumbnailVerticalBadgeContent, VERTICAL_BADGE_CONTENT_OPTIONS)}
-                  </div>
-                )}
-              </div>
-            )}
-            {previewType === 'logo' && (
-              <div className="space-y-4">
-                <h3 className="text-xs font-medium text-slate-400 mb-2">Logo Mode</h3>
-                {renderDropdown(logoMode, setLogoMode, LOGO_MODE_OPTIONS)}
+              )}
+            </div>
+          </Section>
+        )}
 
-                <AnimatePresence mode="popLayout">
-                  {logoMode === 'custom-logo' && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-4 pt-2 overflow-hidden">
-                      <h3 className="text-xs font-medium text-slate-400 mb-2">Logo Font</h3>
-                      {renderDropdown(logoFontVariant, setLogoFontVariant, LOGO_FONT_VARIANT_OPTIONS)}
+        {previewType === 'logo' && (
+          <Section title="Layout">
+            <div className="space-y-4">
+              <h3 className="text-xs font-medium text-slate-400 mb-2">Logo Mode</h3>
+              {renderDropdown(logoMode, setLogoMode, LOGO_MODE_OPTIONS)}
 
-                      <div className="grid gap-3 lg:grid-cols-3 pt-2">
-                        <label className="space-y-2">
-                          <span className="text-xs font-medium text-slate-400">Primary</span>
-                          <div className="flex min-w-0 items-center gap-2">
-                            <input type="color" value={logoCustomPrimary} onChange={(e) => setLogoCustomPrimary(e.target.value)} className="h-10 w-14 shrink-0 cursor-pointer rounded-lg border border-white/10 bg-transparent p-1" />
-                            <input type="text" value={logoCustomPrimary} onChange={(e) => setLogoCustomPrimary(e.target.value)} className={`min-w-0 flex-1 ${INPUT_CLASS}`} />
-                          </div>
-                        </label>
-                        <label className="space-y-2">
-                          <span className="text-xs font-medium text-slate-400">Secondary</span>
-                          <div className="flex min-w-0 items-center gap-2">
-                            <input type="color" value={logoCustomSecondary} onChange={(e) => setLogoCustomSecondary(e.target.value)} className="h-10 w-14 shrink-0 cursor-pointer rounded-lg border border-white/10 bg-transparent p-1" />
-                            <input type="text" value={logoCustomSecondary} onChange={(e) => setLogoCustomSecondary(e.target.value)} className={`min-w-0 flex-1 ${INPUT_CLASS}`} />
-                          </div>
-                        </label>
-                        <label className="space-y-2">
-                          <span className="text-xs font-medium text-slate-400">Outline</span>
-                          <div className="flex min-w-0 items-center gap-2">
-                            <input type="color" value={logoCustomOutline} onChange={(e) => setLogoCustomOutline(e.target.value)} className="h-10 w-14 shrink-0 cursor-pointer rounded-lg border border-white/10 bg-transparent p-1" />
-                            <input type="text" value={logoCustomOutline} onChange={(e) => setLogoCustomOutline(e.target.value)} className={`min-w-0 flex-1 ${INPUT_CLASS}`} />
-                          </div>
-                        </label>
-                      </div>
+              <AnimatePresence mode="popLayout">
+                {logoMode === 'custom-logo' && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-4 pt-2 overflow-hidden">
+                    <h3 className="text-xs font-medium text-slate-400 mb-2">Logo Font</h3>
+                    {renderDropdown(logoFontVariant, setLogoFontVariant, LOGO_FONT_VARIANT_OPTIONS)}
 
-                      <div className="space-y-3 pt-2">
-                        <h3 className="text-xs font-medium text-slate-400 mb-2">Color Presets</h3>
-                        <div className="flex flex-wrap gap-2">
-                          {LOGO_COLOR_PRESETS.map((preset) => (
-                            <button key={preset.id} onClick={() => { setLogoCustomPrimary(preset.primary); setLogoCustomSecondary(preset.secondary); setLogoCustomOutline(preset.outline); }} className={`${BUTTON_BASE_CLASS} ${BUTTON_INACTIVE_CLASS} px-3 py-2`}>
-                              <span className="inline-flex items-center gap-2">
-                                <span className="h-3 w-3 rounded-full border border-white/10" style={{ backgroundColor: preset.primary }} />
-                                <span className="h-3 w-3 rounded-full border border-white/10" style={{ backgroundColor: preset.secondary }} />
-                                <span className="h-3 w-3 rounded-full border border-white/10" style={{ backgroundColor: preset.outline }} />
-                              </span>
-                            </button>
-                          ))}
+                    <div className="grid gap-3 lg:grid-cols-3 pt-2">
+                      <label className="space-y-2">
+                        <span className="text-xs font-medium text-slate-400">Primary</span>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <input type="color" value={logoCustomPrimary} onChange={(e) => setLogoCustomPrimary(e.target.value)} className="h-10 w-14 shrink-0 cursor-pointer rounded-lg border border-white/10 bg-transparent p-1" />
+                          <input type="text" value={logoCustomPrimary} onChange={(e) => setLogoCustomPrimary(e.target.value)} className={`min-w-0 flex-1 ${INPUT_CLASS}`} />
                         </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      </label>
+                      <label className="space-y-2">
+                        <span className="text-xs font-medium text-slate-400">Secondary</span>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <input type="color" value={logoCustomSecondary} onChange={(e) => setLogoCustomSecondary(e.target.value)} className="h-10 w-14 shrink-0 cursor-pointer rounded-lg border border-white/10 bg-transparent p-1" />
+                          <input type="text" value={logoCustomSecondary} onChange={(e) => setLogoCustomSecondary(e.target.value)} className={`min-w-0 flex-1 ${INPUT_CLASS}`} />
+                        </div>
+                      </label>
+                      <label className="space-y-2">
+                        <span className="text-xs font-medium text-slate-400">Outline</span>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <input type="color" value={logoCustomOutline} onChange={(e) => setLogoCustomOutline(e.target.value)} className="h-10 w-14 shrink-0 cursor-pointer rounded-lg border border-white/10 bg-transparent p-1" />
+                          <input type="text" value={logoCustomOutline} onChange={(e) => setLogoCustomOutline(e.target.value)} className={`min-w-0 flex-1 ${INPUT_CLASS}`} />
+                        </div>
+                      </label>
+                    </div>
 
-                <div className="pt-2 flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-slate-400">Max Badges</span>
-                  <input type="number" min={1} max={20} value={logoRatingsMax ?? ''} onChange={(e) => setLogoRatingsMax(e.target.value === '' ? null : parseInt(e.target.value, 10))} placeholder="Auto" className={`w-20 ${INPUT_CLASS}`} />
-                  <button onClick={() => setLogoRatingsMax(null)} className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS}>Auto</button>
-                </div>
+                    <div className="space-y-3 pt-2">
+                      <h3 className="text-xs font-medium text-slate-400 mb-2">Color Presets</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {LOGO_COLOR_PRESETS.map((preset) => (
+                          <button key={preset.id} onClick={() => { setLogoCustomPrimary(preset.primary); setLogoCustomSecondary(preset.secondary); setLogoCustomOutline(preset.outline); }} className={`${BUTTON_BASE_CLASS} ${BUTTON_INACTIVE_CLASS} px-3 py-2`}>
+                            <span className="inline-flex items-center gap-2">
+                              <span className="h-3 w-3 rounded-full border border-white/10" style={{ backgroundColor: preset.primary }} />
+                              <span className="h-3 w-3 rounded-full border border-white/10" style={{ backgroundColor: preset.secondary }} />
+                              <span className="h-3 w-3 rounded-full border border-white/10" style={{ backgroundColor: preset.outline }} />
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="pt-2 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-medium text-slate-400">Max Badges</span>
+                <input type="number" min={1} max={20} value={logoRatingsMax ?? ''} onChange={(e) => setLogoRatingsMax(e.target.value === '' ? null : parseInt(e.target.value, 10))} placeholder="Auto" className={`w-20 ${INPUT_CLASS}`} />
+                <button onClick={() => setLogoRatingsMax(null)} className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS}>Auto</button>
               </div>
-            )}
+            </div>
           </Section>
         )}
 
 
-        {previewType !== 'logo' && previewType !== 'thumbnail' && (
-          <Section title={`Quality Badges (${qualityBadgeTypeLabel})`}>
+        {previewType === 'poster' && posterConfiguratorPreset !== 'preset4' && (
+          <Section title="Quality Badges (Poster)">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-xs font-medium text-slate-400 mb-2">Style</h3>
+                {renderDropdown(activeQualityBadgesStyle, (v) => setActiveQualityBadgesStyle(v as RatingStyle), RATING_STYLE_OPTIONS)}
+              </div>
+              <div>
+                <h3 className="text-xs font-medium text-slate-400 mb-2">Badge Style</h3>
+                {renderDropdown(activeQualityBadgesColorMode, setActiveQualityBadgesColorMode, [
+                  { id: 'white', label: 'White' },
+                  { id: 'colored', label: 'Colored' },
+                ])}
+              </div>
+            </div>
+          </Section>
+        )}
+
+        {previewType === 'backdrop' && (
+          <Section title="Quality Badges (Backdrop)">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h3 className="text-xs font-medium text-slate-400 mb-2">Mode</h3>
@@ -496,20 +504,6 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                   { id: 'colored', label: 'Colored' },
                 ])}
               </div>
-            </div>
-            <div className="flex flex-wrap gap-4 pt-2">
-              {shouldShowQualityBadgesPosition && (
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-xs font-medium text-slate-400 mb-2">Badge Position</h3>
-                  {renderDropdown(posterQualityBadgesPosition, setPosterQualityBadgesPosition, POSTER_QUALITY_BADGE_POSITION_OPTIONS)}
-                </div>
-              )}
-              {shouldShowQualityBadgesSide && (
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-xs font-medium text-slate-400 mb-2">Badge Side</h3>
-                  {renderDropdown(qualityBadgesSide, setQualityBadgesSide, QUALITY_BADGE_SIDE_OPTIONS)}
-                </div>
-              )}
             </div>
           </Section>
         )}
@@ -527,10 +521,6 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
               <AnimatePresence>
                 {ranking !== 'off' && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-4 overflow-hidden">
-                    <div>
-                      <h4 className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Position</h4>
-                      {renderDropdown(rankingPosition, setRankingPosition, RANKING_POSITION_OPTIONS)}
-                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-3">
                         <h4 className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Chart Country</h4>
@@ -563,15 +553,6 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                             <span className="text-xs font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Hide Background Box</span>
                           </label>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <label className="flex items-center gap-3 cursor-pointer group">
-                            <div className="relative">
-                              <input type="checkbox" checked={rankingCompact} onChange={(e) => setRankingCompact(e.target.checked)} className="sr-only peer" />
-                              <div className="w-9 h-5 bg-black/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 peer-checked:after:bg-orange-400 after:border-slate-400 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500/20"></div>
-                            </div>
-                            <span className="text-xs font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Compact Mode (number only)</span>
-                          </label>
-                        </div>
                       </div>
                     </div>
 
@@ -582,69 +563,33 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
           </Section>
         )}
 
-        {previewType === 'poster' && posterConfiguratorPreset === 'advanced' && !posterAverageRatingsEnabled && (
-          <Section title="Genre">
-            <div>
-              <h4 className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Position</h4>
-              {renderDropdown(posterGenrePosition, setPosterGenrePosition, POSTER_GENRE_POSITION_OPTIONS)}
-            </div>
-          </Section>
-        )}
-
-        {!(previewType === 'poster' && posterConfiguratorPreset === 'simple') && (
-          <Section title={providersLabel}>
-            <p className="text-xs text-slate-500">Drag the grips to reorder providers. Order flows top to bottom.</p>
-            {previewType === 'poster' && (
-              <div className="space-y-2">
-                <label className="flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-[#0a0a0a] px-4 py-3">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-xs font-medium text-slate-300">Average rating</span>
-                    <span className="text-[10px] text-slate-500 text-balance leading-relaxed">Displays a unified rating across providers</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setPosterAverageRatingsEnabled((value) => !value)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-1 transition-colors ${posterAverageRatingsEnabled ? 'bg-orange-500/80' : 'bg-white/10'}`}
-                    aria-pressed={posterAverageRatingsEnabled}
-                  >
-                    <span className={`block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${posterAverageRatingsEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                  </button>
-                </label>
-                {posterAverageRatingsEnabled && (
-                  <motion.label
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="ml-4 flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-[#0a0a0a]/50 px-4 py-2.5"
-                  >
-                    <span className="text-[11px] font-medium text-slate-400">Include genre name</span>
-                    <button
-                      type="button"
-                      onClick={() => setPosterGenrePosition(posterGenrePosition === 'off' ? 'top' : 'off')}
-                      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors ${posterGenrePosition !== 'off' ? 'bg-orange-500/60' : 'bg-white/5'}`}
-                    >
-                      <span className={`block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${posterGenrePosition !== 'off' ? 'translate-x-4' : 'translate-x-0'}`} />
-                    </button>
-                  </motion.label>
-                )}
+        <Section title={providersLabel}>
+          <p className="text-xs text-slate-500">Drag the grips to reorder providers. Order flows top to bottom.</p>
+          {previewType === 'poster' && posterConfiguratorPreset === 'preset1' && (
+            <div className="flex items-start gap-2.5 rounded-xl border border-orange-500/10 bg-orange-500/5 p-3 text-[11px] text-orange-200/90 mt-2">
+              <Info className="w-3.5 h-3.5 text-orange-400 shrink-0 mt-0.5" />
+              <div className="flex flex-col gap-0.5">
+                <span className="font-semibold text-orange-300">Average Rating Active</span>
+                <span>Calculates the average of all active rating providers selected below.</span>
               </div>
-            )}
-            <div className="flex flex-wrap gap-2">
-              <button onClick={enableAllRatingPreferences} className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS + " px-4 py-2"}>
-                Enable All
-              </button>
-              <button onClick={disableAllRatingPreferences} className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS + " px-4 py-2"}>
-                Disable All
-              </button>
             </div>
-            <RatingProviderSortableList
-              rows={ratingProviderRows}
-              onReorder={reorderRatingPreference}
-              onToggle={toggleRatingPreference}
-              fillDirection="column"
-              singleColumnOnMobile
-            />
-          </Section>
-        )}
+          )}
+          <div className="flex flex-wrap gap-2">
+            <button onClick={enableAllRatingPreferences} className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS + " px-4 py-2"}>
+              Enable All
+            </button>
+            <button onClick={disableAllRatingPreferences} className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS + " px-4 py-2"}>
+              Disable All
+            </button>
+          </div>
+          <RatingProviderSortableList
+            rows={ratingProviderRows}
+            onReorder={reorderRatingPreference}
+            onToggle={toggleRatingPreference}
+            fillDirection="column"
+            singleColumnOnMobile
+          />
+        </Section>
 
       </div>
     </div>
