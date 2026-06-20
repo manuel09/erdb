@@ -2169,7 +2169,7 @@ export function useHomePageController({
                   ? 'preset6'
                   : payload.posterConfiguratorPreset === 'preset7'
                     ? 'preset7'
-                    : payload.posterConfiguratorPreset === 'custom'
+                    : (payload.posterConfiguratorPreset === 'custom' || payload.posterConfiguratorPreset === 'advanced')
                       ? 'custom'
                       : 'preset1'
       );
