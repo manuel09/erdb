@@ -1852,7 +1852,12 @@ export const renderWithSharp = async (
         return;
       }
 
-      const left = Math.round((input.outputWidth - genreWidth) / 2);
+      const rowInset = input.imageType === 'poster' ? input.posterRowHorizontalInset : 12;
+      const sharesPositionWithQuality = !!lastPosterQualityPlacement && position === lastPosterQualityPlacement;
+      const sharesPositionWithRanking = !!lastRankingPlacement && position === lastRankingPlacement && !rankingPlacedSameRowAsQuality;
+      const left = (sharesPositionWithQuality || sharesPositionWithRanking)
+        ? rowInset
+        : Math.round((input.outputWidth - genreWidth) / 2);
 
       const overlapGap = Math.max(12, Math.round(input.badgeGap * 1.1));
       const getGenreRect = (y: number) => ({ left, top: y, width: genreWidth, height: genreHeight });
@@ -2007,7 +2012,7 @@ export const renderWithSharp = async (
       };
       const getAboveLogoRankingTop = () => {
         if (lastOverlayTopY <= 0) return getTopRankingTop();
-        const overlayGap = Math.max(8, Math.round(posterReferenceBadgeGap * 0.9));
+        const overlayGap = Math.max(36, Math.round(posterReferenceBadgeGap * 3.0));
         return Math.max(input.badgeTopOffset, lastOverlayTopY - renderedHeight - overlayGap);
       };
       const getBottomRankingTop = () => {

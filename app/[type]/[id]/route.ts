@@ -3022,7 +3022,7 @@ export async function GET(
           noBox: rankingNoBox,
           compact: rankingCompact,
         };
-      } else {
+      } else if (rankingParam !== 'off') {
         const detailsBundle = detailsBundlePromise ? await detailsBundlePromise : null;
         const voteAverage = detailsBundle?.details?.vote_average ?? null;
         const fallbackBadge = await buildFallbackBadge({

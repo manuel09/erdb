@@ -61,10 +61,16 @@ export const getFirstTmdbGenreName = async (
   language: string,
   phases: PhaseDurations
 ) => {
+  const cleanGenreName = (name: string): string => {
+    if (!name) return '';
+    const parts = name.split(/\s*&\s*|\s*\/\s*|\s*\|\s*|\s+and\s+|\s+e\s+|\s+y\s+/i);
+    return parts[0].trim();
+  };
+
   const genres = Array.isArray(media?.genres) ? media.genres : [];
   for (const genre of genres) {
     const name = String(genre?.name || '').trim();
-    if (name) return name;
+    if (name) return cleanGenreName(name);
   }
 
   if (!tmdbKey || !mediaType || (mediaType !== 'movie' && mediaType !== 'tv')) return null;
@@ -77,7 +83,7 @@ export const getFirstTmdbGenreName = async (
     const numericGenreId = Number(genreId);
     if (!Number.isFinite(numericGenreId)) continue;
     const mappedGenre = genreMap.get(numericGenreId);
-    if (mappedGenre) return mappedGenre;
+    if (mappedGenre) return cleanGenreName(mappedGenre);
   }
 
   return null;

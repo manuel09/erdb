@@ -185,7 +185,7 @@ export function useHomePageController({
 }) {
   const [previewType, setPreviewType] = useState<PreviewType>('poster');
   const [mediaId, setMediaId] = useState(DEFAULT_SERIES_ID);
-  const [lang, setLang] = useState('en-US');
+  const [lang, setLang] = useState('it-IT');
   const [posterLang, setPosterLang] = useState('');
   const [posterAnimeLang, setPosterAnimeLang] = useState('');
   const [backdropLang, setBackdropLang] = useState('');
@@ -194,14 +194,33 @@ export function useHomePageController({
   const [logoAnimeLang, setLogoAnimeLang] = useState('');
   const [posterImageText, setPosterImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
   const [posterAnimeImageText, setPosterAnimeImageText] = useState<'default' | 'clean' | 'alternative'>('default');
-  const [posterConfiguratorPreset, setPosterConfiguratorPresetState] = useState<PosterConfiguratorPreset>('simple');
-  const [posterAverageRatingsEnabled, setPosterAverageRatingsEnabled] = useState(false);
+  const [posterConfiguratorPreset, setPosterConfiguratorPresetState] = useState<PosterConfiguratorPreset>('preset1');
+  const [posterAverageRatingsEnabled, setPosterAverageRatingsEnabled] = useState(true);
   const [posterVignetteEnabled, setPosterVignetteEnabled] = useState(true);
-  const [posterGenrePosition, setPosterGenrePosition] = useState<PosterGenrePosition>('bottom');
+  const [posterGenrePosition, setPosterGenrePosition] = useState<PosterGenrePosition>('top');
   const [posterSimpleRatingSource, setPosterSimpleRatingSource] = useState<'average' | RatingPreference>('average');
   const [backdropImageText, setBackdropImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
   const [backdropAnimeImageText, setBackdropAnimeImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
-  const [posterRatingRows, setPosterRatingRows] = useState<RatingProviderRow[]>(buildDefaultRatingRows);
+  const [posterRatingRows, setPosterRatingRows] = useState<RatingProviderRow[]>(() =>
+    enabledOrderedToRows([
+      'myanimelist',
+      'anilist',
+      'kitsu',
+      'tmdb',
+      'tomatoes',
+      'tomatoesaudience',
+      'letterboxd',
+      'metacritic',
+      'rogerebert',
+      'trakt',
+      'simkl',
+      'metacriticuser',
+      'mdblist',
+      'imdb',
+      'filmweb',
+      'filmwebcritics',
+    ])
+  );
   const [backdropRatingRows, setBackdropRatingRows] = useState<RatingProviderRow[]>(buildDefaultRatingRows);
   const [thumbnailRatingRows, setThumbnailRatingRows] = useState<RatingProviderRow[]>(
     enabledOrderedToRows(THUMBNAIL_SUPPORTED_RATINGS)
@@ -218,36 +237,134 @@ export function useHomePageController({
     [thumbnailRatingRows]
   );
   const logoRatingPreferences = useMemo(() => rowsToEnabledOrdered(logoRatingRows), [logoRatingRows]);
-  const isSimplePosterPreset = previewType === 'poster' && posterConfiguratorPreset === 'simple';
   const shouldUsePosterAverageRatings =
-    previewType === 'poster' && (posterConfiguratorPreset === 'simple' || posterAverageRatingsEnabled);
-  const [posterStreamBadges, setPosterStreamBadges] = useState<StreamBadgesSetting>('auto');
+    previewType === 'poster' && (posterConfiguratorPreset === 'preset1' || posterAverageRatingsEnabled);
+  const [posterStreamBadges, setPosterStreamBadges] = useState<StreamBadgesSetting>('on');
   const [backdropStreamBadges, setBackdropStreamBadges] = useState<StreamBadgesSetting>('off');
   const [qualityBadgesSide, setQualityBadgesSide] = useState<QualityBadgesSide>('left');
   const [posterQualityBadgesPosition, setPosterQualityBadgesPosition] =
     useState<PosterQualityBadgesPosition>('top');
-  const [posterQualityBadgesStyle, setPosterQualityBadgesStyle] = useState<RatingStyle>('glass');
+  const [posterQualityBadgesStyle, setPosterQualityBadgesStyle] = useState<RatingStyle>('plain');
   const [backdropQualityBadgesStyle, setBackdropQualityBadgesStyle] = useState<RatingStyle>(DEFAULT_QUALITY_BADGES_STYLE);
   const [posterQualityBadgesColorMode, setPosterQualityBadgesColorMode] = useState<'colored' | 'white'>('white');
   const [backdropQualityBadgesColorMode, setBackdropQualityBadgesColorMode] = useState<'colored' | 'white'>('white');
   const [ranking, setRanking] = useState('daily');
   const setPosterConfiguratorPreset = useCallback((value: PosterConfiguratorPreset) => {
     setPosterConfiguratorPresetState(value);
-    if (value === 'simple') {
-      setPosterImageText('clean');
+    if (value === 'preset1') {
+      setPosterRatingStyle('plain');
       setPosterAnimeImageText('default');
-      setPosterStreamBadges('on');
-      setPosterQualityBadgesStyle('plain');
-      setPosterQualityBadgesColorMode('white');
-      setPosterQualityBadgesPosition('top');
-      setRanking('daily');
-      setRankingPosition('top');
+      setPosterAverageRatingsEnabled(true);
       setPosterGenrePosition('top');
-      setPosterVignetteEnabled(true);
+      setPosterStreamBadges('on');
+      setPosterQualityBadgesPosition('top');
+      setPosterQualityBadgesStyle('plain');
+      setPosterImageText('clean');
       setPosterRatingsLayout('bottom');
-      setPosterRatingsColorMode('colored');
-    } else {
+      setRanking('daily');
+      setRankingCountry('IT');
+      setRankingPosition('top');
+      setRankingCompact(false);
+      setRankingNoBox(false);
+      setPosterVignetteEnabled(true);
+    } else if (value === 'preset2') {
+      setPosterRatingStyle('plain');
+      setPosterAnimeImageText('default');
       setPosterAverageRatingsEnabled(false);
+      setPosterGenrePosition('top');
+      setPosterStreamBadges('on');
+      setPosterQualityBadgesPosition('top');
+      setPosterQualityBadgesStyle('plain');
+      setPosterImageText('clean');
+      setPosterRatingsLayout('bottom');
+      setRanking('daily');
+      setRankingCountry('US');
+      setRankingPosition('above-logo');
+      setRankingCompact(false);
+      setRankingNoBox(false);
+      setPosterVignetteEnabled(true);
+    } else if (value === 'preset3') {
+      setPosterRatingStyle('plain');
+      setPosterAnimeImageText('default');
+      setPosterAverageRatingsEnabled(false);
+      setPosterGenrePosition('bottom');
+      setPosterStreamBadges('on');
+      setPosterQualityBadgesPosition('bottom');
+      setPosterQualityBadgesStyle('plain');
+      setPosterImageText('clean');
+      setPosterRatingsLayout('top');
+      setRanking('daily');
+      setRankingCountry('IT');
+      setRankingPosition('above-logo');
+      setRankingCompact(false);
+      setRankingNoBox(false);
+      setPosterVignetteEnabled(true);
+    } else if (value === 'preset4') {
+      setPosterRatingStyle('plain');
+      setPosterAnimeImageText('default');
+      setPosterAverageRatingsEnabled(false);
+      setPosterGenrePosition('off');
+      setPosterStreamBadges('off');
+      setPosterQualityBadgesPosition('top');
+      setPosterQualityBadgesStyle('plain');
+      setPosterImageText('clean');
+      setPosterRatingsLayout('top-bottom');
+      setRanking('daily');
+      setRankingCountry('IT');
+      setRankingPosition('above-logo');
+      setRankingCompact(false);
+      setRankingNoBox(false);
+      setPosterVignetteEnabled(true);
+    } else if (value === 'preset5') {
+      setPosterRatingStyle('plain');
+      setPosterAnimeImageText('default');
+      setPosterAverageRatingsEnabled(false);
+      setPosterGenrePosition('above-logo');
+      setPosterStreamBadges('on');
+      setPosterQualityBadgesPosition('above-logo');
+      setPosterQualityBadgesStyle('plain');
+      setPosterImageText('clean');
+      setPosterRatingsLayout('top-bottom');
+      setRanking('daily');
+      setRankingCountry('IT');
+      setRankingPosition('top');
+      setRankingCompact(false);
+      setRankingNoBox(false);
+      setPosterVignetteEnabled(true);
+    } else if (value === 'preset6') {
+      setPosterRatingStyle('plain');
+      setPosterAnimeImageText('default');
+      setPosterAverageRatingsEnabled(false);
+      setPosterGenrePosition('bottom');
+      setPosterStreamBadges('on');
+      setPosterQualityBadgesPosition('bottom');
+      setPosterQualityBadgesStyle('plain');
+      setPosterImageText('clean');
+      setPosterRatingsLayout('left-right');
+      setPosterVerticalBadgeContent('stacked');
+      setRanking('daily');
+      setRankingCountry('IT');
+      setRankingPosition('above-logo');
+      setRankingCompact(false);
+      setRankingNoBox(false);
+      setPosterVignetteEnabled(true);
+    } else if (value === 'preset7') {
+      setPosterRatingStyle('plain');
+      setPosterAnimeImageText('default');
+      setPosterAverageRatingsEnabled(false);
+      setPosterGenrePosition('bottom');
+      setPosterStreamBadges('on');
+      setPosterQualityBadgesPosition('bottom');
+      setPosterQualityBadgesStyle('plain');
+      setPosterImageText('clean');
+      setPosterRatingsLayout('left-right');
+      setPosterVerticalBadgeContent('standard');
+      setRanking('daily');
+      setRankingCountry('IT');
+      setRankingPosition('above-logo');
+      setRankingCompact(false);
+      setRankingNoBox(false);
+      setPosterVignetteEnabled(true);
     }
   }, []);
   const [posterRatingsLayout, setPosterRatingsLayout] = useState<PosterRatingLayout>('bottom');
@@ -258,11 +375,11 @@ export function useHomePageController({
   const [backdropVerticalBadgeContent, setBackdropVerticalBadgeContent] = useState<VerticalBadgeContent>('stacked');
   const [thumbnailVerticalBadgeContent, setThumbnailVerticalBadgeContent] = useState<VerticalBadgeContent>('stacked');
   const [thumbnailSize, setThumbnailSize] = useState<ThumbnailSize>('large');
-  const [posterRatingStyle, setPosterRatingStyle] = useState<RatingStyle>('glass');
+  const [posterRatingStyle, setPosterRatingStyle] = useState<RatingStyle>('plain');
   const [backdropRatingStyle, setBackdropRatingStyle] = useState<RatingStyle>('glass');
   const [posterRatingsColorMode, setPosterRatingsColorMode] = useState<'colored' | 'transparent'>('colored');
   const [backdropRatingsColorMode, setBackdropRatingsColorMode] = useState<'colored' | 'transparent'>('colored');
-  const [rankingCountry, setRankingCountry] = useState('global');
+  const [rankingCountry, setRankingCountry] = useState('IT');
   const [rankingCountryTouched, setRankingCountryTouched] = useState(false);
   const [rankingNoBox, setRankingNoBox] = useState(false);
   const [rankingCompact, setRankingCompact] = useState(false);
@@ -764,26 +881,36 @@ export function useHomePageController({
             ? thumbnailRatingPreferences
             : logoRatingPreferences;
     const ratingsQuery = stringifyRatingPreferencesAllowEmpty(ratingPreferencesForType);
+    const isPreset1 = previewType === 'poster' && posterConfiguratorPreset === 'preset1';
+    const isPreset2 = previewType === 'poster' && posterConfiguratorPreset === 'preset2';
+    const isPreset3 = previewType === 'poster' && posterConfiguratorPreset === 'preset3';
+    const isPreset4 = previewType === 'poster' && posterConfiguratorPreset === 'preset4';
+    const isPreset5 = previewType === 'poster' && posterConfiguratorPreset === 'preset5';
+    const isPreset6 = previewType === 'poster' && posterConfiguratorPreset === 'preset6';
+    const isPreset7 = previewType === 'poster' && posterConfiguratorPreset === 'preset7';
+    const isPreset = isPreset1 || isPreset2 || isPreset3 || isPreset4 || isPreset5 || isPreset6 || isPreset7;
     const ratingStyleForType =
-      isSimplePosterPreset
-        ? 'plain'
-        : previewType === 'poster'
-          ? posterRatingStyle
-          : previewType === 'backdrop'
-            ? backdropRatingStyle
-            : previewType === 'thumbnail'
-              ? thumbnailRatingStyle
-              : logoRatingStyle;
+      previewType === 'poster'
+        ? posterRatingStyle
+        : previewType === 'backdrop'
+          ? backdropRatingStyle
+          : previewType === 'thumbnail'
+            ? thumbnailRatingStyle
+            : logoRatingStyle;
     const imageTextForType =
-      isSimplePosterPreset ? 'clean' : previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : posterImageText;
+      previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : (isPreset ? 'clean' : posterImageText);
     const streamBadgesForType =
-      previewType === 'backdrop' || previewType === 'thumbnail' ? backdropStreamBadges : posterStreamBadges;
+      previewType === 'backdrop' || previewType === 'thumbnail'
+        ? backdropStreamBadges
+        : isPreset4
+          ? 'off'
+          : isPreset
+            ? 'on'
+            : posterStreamBadges;
     const qualityBadgesStyleForType =
       previewType === 'backdrop' || previewType === 'thumbnail'
         ? backdropQualityBadgesStyle
-        : isSimplePosterPreset
-          ? 'plain'
-          : posterQualityBadgesStyle;
+        : posterQualityBadgesStyle;
     const qualityBadgesColorModeForType =
       previewType === 'backdrop' || previewType === 'thumbnail'
         ? backdropQualityBadgesColorMode
@@ -810,21 +937,16 @@ export function useHomePageController({
       if (posterAnimeLang) {
         query.set('posterAnimeLang', effectivePosterAnimeLang);
       }
-      query.set('posterAnimeImageText', isSimplePosterPreset ? 'default' : posterAnimeImageText);
-      if (isSimplePosterPreset && posterSimpleRatingSource !== 'average') {
-        query.set('posterRatings', posterSimpleRatingSource);
-      } else {
-        query.set('posterRatings', ratingsQuery);
-      }
-      if (isSimplePosterPreset || shouldUsePosterAverageRatings) {
+      query.set('posterAnimeImageText', isPreset ? 'default' : posterAnimeImageText);
+      query.set('posterRatings', ratingsQuery);
+      if (isPreset1 || shouldUsePosterAverageRatings) {
         query.set('posterRatingsMode', 'average');
       }
-      if (posterGenrePosition !== 'off') {
-        query.set('posterGenrePosition', posterGenrePosition);
+      const effectiveGenrePos = isPreset1 ? 'top' : (isPreset2 ? 'top' : (isPreset3 ? 'bottom' : (isPreset5 ? 'above-logo' : (isPreset4 ? 'off' : ((isPreset6 || isPreset7) ? 'bottom' : posterGenrePosition)))));
+      if (effectiveGenrePos !== 'off') {
+        query.set('posterGenrePosition', effectiveGenrePos);
       }
-      if (isSimplePosterPreset) {
-        query.set('posterConfiguratorPreset', 'simple');
-      }
+      query.set('posterConfiguratorPreset', posterConfiguratorPreset);
     } else if (previewType === 'backdrop') {
       if (backdropLang) {
         query.set('backdropLang', effectiveBackdropLang);
@@ -869,8 +991,9 @@ export function useHomePageController({
     if (shouldShowQualityBadgesSide && qualityBadgesSide !== 'left') {
       query.set('qualityBadgesSide', qualityBadgesSide);
     }
-    if (shouldShowQualityBadgesPosition && posterQualityBadgesPosition !== 'auto') {
-      query.set('posterQualityBadgesPosition', posterQualityBadgesPosition);
+    const effectivePosterQualityBadgesPosition = (isPreset3 || isPreset6 || isPreset7) ? 'bottom' : (isPreset5 ? 'above-logo' : (isPreset ? 'top' : posterQualityBadgesPosition));
+    if (shouldShowQualityBadgesPosition && effectivePosterQualityBadgesPosition !== 'auto') {
+      query.set('posterQualityBadgesPosition', effectivePosterQualityBadgesPosition);
     }
     if (previewType !== 'logo' && previewType !== 'thumbnail' && qualityBadgesStyleForType !== DEFAULT_QUALITY_BADGES_STYLE) {
       query.set(
@@ -906,13 +1029,14 @@ export function useHomePageController({
       query.set('imageText', imageTextForType);
     }
     if (previewType === 'poster') {
-      const effectivePosterRatingsLayout = posterRatingsLayout;
+      const effectivePosterRatingsLayout = isPreset3 ? 'top' : (isPreset4 || isPreset5 ? 'top-bottom' : ((isPreset6 || isPreset7) ? 'left-right' : (isPreset ? 'bottom' : posterRatingsLayout)));
       query.set('posterRatingsLayout', effectivePosterRatingsLayout);
       if (isVerticalPosterRatingLayout(effectivePosterRatingsLayout) && posterRatingsMaxPerSide !== null) {
         query.set('posterRatingsMaxPerSide', String(posterRatingsMaxPerSide));
       }
-      if (!isSimplePosterPreset && isVerticalPosterRatingLayout(posterRatingsLayout) && posterVerticalBadgeContent !== 'standard') {
-        query.set('posterVerticalBadgeContent', posterVerticalBadgeContent);
+    const effectiveVerticalBadgeContent = isPreset6 ? 'stacked' : posterVerticalBadgeContent;
+      if (isVerticalPosterRatingLayout(effectivePosterRatingsLayout) && effectiveVerticalBadgeContent !== 'standard') {
+        query.set('posterVerticalBadgeContent', effectiveVerticalBadgeContent);
       }
     } else if (previewType === 'backdrop' || previewType === 'thumbnail') {
       query.set(
@@ -949,11 +1073,12 @@ export function useHomePageController({
       if (rankingNoBox) {
         query.set('rankingNoBox', 'on');
       }
-      if (rankingCompact) {
+      if (!isPreset && rankingCompact) {
         query.set('rankingCompact', 'on');
       }
-      if (rankingPosition !== 'auto') {
-        query.set('rankingPosition', rankingPosition);
+      const effectiveRankingPosition = isPreset2 || isPreset3 || isPreset4 || isPreset6 || isPreset7 ? 'above-logo' : (isPreset ? 'top' : rankingPosition);
+      if (effectiveRankingPosition !== 'auto') {
+        query.set('rankingPosition', effectiveRankingPosition);
       }
     }
     if (previewType === 'poster' && !posterVignetteEnabled) {
@@ -1027,16 +1152,26 @@ export function useHomePageController({
     simklClientId,
     fanartKey,
     tmdbKey,
-    isSimplePosterPreset,
-    shouldUsePosterAverageRatings,
+    posterRatingsLayout,
+    posterRatingsMaxPerSide,
+    posterVerticalBadgeContent,
+    posterQualityBadgesPosition,
+    posterQualityBadgesStyle,
+    posterQualityBadgesColorMode,
+    posterStreamBadges,
+    posterAverageRatingsEnabled,
+    posterVignetteEnabled,
     posterGenrePosition,
-    posterSimpleRatingSource,
     ranking,
     effectiveRankingCountry,
     rankingNoBox,
     rankingCompact,
     rankingPosition,
-    posterVignetteEnabled,
+    mdblistKey,
+    simklClientId,
+    fanartKey,
+    tmdbKey,
+    shouldUsePosterAverageRatings,
   ]);
 
   const configString = useMemo(() => {
@@ -1080,8 +1215,17 @@ export function useHomePageController({
     if (effectiveLang) {
       config.lang = effectiveLang;
     }
+    const isPreset1 = posterConfiguratorPreset === 'preset1';
+    const isPreset2 = posterConfiguratorPreset === 'preset2';
+    const isPreset3 = posterConfiguratorPreset === 'preset3';
+    const isPreset4 = posterConfiguratorPreset === 'preset4';
+    const isPreset5 = posterConfiguratorPreset === 'preset5';
+    const isPreset6 = posterConfiguratorPreset === 'preset6';
+    const isPreset7 = posterConfiguratorPreset === 'preset7';
+    const isPreset = isPreset1 || isPreset2 || isPreset3 || isPreset4 || isPreset5 || isPreset6 || isPreset7;
+    const effectivePosterRatingsLayout = isPreset3 ? 'top' : (isPreset4 || isPreset5 ? 'top-bottom' : ((isPreset6 || isPreset7) ? 'left-right' : (isPreset ? 'bottom' : posterRatingsLayout)));
     if (posterAnimeImageText) {
-      config.posterAnimeImageText = posterConfiguratorPreset === 'simple' ? 'default' : posterAnimeImageText;
+      config.posterAnimeImageText = isPreset ? 'default' : posterAnimeImageText;
     }
     if (backdropAnimeImageText) {
       config.backdropAnimeImageText = backdropAnimeImageText;
@@ -1104,7 +1248,7 @@ export function useHomePageController({
     if (logoAnimeLang) {
       config.logoAnimeLang = effectiveLogoAnimeLang;
     }
-    const effectivePosterStreamBadges = posterStreamBadges;
+    const effectivePosterStreamBadges = isPreset4 ? 'off' : (isPreset ? 'on' : posterStreamBadges);
     if (effectivePosterStreamBadges !== 'auto') {
       config.posterStreamBadges = effectivePosterStreamBadges;
     }
@@ -1114,21 +1258,15 @@ export function useHomePageController({
     if (shouldShowPosterQualityBadgesSide && qualityBadgesSide !== 'left') {
       config.qualityBadgesSide = qualityBadgesSide;
     }
-    if (shouldShowPosterQualityBadgesPosition && posterQualityBadgesPosition !== 'auto') {
-      config.posterQualityBadgesPosition = posterQualityBadgesPosition;
+    const effectivePosterQualityBadgesPosition = (isPreset3 || isPreset6 || isPreset7) ? 'bottom' : (isPreset5 ? 'above-logo' : (isPreset ? 'top' : posterQualityBadgesPosition));
+    if (shouldShowPosterQualityBadgesPosition && effectivePosterQualityBadgesPosition !== 'auto') {
+      config.posterQualityBadgesPosition = effectivePosterQualityBadgesPosition;
     }
-    if (posterConfiguratorPreset === 'simple') {
-      config.posterQualityBadgesStyle = 'plain';
-      if (posterQualityBadgesColorMode !== 'white') {
-        config.posterQualityBadgesColorMode = posterQualityBadgesColorMode;
-      }
-    } else {
-      if (posterQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
-        config.posterQualityBadgesStyle = posterQualityBadgesStyle;
-      }
-      if (posterQualityBadgesColorMode !== 'white') {
-        config.posterQualityBadgesColorMode = posterQualityBadgesColorMode;
-      }
+    if (posterQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
+      config.posterQualityBadgesStyle = posterQualityBadgesStyle;
+    }
+    if (posterQualityBadgesColorMode !== 'white') {
+      config.posterQualityBadgesColorMode = posterQualityBadgesColorMode;
     }
     if (backdropQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
       config.backdropQualityBadgesStyle = backdropQualityBadgesStyle;
@@ -1136,10 +1274,10 @@ export function useHomePageController({
     if (backdropQualityBadgesColorMode !== 'white') {
       config.backdropQualityBadgesColorMode = backdropQualityBadgesColorMode;
     }
-    if (posterConfiguratorPreset !== 'simple' && posterRatingStyle) {
+    if (posterRatingStyle) {
       config.posterRatingStyle = posterRatingStyle;
     }
-    if (posterConfiguratorPreset !== 'simple' && posterRatingsColorMode !== 'colored') {
+    if (posterRatingsColorMode !== 'colored') {
       config.posterRatingsColorMode = posterRatingsColorMode;
     }
     if (backdropRatingStyle) {
@@ -1161,32 +1299,25 @@ export function useHomePageController({
       config.logoRatingsColorMode = logoRatingsColorMode;
     }
     if (posterImageText) {
-      config.posterImageText = posterConfiguratorPreset === 'simple' ? 'clean' : posterImageText;
+      config.posterImageText = isPreset ? 'clean' : posterImageText;
     }
     if (backdropImageText) {
       config.backdropImageText = backdropImageText;
     }
-    if (posterConfiguratorPreset === 'simple') {
-      config.posterConfiguratorPreset = 'simple';
-      config.posterRatingsMode = 'average';
-      if (posterSimpleRatingSource !== 'average') {
-        config.posterRatings = posterSimpleRatingSource;
-      }
-      config.posterRatingStyle = 'plain';
-      config.posterRatingsLayout = posterRatingsLayout;
-      if (posterGenrePosition !== 'off') {
-        config.posterGenrePosition = posterGenrePosition;
-      }
-    } else if (posterRatingsLayout) {
-      if (posterAverageRatingsEnabled) {
+    if (posterConfiguratorPreset === 'preset1' || posterConfiguratorPreset === 'preset2' || posterConfiguratorPreset === 'preset3' || posterConfiguratorPreset === 'preset4' || posterConfiguratorPreset === 'preset5' || posterConfiguratorPreset === 'preset6' || posterConfiguratorPreset === 'preset7') {
+      config.posterConfiguratorPreset = posterConfiguratorPreset;
+    }
+    if (posterRatingsLayout) {
+      if (isPreset1 || posterAverageRatingsEnabled) {
         config.posterRatingsMode = 'average';
       }
-      config.posterRatingsLayout = posterRatingsLayout;
-      if (posterGenrePosition !== 'off') {
-        config.posterGenrePosition = posterGenrePosition;
+      config.posterRatingsLayout = effectivePosterRatingsLayout;
+      const effectiveGenrePos = isPreset1 ? 'top' : (isPreset2 ? 'top' : (isPreset3 ? 'bottom' : (isPreset5 ? 'above-logo' : (isPreset4 ? 'off' : ((isPreset6 || isPreset7) ? 'bottom' : posterGenrePosition)))));
+      if (effectiveGenrePos !== 'off') {
+        config.posterGenrePosition = effectiveGenrePos;
       }
     }
-    if (isVerticalPosterRatingLayout(posterRatingsLayout) && posterRatingsMaxPerSide !== null) {
+    if (isVerticalPosterRatingLayout(effectivePosterRatingsLayout) && posterRatingsMaxPerSide !== null) {
       config.posterRatingsMaxPerSide = posterRatingsMaxPerSide;
     }
     if (logoRatingsMax !== null) {
@@ -1216,8 +1347,9 @@ export function useHomePageController({
     if (thumbnailSize) {
       config.thumbnailSize = thumbnailSize;
     }
-    if (isVerticalPosterRatingLayout(posterRatingsLayout) && posterVerticalBadgeContent !== 'standard') {
-      config.posterVerticalBadgeContent = posterVerticalBadgeContent;
+    const effectiveVerticalBadgeContent = isPreset6 ? 'stacked' : posterVerticalBadgeContent;
+    if (isVerticalPosterRatingLayout(effectivePosterRatingsLayout) && effectiveVerticalBadgeContent !== 'standard') {
+      config.posterVerticalBadgeContent = effectiveVerticalBadgeContent;
     }
     if (
       (backdropRatingsLayout === 'right-vertical' || thumbnailRatingsLayout.endsWith('-vertical')) &&
@@ -1239,11 +1371,12 @@ export function useHomePageController({
       if (rankingNoBox) {
         config.rankingNoBox = 'on';
       }
-      if (rankingCompact) {
+      if (!isPreset && rankingCompact) {
         config.rankingCompact = 'on';
       }
-      if (rankingPosition !== 'auto') {
-        config.rankingPosition = rankingPosition;
+      const effectiveRankingPosition = isPreset2 || isPreset3 || isPreset4 || isPreset6 || isPreset7 ? 'above-logo' : (isPreset ? 'top' : rankingPosition);
+      if (effectiveRankingPosition !== 'auto') {
+        config.rankingPosition = effectiveRankingPosition;
       }
     }
     if (!posterVignetteEnabled) {
@@ -1426,9 +1559,18 @@ export function useHomePageController({
     if (logoAnimeLang) {
       config.logoAnimeLang = effectiveLogoAnimeLang;
     }
-    config.posterAnimeImageText = posterConfiguratorPreset === 'simple' ? 'default' : posterAnimeImageText;
+    const isPreset1 = posterConfiguratorPreset === 'preset1';
+    const isPreset2 = posterConfiguratorPreset === 'preset2';
+    const isPreset3 = posterConfiguratorPreset === 'preset3';
+    const isPreset4 = posterConfiguratorPreset === 'preset4';
+    const isPreset5 = posterConfiguratorPreset === 'preset5';
+    const isPreset6 = posterConfiguratorPreset === 'preset6';
+    const isPreset7 = posterConfiguratorPreset === 'preset7';
+    const isPreset = isPreset1 || isPreset2 || isPreset3 || isPreset4 || isPreset5 || isPreset6 || isPreset7;
+    const effectivePosterRatingsLayout = isPreset3 ? 'top' : (isPreset4 || isPreset5 ? 'top-bottom' : ((isPreset6 || isPreset7) ? 'left-right' : (isPreset ? 'bottom' : posterRatingsLayout)));
+    config.posterAnimeImageText = isPreset ? 'default' : posterAnimeImageText;
     config.backdropAnimeImageText = backdropAnimeImageText;
-    const proxyEffectivePosterStreamBadges = posterStreamBadges;
+    const proxyEffectivePosterStreamBadges = isPreset4 ? 'off' : (isPreset ? 'on' : posterStreamBadges);
     if (proxyEffectivePosterStreamBadges !== 'auto') {
       config.posterStreamBadges = proxyEffectivePosterStreamBadges;
     }
@@ -1438,21 +1580,15 @@ export function useHomePageController({
     if (shouldShowPosterQualityBadgesSide && qualityBadgesSide !== 'left') {
       config.qualityBadgesSide = qualityBadgesSide;
     }
-    if (shouldShowPosterQualityBadgesPosition && posterQualityBadgesPosition !== 'auto') {
-      config.posterQualityBadgesPosition = posterQualityBadgesPosition;
+    const effectivePosterQualityBadgesPosition = (isPreset3 || isPreset6 || isPreset7) ? 'bottom' : (isPreset5 ? 'above-logo' : (isPreset ? 'top' : posterQualityBadgesPosition));
+    if (shouldShowPosterQualityBadgesPosition && effectivePosterQualityBadgesPosition !== 'auto') {
+      config.posterQualityBadgesPosition = effectivePosterQualityBadgesPosition;
     }
-    if (posterConfiguratorPreset === 'simple') {
-      config.posterQualityBadgesStyle = 'plain';
-      if (posterQualityBadgesColorMode !== 'white') {
-        config.posterQualityBadgesColorMode = posterQualityBadgesColorMode;
-      }
-    } else {
-      if (posterQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
-        config.posterQualityBadgesStyle = posterQualityBadgesStyle;
-      }
-      if (posterQualityBadgesColorMode !== 'white') {
-        config.posterQualityBadgesColorMode = posterQualityBadgesColorMode;
-      }
+    if (posterQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
+      config.posterQualityBadgesStyle = posterQualityBadgesStyle;
+    }
+    if (posterQualityBadgesColorMode !== 'white') {
+      config.posterQualityBadgesColorMode = posterQualityBadgesColorMode;
     }
     if (backdropQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
       config.backdropQualityBadgesStyle = backdropQualityBadgesStyle;
@@ -1460,31 +1596,19 @@ export function useHomePageController({
     if (backdropQualityBadgesColorMode !== 'white') {
       config.backdropQualityBadgesColorMode = backdropQualityBadgesColorMode;
     }
-    if (posterConfiguratorPreset === 'simple') {
-      config.posterConfiguratorPreset = 'simple';
-      config.posterRatingsMode = 'average';
-      if (posterSimpleRatingSource !== 'average') {
-        config.posterRatings = posterSimpleRatingSource;
+    if (posterRatingStyle) config.posterRatingStyle = posterRatingStyle;
+    if (posterRatingsColorMode) config.posterRatingsColorMode = posterRatingsColorMode;
+    if (posterRatingsLayout) {
+      if (isPreset1 || posterAverageRatingsEnabled) {
+        config.posterRatingsMode = 'average';
       }
-      config.posterRatingStyle = 'plain';
-      config.posterRatingsLayout = posterRatingsLayout;
-      if (posterGenrePosition !== 'off') {
-        config.posterGenrePosition = posterGenrePosition;
-      }
-    } else {
-       if (posterRatingStyle) config.posterRatingStyle = posterRatingStyle;
-       if (posterRatingsColorMode) config.posterRatingsColorMode = posterRatingsColorMode;
-       if (posterRatingsLayout) {
-        if (posterAverageRatingsEnabled) {
-          config.posterRatingsMode = 'average';
-        }
-        config.posterRatingsLayout = posterRatingsLayout;
-        if (posterGenrePosition !== 'off') {
-          config.posterGenrePosition = posterGenrePosition;
-        }
+      config.posterRatingsLayout = effectivePosterRatingsLayout;
+      const effectiveGenrePos = isPreset1 ? 'top' : (isPreset2 ? 'top' : (isPreset3 ? 'bottom' : (isPreset5 ? 'above-logo' : (isPreset4 ? 'off' : ((isPreset6 || isPreset7) ? 'bottom' : posterGenrePosition)))));
+      if (effectiveGenrePos !== 'off') {
+        config.posterGenrePosition = effectiveGenrePos;
       }
     }
-    if (isVerticalPosterRatingLayout(posterRatingsLayout) && posterRatingsMaxPerSide !== null) {
+    if (isVerticalPosterRatingLayout(effectivePosterRatingsLayout) && posterRatingsMaxPerSide !== null) {
       config.posterRatingsMaxPerSide = posterRatingsMaxPerSide;
     }
     if (backdropRatingStyle) config.backdropRatingStyle = backdropRatingStyle;
@@ -1498,7 +1622,7 @@ export function useHomePageController({
     config.logoPrimary = logoCustomPrimary;
     config.logoSecondary = logoCustomSecondary;
     config.logoOutline = logoCustomOutline;
-    config.posterImageText = posterConfiguratorPreset === 'simple' ? 'clean' : posterImageText;
+    config.posterImageText = isPreset ? 'clean' : posterImageText;
     config.backdropImageText = backdropImageText;
     config.posterEnabled = proxyEnabledTypes.poster;
     config.backdropEnabled = proxyEnabledTypes.backdrop;
@@ -1520,25 +1644,8 @@ export function useHomePageController({
       config.discoverOnlyCatalogs = sanitizedProxyDiscoverOnlyCatalogs;
     }
 
-    if (posterConfiguratorPreset === 'simple') {
-      config.posterConfiguratorPreset = 'simple';
-      config.posterRatingsMode = 'average';
-      if (posterSimpleRatingSource !== 'average') {
-        config.posterRatings = posterSimpleRatingSource;
-      }
-      config.posterRatingStyle = 'plain';
-      config.posterRatingsLayout = posterRatingsLayout;
-      if (posterGenrePosition !== 'off') {
-        config.posterGenrePosition = posterGenrePosition;
-      }
-    } else if (posterRatingsLayout) {
-      if (posterAverageRatingsEnabled) {
-        config.posterRatingsMode = 'average';
-      }
-      config.posterRatingsLayout = posterRatingsLayout;
-      if (posterGenrePosition !== 'off') {
-        config.posterGenrePosition = posterGenrePosition;
-      }
+    if (posterConfiguratorPreset === 'preset1' || posterConfiguratorPreset === 'preset2' || posterConfiguratorPreset === 'preset3' || posterConfiguratorPreset === 'preset4' || posterConfiguratorPreset === 'preset5' || posterConfiguratorPreset === 'preset6' || posterConfiguratorPreset === 'preset7') {
+      config.posterConfiguratorPreset = posterConfiguratorPreset;
     }
     if (isVerticalPosterRatingLayout(posterRatingsLayout) && posterRatingsMaxPerSide !== null) {
       config.posterRatingsMaxPerSide = String(posterRatingsMaxPerSide);
@@ -1561,8 +1668,9 @@ export function useHomePageController({
     if (thumbnailSize) {
       config.thumbnailSize = thumbnailSize;
     }
-    if (isVerticalPosterRatingLayout(posterRatingsLayout) && posterVerticalBadgeContent !== 'standard') {
-      config.posterVerticalBadgeContent = posterVerticalBadgeContent;
+    const effectiveVerticalBadgeContent = isPreset6 ? 'stacked' : posterVerticalBadgeContent;
+    if (isVerticalPosterRatingLayout(effectivePosterRatingsLayout) && effectiveVerticalBadgeContent !== 'standard') {
+      config.posterVerticalBadgeContent = effectiveVerticalBadgeContent;
     }
     if (
       (backdropRatingsLayout === 'right-vertical' || thumbnailRatingsLayout.endsWith('-vertical')) &&
@@ -1584,11 +1692,12 @@ export function useHomePageController({
       if (rankingNoBox) {
         config.rankingNoBox = 'on';
       }
-      if (rankingCompact) {
+      if (!isPreset && rankingCompact) {
         config.rankingCompact = 'on';
       }
-      if (rankingPosition !== 'auto') {
-        config.rankingPosition = rankingPosition;
+      const effectiveRankingPosition = isPreset2 || isPreset3 || isPreset4 || isPreset6 || isPreset7 ? 'above-logo' : (isPreset ? 'top' : rankingPosition);
+      if (effectiveRankingPosition !== 'auto') {
+        config.rankingPosition = effectiveRankingPosition;
       }
     }
     if (isAiometadataManifest) {
@@ -1961,15 +2070,7 @@ export function useHomePageController({
     if (typeof payload.previewType === 'string' && isPreviewType(payload.previewType)) {
       setPreviewType(payload.previewType);
     }
-    if (payload.posterConfiguratorPreset === 'simple' || payload.posterRatingsMode === 'average') {
-      if (payload.posterConfiguratorPreset === 'simple') {
-        setPosterConfiguratorPreset('simple');
-      } else {
-        setPosterAverageRatingsEnabled(true);
-      }
-    } else if (payload.posterConfiguratorPreset === 'advanced') {
-      setPosterConfiguratorPreset('advanced');
-    }
+
     if (
       typeof payload.posterSimpleRatingSource === 'string' &&
       (payload.posterSimpleRatingSource === 'average' || isRatingProviderId(payload.posterSimpleRatingSource))
@@ -2054,8 +2155,24 @@ export function useHomePageController({
     if (typeof payload.logoCustomOutline === 'string') {
       setLogoCustomOutline(normalizeHexColor(payload.logoCustomOutline, DEFAULT_LOGO_CUSTOM_OUTLINE));
     }
-    if (typeof payload.posterConfiguratorPreset === 'string' && (payload.posterConfiguratorPreset === 'simple' || payload.posterConfiguratorPreset === 'advanced')) {
-      setPosterConfiguratorPreset(payload.posterConfiguratorPreset);
+    if (typeof payload.posterConfiguratorPreset === 'string' && (payload.posterConfiguratorPreset === 'simple' || payload.posterConfiguratorPreset === 'advanced' || payload.posterConfiguratorPreset === 'preset1' || payload.posterConfiguratorPreset === 'preset2' || payload.posterConfiguratorPreset === 'preset3' || payload.posterConfiguratorPreset === 'preset4' || payload.posterConfiguratorPreset === 'preset5' || payload.posterConfiguratorPreset === 'preset6' || payload.posterConfiguratorPreset === 'preset7' || payload.posterConfiguratorPreset === 'custom')) {
+      setPosterConfiguratorPresetState(
+        payload.posterConfiguratorPreset === 'preset2'
+          ? 'preset2'
+          : payload.posterConfiguratorPreset === 'preset3'
+            ? 'preset3'
+            : payload.posterConfiguratorPreset === 'preset4'
+              ? 'preset4'
+              : payload.posterConfiguratorPreset === 'preset5'
+                ? 'preset5'
+                : payload.posterConfiguratorPreset === 'preset6'
+                  ? 'preset6'
+                  : payload.posterConfiguratorPreset === 'preset7'
+                    ? 'preset7'
+                    : (payload.posterConfiguratorPreset === 'custom' || payload.posterConfiguratorPreset === 'advanced')
+                      ? 'custom'
+                      : 'preset1'
+      );
     }
     if (typeof payload.posterAverageRatingsEnabled === 'boolean') {
       setPosterAverageRatingsEnabled(payload.posterAverageRatingsEnabled);
@@ -2091,7 +2208,7 @@ export function useHomePageController({
     if (typeof payload.rankingPosition === 'string') {
       setRankingPosition(normalizeRankingPosition(payload.rankingPosition));
     }
-    if (typeof payload.posterRatingsLayout === 'string' && isPosterRatingLayout(payload.posterRatingsLayout) && payload.posterConfiguratorPreset !== 'simple') {
+    if (typeof payload.posterRatingsLayout === 'string' && isPosterRatingLayout(payload.posterRatingsLayout)) {
       setPosterRatingsLayout(payload.posterRatingsLayout);
     }
     if (typeof payload.backdropRatingsLayout === 'string') {
@@ -2786,15 +2903,13 @@ export function useHomePageController({
   const proxyDisplayValue = proxyUrl || `${baseUrl || 'https://erdb.example.com'}/proxy/{config}/manifest.json`;
   const displayedProxyUrl = isProxyUrlVisible ? proxyDisplayValue : maskSensitiveText(proxyDisplayValue);
   const activeRatingStyle =
-    isSimplePosterPreset
-      ? 'plain'
-      : previewType === 'poster'
-        ? posterRatingStyle
-        : previewType === 'backdrop'
-          ? backdropRatingStyle
-          : previewType === 'thumbnail'
-            ? thumbnailRatingStyle
-            : logoRatingStyle;
+    previewType === 'poster'
+      ? posterRatingStyle
+      : previewType === 'backdrop'
+        ? backdropRatingStyle
+        : previewType === 'thumbnail'
+          ? thumbnailRatingStyle
+          : logoRatingStyle;
   const activeRatingsColorMode =
     previewType === 'poster'
       ? posterRatingsColorMode
@@ -2804,7 +2919,7 @@ export function useHomePageController({
           ? thumbnailRatingsColorMode
           : logoRatingsColorMode;
   const activeImageText =
-    isSimplePosterPreset ? 'clean' : previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : posterImageText;
+    previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : posterImageText;
   const styleLabel =
     previewType === 'poster'
       ? 'Poster Ratings Style'
@@ -2836,21 +2951,6 @@ export function useHomePageController({
       ? ratingProviderRows.filter((row) => THUMBNAIL_SUPPORTED_RATINGS.includes(row.id))
       : ratingProviderRows;
   const enabledRatingCount = visibleRatingProviderRows.filter(r => r.enabled).length;
-  const tooManyRatings = previewType === 'poster'
-    ? isVerticalPosterRatingLayout(posterRatingsLayout) &&
-      !shouldUsePosterAverageRatings &&
-      posterStreamBadges !== 'off' && ranking !== 'off' && posterGenrePosition !== 'off' &&
-      posterRatingsMaxPerSide === null &&
-      !(rankingPosition === 'top' && posterGenrePosition === 'bottom' && posterVerticalBadgeContent === 'stacked') &&
-      !rankingCompact &&
-      enabledRatingCount > (posterRatingsLayout === 'left-right'
-        ? (posterVerticalBadgeContent === 'stacked' ? 4 : 8) + (posterImageText === 'clean' ? 0 : 2)
-        : (posterVerticalBadgeContent === 'stacked' ? 2 : 4) + (posterImageText === 'clean' ? 0 : 1))
-    : previewType === 'backdrop'
-      ? backdropRatingsMax !== null && enabledRatingCount > backdropRatingsMax
-      : previewType === 'logo'
-        ? logoRatingsMax !== null && enabledRatingCount > logoRatingsMax
-        : false;
   const previewNotice =
     !tmdbKey.trim()
       ? 'Enter a TMDB API Key to generate previews.'
@@ -2858,9 +2958,7 @@ export function useHomePageController({
         ? 'Enter an MDBList API Key to generate previews.'
         : previewType === 'thumbnail' && !EPISODE_ID_PATTERN.test(mediaId.trim())
           ? 'Movies are not supported for thumbnails.'
-          : tooManyRatings
-            ? `Too many ratings — set Max / Side to ${(posterVerticalBadgeContent === 'stacked' ? 2 : 4) + (posterImageText === 'clean' ? 0 : 1)} or fewer to avoid missing the Ranking badge.`
-            : null;
+          : null;
 
   const setRatingStyleForType = (value: RatingStyle) => {
     if (previewType === 'poster') {
