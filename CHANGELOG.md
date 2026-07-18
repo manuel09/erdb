@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.95](https://github.com/realbestia1/erdb/compare/v0.4.94...v0.4.95) - 2026-07-18
+
+- Support Kitsu thumbnail input parsing ([57df2c9](https://github.com/realbestia1/erdb/commit/57df2c9f69daf151ee593a0d10d6a5b092ab8e8d))
+  Update Kitsu input parsing to handle legacy proxy thumbnail URLs. parseKitsuInputParts now accepts an optional isThumbnail flag and returns season=null with episode pulled from the shorter parts array when appropriate. app/[type]/[id]/route.ts passes imageType==='thumbnail' to the parser. Also bump package version to 0.4.95 and include updated tsconfig.tsbuildinfo.
+
 ## [0.4.94](https://github.com/realbestia1/erdb/compare/v0.4.93...v0.4.94) - 2026-06-20
 
 - Update package.json ([52805c7](https://github.com/realbestia1/erdb/commit/52805c761a766b9ca8eb3dcbb832cdfe611e3d38))

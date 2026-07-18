@@ -486,7 +486,7 @@ export async function GET(
     episode = parts.length > 3 ? parts[3] : null;
   } else if (idPrefix === 'kitsu') {
     isKitsu = true;
-    const parsedKitsu = parseKitsuInputParts(parts);
+    const parsedKitsu = parseKitsuInputParts(parts, imageType === 'thumbnail');
     mediaId = parsedKitsu.mediaId;
     season = parsedKitsu.season;
     episode = parsedKitsu.episode;
