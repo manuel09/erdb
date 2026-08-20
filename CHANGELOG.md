@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.97](https://github.com/realbestia1/erdb/compare/v0.4.96...v0.4.97) - 2026-08-20
+
+- Remove startup image cache warmup ([b16018c](https://github.com/realbestia1/erdb/commit/b16018c55b08a52ee159bab8569724fcf2afe70f))
+  Bump version to 0.4.97. This removes the startup hook that eagerly required the image cache cleanup route during server boot. That warmup was fragile and could warn/fail during initialization without blocking startup, so the server now starts directly without it.
+
+## [0.4.96](https://github.com/realbestia1/erdb/compare/v0.4.95...v0.4.96) - 2026-08-20
+
+- Add final image cache versioning and TTL ([ded892a](https://github.com/realbestia1/erdb/commit/ded892a017679628982d6506c40aafd6d0f86326))
+  Introduce FINAL_IMAGE_RENDERER_CACHE_VERSION and persist cacheVersion with final image metadata; invalidate/prune final image files when metadata version mismatches. Add RANKING_CACHE_TTL_MS and use it for ranking fetches. Ensure distributed cache writes include cacheVersion. Improve objectStorage pruning and error logging, and make deleteCachedObject robust against ENOENT. Add warmImageCachePruner in startup script to initialize image-cache cleanup on server start. Bump package version. (Updated tsbuildinfo only reflects build metadata.)
+
 ## [0.4.95](https://github.com/realbestia1/erdb/compare/v0.4.94...v0.4.95) - 2026-07-18
 
 - Support Kitsu thumbnail input parsing ([57df2c9](https://github.com/realbestia1/erdb/commit/57df2c9f69daf151ee593a0d10d6a5b092ab8e8d))

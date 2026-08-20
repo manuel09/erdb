@@ -81,7 +81,7 @@ import { ANIME_NATIVE_INPUT_ID_PREFIX_SET, extractAnimeSubtypeFromAnimemapping, 
 import { fetchFanartImages, resolveImdbEpisodeWithTvdbOrderToTmdb, resolveTmdbEpisodeByYearBucket, resolveTvdbEpisodeToTmdb } from '@/lib/externalMediaProviders';
 import { buildServerTimingHeader, sha1Hex, withDedupe } from '@/lib/routeShared';
 import { chunkBy, DEFAULT_BADGE_MIN_METRICS, estimateBadgeHeight, fitPosterBadgeMetricsToHeight, fitPosterBadgeMetricsToWidth, getBackdropBadgePlacement, getLogoCanvasWidth, getMaxBadgeColumnCount, measureBadgeRowWidth, normalizeVerticalBadgeContent, splitBackdropVerticalBadgesIntoColumns, splitPosterBadgesByLayout, type BadgeLayoutMetrics } from '@/lib/badgeLayoutSvg';
-import { FINAL_IMAGE_RENDERER_CACHE_VERSION, TMDB_CACHE_TTL_MS, MDBLIST_CACHE_TTL_MS, MDBLIST_OLD_MOVIE_CACHE_TTL_MS, IMDB_DATASET_CACHE_TTL_MS, KITSU_CACHE_TTL_MS, SIMKL_CACHE_TTL_MS, FILMWEB_CACHE_TTL_MS, STREAM_BADGES_CACHE_TTL_MS } from '@/lib/routeConfig';
+import { FINAL_IMAGE_RENDERER_CACHE_VERSION, TMDB_CACHE_TTL_MS, MDBLIST_CACHE_TTL_MS, MDBLIST_OLD_MOVIE_CACHE_TTL_MS, IMDB_DATASET_CACHE_TTL_MS, KITSU_CACHE_TTL_MS, SIMKL_CACHE_TTL_MS, FILMWEB_CACHE_TTL_MS, STREAM_BADGES_CACHE_TTL_MS, RANKING_CACHE_TTL_MS } from '@/lib/routeConfig';
 import { HttpError, type PhaseDurations, type RenderImageType, type RenderedImagePayload } from '@/lib/routeTypes';
 import { FALLBACK_IMAGE_LANGUAGE, getDeterministicTtlMs, getTmdbLanguageFallbackChain, isImdbId, isOriginalLanguageSetting, resolveOriginalAwareImageLanguage, resolveRequestedImageLanguage } from '@/lib/routeUtils';
 import { normalizeRatingValue } from '@/lib/ratingProviderParsing';
@@ -2910,7 +2910,10 @@ export async function GET(
         const payload = await getSourceImagePayload(imgUrl);
         if (shouldCacheFinalImage) {
           try {
-            await putCachedImageToObjectStorage(finalObjectStorageKey, payload);
+            await putCachedImageToObjectStorage(finalObjectStorageKey, {
+              ...payload,
+              cacheVersion: FINAL_IMAGE_RENDERER_CACHE_VERSION,
+            });
           } catch {
             // Ignore cache persistence failures
           }
@@ -3055,7 +3058,10 @@ export async function GET(
         const payload = await getSourceImagePayload(imgUrl);
         if (shouldCacheFinalImage) {
           try {
-            await putCachedImageToObjectStorage(finalObjectStorageKey, payload);
+            await putCachedImageToObjectStorage(finalObjectStorageKey, {
+              ...payload,
+              cacheVersion: FINAL_IMAGE_RENDERER_CACHE_VERSION,
+            });
           } catch {
             // Ignore cache persistence failures
           }
@@ -3645,7 +3651,7 @@ export async function GET(
         }),
         ...(streamBadges.length > 0 ? [streamBadgesCacheTtlMs ?? STREAM_BADGES_CACHE_TTL_MS] : []),
         ...(posterGenreBadge ? [TMDB_CACHE_TTL_MS] : []),
-        ...(rankingBadge ? [1 * 60 * 60 * 1000] : []),
+        ...(rankingBadge ? [RANKING_CACHE_TTL_MS] : []),
       ].filter((ttlMs): ttlMs is number => typeof ttlMs === 'number' && Number.isFinite(ttlMs) && ttlMs > 0);
       const finalImageCacheTtlMs =
         renderedRatingCacheTtlCandidates.length > 0
@@ -3725,6 +3731,7 @@ export async function GET(
             body: renderedPayload.body,
             contentType: renderedPayload.contentType,
             cacheControl: storageCacheControl,
+            cacheVersion: FINAL_IMAGE_RENDERER_CACHE_VERSION,
           });
         } catch {
           // Ignore distributed cache persistence failures.

@@ -1,9 +1,11 @@
-import { dirname, join } from 'node:path';
+import { dirname, join, sep } from 'node:path';
 import { mkdirSync, writeFileSync, readFileSync, existsSync, statSync, unlinkSync, readdirSync, rmSync } from 'node:fs';
 import { getCacheTtlMsFromCacheControl } from './imageCacheTtl';
 import { DATA_DIR } from './paths';
+import { FINAL_IMAGE_RENDERER_CACHE_VERSION } from './routeConfig';
 
 const CACHE_DIR = join(DATA_DIR, 'cache', 'images');
+const FINAL_CACHE_DIR = join(CACHE_DIR, 'final');
 
 type ObjectStorageResult = {
   body: ArrayBuffer;
@@ -43,19 +45,32 @@ const getFilePath = (key: string) => {
 
 const deleteCachedObject = (filePath: string, metadataPath: string) => {
   try {
-    if (existsSync(filePath)) {
-      unlinkSync(filePath);
+    unlinkSync(filePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+      console.error(`[ERDB] Failed to delete image cache file ${filePath}:`, error);
     }
-  } catch {
-    // Ignore cleanup failures for stale cache files.
   }
 
   try {
-    if (existsSync(metadataPath)) {
-      unlinkSync(metadataPath);
+    unlinkSync(metadataPath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+      console.error(`[ERDB] Failed to delete image cache metadata ${metadataPath}:`, error);
     }
+  }
+};
+
+const isInvalidatedFinalImage = (filePath: string, metadataPath: string) => {
+  if (!filePath.startsWith(`${FINAL_CACHE_DIR}${sep}`)) {
+    return false;
+  }
+
+  try {
+    const metadata = JSON.parse(readFileSync(metadataPath, 'utf8'));
+    return metadata.cacheVersion !== FINAL_IMAGE_RENDERER_CACHE_VERSION;
   } catch {
-    // Ignore cleanup failures for stale cache metadata.
+    return true;
   }
 };
 
@@ -90,14 +105,27 @@ export const pruneExpiredObjectStorageImages = () => {
         continue;
       }
 
-      if (!entry.isFile() || entry.name.endsWith('.json')) {
+      if (!entry.isFile()) {
+        continue;
+      }
+
+      if (entry.name.endsWith('.json')) {
+        const metadataPath = entryPath;
+        const filePath = metadataPath.slice(0, -'.json'.length);
+        if (!existsSync(filePath)) {
+          deleteCachedObject(filePath, metadataPath);
+        }
         continue;
       }
 
       const filePath = entryPath;
       const metadataPath = `${filePath}.json`;
 
-      if (!existsSync(metadataPath) || isCachedObjectExpired(filePath, metadataPath)) {
+      if (
+        isInvalidatedFinalImage(filePath, metadataPath) ||
+        !existsSync(metadataPath) ||
+        isCachedObjectExpired(filePath, metadataPath)
+      ) {
         deleteCachedObject(filePath, metadataPath);
       }
     }
@@ -105,8 +133,10 @@ export const pruneExpiredObjectStorageImages = () => {
 
   try {
     walk(CACHE_DIR);
-  } catch {
-    // Ignore background pruning failures.
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+      console.error('[ERDB] Failed to prune image cache:', error);
+    }
   }
 };
 
@@ -162,7 +192,7 @@ export const getCachedImageFromObjectStorage = async (key: string): Promise<Obje
 
 export const putCachedImageToObjectStorage = async (
   key: string,
-  payload: { body: ArrayBuffer; contentType: string; cacheControl: string }
+  payload: { body: ArrayBuffer; contentType: string; cacheControl: string; cacheVersion?: string }
 ) => {
   const filePath = getFilePath(key);
   const metadataPath = `${filePath}.json`;
@@ -180,6 +210,7 @@ export const putCachedImageToObjectStorage = async (
       JSON.stringify({
         contentType: payload.contentType,
         cacheControl: payload.cacheControl,
+        ...(payload.cacheVersion ? { cacheVersion: payload.cacheVersion } : {}),
       }),
       'utf8'
     );

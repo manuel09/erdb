@@ -2,6 +2,7 @@ import { fetchJsonCached } from '@/lib/cachedFetch';
 import {
   GET_STREAMING_CHART_INFO_QUERY,
   JUSTWATCH_GRAPHQL_URL,
+  RANKING_CACHE_TTL_MS,
   TMDB_ANIMATION_GENRE_ID,
   TMDB_CACHE_TTL_MS,
   type RankingInterval,
@@ -123,7 +124,7 @@ export const fetchRanking = async (
   const response = await fetchJsonCached(
     cacheKey,
     JUSTWATCH_GRAPHQL_URL,
-    1 * 60 * 60 * 1000,
+    RANKING_CACHE_TTL_MS,
     phases,
     'tmdb',
     {
