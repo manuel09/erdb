@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.98](https://github.com/realbestia1/erdb/compare/v0.4.97...v0.4.98) - 2026-08-22
+
+- Use native select for language picker ([2b3f75e](https://github.com/realbestia1/erdb/commit/2b3f75ea45fc919233ce566d0076d2b5522c98ff))
+  Replaced the custom language dropdown in the workspace nav with a native select to simplify the UI and avoid previous dropdown styling issues. This also updates the package version to 0.4.98.
+
 ## [0.4.97](https://github.com/realbestia1/erdb/compare/v0.4.96...v0.4.97) - 2026-08-20
 
 - Remove startup image cache warmup ([b16018c](https://github.com/realbestia1/erdb/commit/b16018c55b08a52ee159bab8569724fcf2afe70f))

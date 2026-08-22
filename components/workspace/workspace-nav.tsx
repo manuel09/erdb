@@ -7,7 +7,6 @@ import {
   ChevronRight, Image as ImageIcon, MonitorPlay, Layers, Search, Tv, Film, X, Loader2,
 } from 'lucide-react';
 import type { HomePageViewProps } from '@/components/workspace/types';
-import { Dropdown } from './dropdown';
 
 const SEGMENT_CLASS =
   'flex gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]';
@@ -267,6 +266,33 @@ function MediaIdSearch({
   );
 }
 
+function LanguageSelect({
+  value,
+  onChange,
+  options,
+  className,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: readonly { id: string; label: string }[];
+  className: string;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      aria-label="Language"
+      className={`rounded-xl border border-white/10 bg-[#0d0f14] font-medium text-white outline-none transition-colors hover:border-orange-400/40 focus:border-orange-400/50 ${className}`}
+    >
+      {options.map((option) => (
+        <option key={option.id} value={option.id} className="bg-[#0d0f14] text-white">
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 export function WorkspaceNav({ refs, state, actions, derived, onOpenRotateModal }: WorkspaceNavProps) {
   const { navRef } = refs;
   const { previewType, mediaId, lang, supportedLanguages, tmdbKey } = state;
@@ -335,7 +361,7 @@ export function WorkspaceNav({ refs, state, actions, derived, onOpenRotateModal 
               previewType={previewType}
             />
             {tmdbKey ? (
-              <Dropdown value={lang} onChange={setLang} options={langOptions} className="h-8 text-[13px]" />
+              <LanguageSelect value={lang} onChange={setLang} options={langOptions} className="h-8 px-2 text-[13px]" />
             ) : (
               <div className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-[#080808] px-2 text-[10px] text-slate-500">
                 <Globe2 className="h-3 w-3 shrink-0" />
@@ -390,7 +416,7 @@ export function WorkspaceNav({ refs, state, actions, derived, onOpenRotateModal 
               previewType={previewType}
             />
             {tmdbKey ? (
-              <Dropdown value={lang} onChange={setLang} options={langOptions} className="h-8 px-2 py-1 text-[10px] sm:px-2.5 sm:py-1.5 sm:text-[13px]" />
+              <LanguageSelect value={lang} onChange={setLang} options={langOptions} className="h-8 px-2 text-[10px] sm:px-2.5 sm:text-[13px]" />
             ) : (
               <div className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-[#080808] px-1.5 text-[9px] text-slate-500 sm:px-2 sm:text-[10px]">
                 <Globe2 className="h-2.5 w-2.5 shrink-0 sm:h-3 sm:w-3" />
