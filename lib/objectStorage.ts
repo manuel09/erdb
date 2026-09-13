@@ -15,7 +15,9 @@ type ObjectStorageResult = {
 };
 
 const FALLBACK_IMAGE_CACHE_TTL_MS = 5 * 60 * 1000;
-const IMAGE_CACHE_PRUNE_INTERVAL_MS = 10 * 60 * 1000;
+// ponytail: 60 min, non 10. Il walk su 337k file e' I/O pesante su macchina
+// gia' satura; i TTL scaduti restano al massimo un'ora in piu'. Worker-1 only.
+const IMAGE_CACHE_PRUNE_INTERVAL_MS = 60 * 60 * 1000;
 
 type GlobalObjectStorageState = typeof globalThis & {
   __erdbImageCachePruneTimer?: NodeJS.Timeout;
@@ -86,6 +88,43 @@ const isCachedObjectExpired = (filePath: string, metadataPath: string) => {
     return true;
   }
 };
+
+const CACHE_EVICT_BATCH = 25000;
+
+const collectCacheFiles = (dirPath: string, out: Array<{ filePath: string; mtimeMs: number }>) => {
+  for (const entry of readdirSync(dirPath, { withFileTypes: true })) {
+    const entryPath = join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      collectCacheFiles(entryPath, out);
+      continue;
+    }
+    if (!entry.isFile() || entry.name.endsWith('.json')) continue;
+    try {
+      out.push({ filePath: entryPath, mtimeMs: statSync(entryPath).mtimeMs });
+    } catch {
+      // Skip files that vanished mid-scan.
+    }
+  }
+};
+
+const enforceCacheFileLimit = (dirPath: string, maxFiles: number) => {
+  if (!(maxFiles > 0) || !existsSync(dirPath)) return;
+  try {
+    const files: Array<{ filePath: string; mtimeMs: number }> = [];
+    collectCacheFiles(dirPath, files);
+    const overflow = Math.min(files.length - maxFiles, CACHE_EVICT_BATCH);
+    if (overflow <= 0) return;
+    files.sort((a, b) => a.mtimeMs - b.mtimeMs);
+    for (const victim of files.slice(0, overflow)) {
+      deleteCachedObject(victim.filePath, `${victim.filePath}.json`);
+    }
+  } catch {
+    // Ignore eviction failures; expiry prune still bounds growth by TTL.
+  }
+};
+
+export const enforceSourceCacheLimit = (maxFiles: number) =>
+  enforceCacheFileLimit(join(CACHE_DIR, 'source'), maxFiles);
 
 export const pruneExpiredObjectStorageImages = () => {
   const walk = (dirPath: string) => {
@@ -167,34 +206,6 @@ export const buildObjectStorageImageKey = (
   ext = 'png'
 ) => `final/${imageType}/${cacheHash}.${ext}`;
 export const buildObjectStorageSourceImageKey = (id: string, variant: string) => `source/${id.replace(/[^a-zA-Z0-9]/g, '_')}_${variant}.png`;
-
-// ponytail: hard cap on TMDB source files. Oldest (by mtime) evicted first,
-// so disk stays bounded no matter how many distinct titles 5000 users browse.
-export const enforceSourceCacheLimit = (maxFiles: number) => {
-  if (!(maxFiles > 0)) return;
-  try {
-    const dir = join(CACHE_DIR, 'source');
-    if (!existsSync(dir)) return;
-    const entries: Array<{ filePath: string; mtimeMs: number }> = [];
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (!entry.isFile() || entry.name.endsWith('.json')) continue;
-      const filePath = join(dir, entry.name);
-      try {
-        entries.push({ filePath, mtimeMs: statSync(filePath).mtimeMs });
-      } catch {
-        // Skip files that vanished mid-scan.
-      }
-    }
-    const overflow = entries.length - maxFiles;
-    if (overflow <= 0) return;
-    entries.sort((a, b) => a.mtimeMs - b.mtimeMs);
-    for (const victim of entries.slice(0, overflow)) {
-      deleteCachedObject(victim.filePath, `${victim.filePath}.json`);
-    }
-  } catch {
-    // Ignore eviction failures; expiry prune still bounds growth by TTL.
-  }
-};
 
 export const getCachedImageFromObjectStorage = async (key: string): Promise<ObjectStorageResult | null> => {
   const filePath = getFilePath(key);
