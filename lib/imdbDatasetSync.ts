@@ -183,6 +183,8 @@ const importRatings = async (filePath: string, batchSize: number, progressEvery:
       insertBatch(batch);
       total += batch.length;
       batch = [];
+      // ponytail: yield so one import doesn't starve image renders for minutes.
+      await new Promise<void>((resolve) => setImmediate(resolve));
       if (progressEvery > 0 && LOG_ENABLED && total % progressEvery === 0) {
         console.log(`IMDb ratings imported: ${total.toLocaleString('en-US')}`);
       }
@@ -227,6 +229,8 @@ const importEpisodes = async (filePath: string, batchSize: number, progressEvery
       insertBatch(batch);
       total += batch.length;
       batch = [];
+      // ponytail: yield so one import doesn't starve image renders for minutes.
+      await new Promise<void>((resolve) => setImmediate(resolve));
       if (progressEvery > 0 && LOG_ENABLED && total % progressEvery === 0) {
         console.log(`IMDb episodes imported: ${total.toLocaleString('en-US')}`);
       }

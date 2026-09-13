@@ -26,6 +26,7 @@ import {
   TMDB_CACHE_TTL_MS,
 } from '@/lib/routeConfig';
 import { sha1Hex, withDedupe } from '@/lib/routeShared';
+import { fetchWithRetry } from '@/lib/request';
 import { HttpError, type RenderedImagePayload, type RenderImageType } from '@/lib/routeTypes';
 import { parseNonNegativeInt } from '@/lib/routeUtils';
 
@@ -257,7 +258,9 @@ const fetchSourceImageUncached = async (
   imgUrl: string,
   fallbackTtlMs: number
 ): Promise<RenderedImagePayload> => {
-  const sourceResponse = await fetch(imgUrl, { cache: 'no-store' });
+  // ponytail: bounded timeout + 1 retry. Raw fetch hung forever on a dead
+  // upstream and held the render (only withDedupe's 30s saved it).
+  const sourceResponse = await fetchWithRetry(imgUrl, { cache: 'no-store', timeout: 12000, retries: 1 });
   if (!sourceResponse.ok) {
     throw new HttpError('Image not found', sourceResponse.status || 404);
   }
@@ -371,7 +374,7 @@ export const getProviderIconDataUri = async (
     }
 
     try {
-      const response = await fetch(normalizedIconUrl, { cache: 'no-store' });
+      const response = await fetchWithRetry(normalizedIconUrl, { cache: 'no-store', timeout: 10000, retries: 1 });
       if (!response.ok) return null;
 
       const sourceBuffer = Buffer.from(await response.arrayBuffer());

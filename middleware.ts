@@ -33,6 +33,12 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // ponytail: images don't need nonce/CSP (useless bytes on a binary
+  // response). Skip it; the Tk- rewrite above already returned early.
+  if (parts.length >= 2 && ALLOWED_RENDER_TYPES.has(parts[0])) {
+    return NextResponse.next();
+  }
+
   const nonce = createNonce();
   const contentSecurityPolicy = buildContentSecurityPolicy({
     nonce,

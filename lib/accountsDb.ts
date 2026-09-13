@@ -40,3 +40,4 @@ accountsDb.exec(`
 // Optimize database performance
 accountsDb.pragma('journal_mode = WAL');
 accountsDb.pragma('synchronous = NORMAL');
+accountsDb.pragma('busy_timeout = 5000');

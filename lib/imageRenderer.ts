@@ -213,9 +213,15 @@ export const renderWithSharp = async (
       const blurTopBandHeight = Math.max(110, Math.round(input.outputHeight * 0.22));
       const blurTopHeight = Math.min(input.outputHeight, blurTopBandHeight);
       if (blurTopHeight > 0) {
+        // ponytail: blur at half res, then upscale. Identical behind
+        // gradients/text, ~6x cheaper (cost scales with pixels x radius^2).
+        const halfTopWidth = Math.max(1, Math.floor(input.outputWidth / 2));
+        const halfTopHeight = Math.max(1, Math.floor(blurTopHeight / 2));
         const blurredTop = await sharp(resizedImageBuffer)
           .extract({ left: 0, top: 0, width: input.outputWidth, height: blurTopHeight })
-          .blur(16)
+          .resize(halfTopWidth, halfTopHeight)
+          .blur(8)
+          .resize(input.outputWidth, blurTopHeight)
           .composite([
             {
               input: Buffer.from(
@@ -251,13 +257,17 @@ export const renderWithSharp = async (
           .toBuffer();
         overlays.push({ input: blurredTop, top: 0, left: 0 });
       }
-      const blurBandHeight = Math.max(180, Math.round(input.outputHeight * 0.42));
+      const blurBandHeight = Math.max(180, Math.round(input.outputHeight / 3));
       const blurTop = Math.max(0, input.outputHeight - blurBandHeight);
       const blurHeight = Math.min(input.outputHeight - blurTop, blurBandHeight);
       if (blurHeight > 0) {
+        const halfBottomWidth = Math.max(1, Math.floor(input.outputWidth / 2));
+        const halfBottomHeight = Math.max(1, Math.floor(blurHeight / 2));
         const blurredBottom = await sharp(resizedImageBuffer)
           .extract({ left: 0, top: blurTop, width: input.outputWidth, height: blurHeight })
-          .blur(18)
+          .resize(halfBottomWidth, halfBottomHeight)
+          .blur(9)
+          .resize(input.outputWidth, blurHeight)
           .composite([
             {
               input: Buffer.from(
