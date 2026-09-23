@@ -19,7 +19,8 @@ export const measurePhase = async <T,>(phases: PhaseDurations, phase: keyof Phas
   }
 };
 
-const DEDUPE_TIMEOUT_MS = 30_000;
+// Must exceed worst-case fetch budget: 4 attempts at 15s + 1s + 2s + 4s backoff.
+const DEDUPE_TIMEOUT_MS = 90_000;
 
 export const withDedupe = async <T,>(
   inFlightMap: Map<string, Promise<T>>,
@@ -27,29 +28,35 @@ export const withDedupe = async <T,>(
   factory: () => Promise<T>,
   timeoutMs: number = DEDUPE_TIMEOUT_MS
 ) => {
+  const waitFor = (promise: Promise<T>) => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    return Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`Dedupe timeout: ${key}`)), timeoutMs);
+      }),
+    ]).finally(() => {
+      if (timer) clearTimeout(timer);
+    });
+  };
+
   const existing = inFlightMap.get(key);
-  if (existing) return existing;
+  if (existing) return waitFor(existing);
 
   const fetchPromise = factory();
+  inFlightMap.set(key, fetchPromise);
 
-  // Attach a silent catch handler to prevent unhandled rejection warnings in Node.js
-  // if fetchPromise rejects after Promise.race has already settled due to a timeout.
-  fetchPromise.catch(() => {
-    // Handle silently as the caller will have already received the timeout error
-  });
+  // Timeout only limits caller wait. Keep shared work alive and deduped until it settles.
+  fetchPromise.then(
+    () => {
+      if (inFlightMap.get(key) === fetchPromise) inFlightMap.delete(key);
+    },
+    () => {
+      if (inFlightMap.get(key) === fetchPromise) inFlightMap.delete(key);
+    }
+  );
 
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  const promise = Promise.race([
-    fetchPromise,
-    new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`Dedupe timeout: ${key}`)), timeoutMs);
-    }),
-  ]).finally(() => {
-    if (timer) clearTimeout(timer);
-    inFlightMap.delete(key);
-  });
-  inFlightMap.set(key, promise);
-  return promise;
+  return waitFor(fetchPromise);
 };
 
 export const buildServerTimingHeader = (phases: PhaseDurations, totalMs: number) => {

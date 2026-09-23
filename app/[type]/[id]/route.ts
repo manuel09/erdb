@@ -2414,8 +2414,8 @@ export async function GET(
           : null;
 
       if (type === 'poster') {
-        outputWidth = 500;
-        outputHeight = 750;
+        outputWidth = 780;
+        outputHeight = 1170;
       } else if (type === 'logo') {
         outputHeight = LOGO_BASE_HEIGHT;
         outputWidth = getLogoCanvasWidth(rawFallbackLogoAspectRatio);

@@ -259,7 +259,7 @@ const fetchSourceImageUncached = async (
   fallbackTtlMs: number
 ): Promise<RenderedImagePayload> => {
   // ponytail: bounded timeout + 1 retry. Raw fetch hung forever on a dead
-  // upstream and held the render (only withDedupe's 30s saved it).
+  // upstream and held the render (withDedupe still provides a final guard).
   const sourceResponse = await fetchWithRetry(imgUrl, { cache: 'no-store', timeout: 12000, retries: 1 });
   if (!sourceResponse.ok) {
     throw new HttpError('Image not found', sourceResponse.status || 404);
