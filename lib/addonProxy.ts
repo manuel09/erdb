@@ -130,6 +130,7 @@ export const ERDB_RESERVED_PARAMS = new Set<string>([
   'logoEnabled',
   'thumbnailEnabled',
   'catalogNames',
+  'catalogOrder',
   'hiddenCatalogs',
   'searchDisabledCatalogs',
   'discoverOnlyCatalogs',
@@ -231,6 +232,7 @@ export type ProxyConfig = {
   logoEnabled?: boolean;
   thumbnailEnabled?: boolean;
   catalogNames?: Record<string, string>;
+  catalogOrder?: string[];
   hiddenCatalogs?: string[];
   searchDisabledCatalogs?: string[];
   discoverOnlyCatalogs?: Record<string, boolean>;
@@ -486,6 +488,10 @@ export const decodeProxyConfig = (encoded: string): ProxyConfig | null => {
     const catalogNames = normalizeProxyCatalogNameOverrides((parsed as ProxyConfig).catalogNames);
     if (catalogNames) {
       config.catalogNames = catalogNames;
+    }
+    const catalogOrder = normalizeProxyCatalogKeyList((parsed as ProxyConfig).catalogOrder);
+    if (catalogOrder) {
+      config.catalogOrder = catalogOrder;
     }
     const hiddenCatalogs = normalizeProxyCatalogKeyList((parsed as ProxyConfig).hiddenCatalogs);
     if (hiddenCatalogs) {

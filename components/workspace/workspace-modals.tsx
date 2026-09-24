@@ -1,7 +1,25 @@
 'use client';
 
-import { useState } from 'react';
-import { Terminal, Check, Clipboard, RefreshCcw, ShieldAlert, Eye, EyeOff } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  closestCorners,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { Terminal, Check, Clipboard, RefreshCcw, ShieldAlert, Eye, EyeOff, GripVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { HomePageViewProps } from '@/components/workspace/types';
 import { AIOMETADATA_EPISODE_PROVIDER_OPTIONS } from './constants';
@@ -39,6 +57,55 @@ const URL_PATTERN_GROUPS = [
   { type: 'thumbnail', label: 'Episode thumbnail', ids: EPISODE_ID_PATTERNS },
 ] as const;
 
+function SortableCatalogCard({
+  id,
+  label,
+  children,
+}: {
+  id: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    transition: { duration: 220, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`flex items-start gap-2.5 ${isDragging ? 'relative z-10 opacity-30' : ''}`}
+    >
+      <button
+        type="button"
+        ref={setActivatorNodeRef}
+        {...attributes}
+        {...listeners}
+        aria-label={`Drag to reorder ${label}`}
+        title="Drag to reorder"
+        className="mt-4 shrink-0 cursor-grab touch-none rounded-lg border border-white/10 bg-[#121212] p-1.5 text-slate-500 transition-colors hover:border-orange-400/40 hover:text-orange-300 active:cursor-grabbing [-webkit-tap-highlight-color:transparent]"
+        style={{ touchAction: 'none' }}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  );
+}
+
+function CatalogDragPreview({ name, type }: { name: string; type: string }) {
+  return (
+    <div className="pointer-events-none flex max-w-[min(100vw-2rem,320px)] items-center gap-2 rounded-2xl border border-orange-400/40 bg-[#141b26]/95 px-3 py-2.5 shadow-[0_22px_50px_-12px_rgba(0,0,0,0.65)] ring-2 ring-orange-500/35">
+      <GripVertical className="h-4 w-4 shrink-0 text-orange-400/80" />
+      <div className="min-w-0">
+        <div className="truncate text-xs font-semibold text-white">{name}</div>
+        {type && <div className="truncate text-[10px] text-slate-400">{type}</div>}
+      </div>
+    </div>
+  );
+}
+
 type WorkspaceModalsProps = Pick<HomePageViewProps, 'state' | 'actions' | 'derived'> & {
   isCatalogModalOpen: boolean;
   setIsCatalogModalOpen: (v: boolean) => void;
@@ -54,6 +121,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
     proxyCatalogsError,
     proxyCatalogs,
     proxyCatalogNames,
+    proxyCatalogOrder,
     proxyHiddenCatalogs,
     proxySearchDisabledCatalogs,
     proxyDiscoverOnlyCatalogs,
@@ -62,16 +130,48 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
   } = state;
 
   const { aiometadataPatterns, baseUrl } = derived;
-  const hasCatalogCustomizations = Object.keys(proxyCatalogNames).length > 0 || proxyHiddenCatalogs.length > 0 || proxySearchDisabledCatalogs.length > 0 || Object.keys(proxyDiscoverOnlyCatalogs).length > 0;
+  const hasCatalogCustomizations = Object.keys(proxyCatalogNames).length > 0 || proxyCatalogOrder.length > 0 || proxyHiddenCatalogs.length > 0 || proxySearchDisabledCatalogs.length > 0 || Object.keys(proxyDiscoverOnlyCatalogs).length > 0;
 
   const {
     resetProxyCatalogCustomizations,
     updateProxyCatalogName,
+    setProxyCatalogOrder,
     toggleProxyCatalogHidden,
     toggleProxyCatalogSearchDisabled,
     setProxyCatalogDiscoverOnly,
     setAiometadataEpisodeProvider,
   } = actions;
+
+  const orderedCatalogs = useMemo(() => {
+    const position = new Map(proxyCatalogOrder.map((key, index) => [key, index]));
+    return [...proxyCatalogs].sort(
+      (a, b) => (position.get(a.key) ?? Number.MAX_SAFE_INTEGER) - (position.get(b.key) ?? Number.MAX_SAFE_INTEGER)
+    );
+  }, [proxyCatalogs, proxyCatalogOrder]);
+  const catalogIds = useMemo(() => orderedCatalogs.map((catalog) => catalog.key), [orderedCatalogs]);
+  const [draggedCatalogId, setDraggedCatalogId] = useState<string | null>(null);
+  const draggedCatalog = draggedCatalogId
+    ? orderedCatalogs.find((catalog) => catalog.key === draggedCatalogId) ?? null
+    : null;
+  const overlayRoot = typeof document === 'undefined' ? null : document.body;
+
+  const catalogSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleCatalogDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setDraggedCatalogId(null);
+    if (!over || active.id === over.id) return;
+    const fromIndex = catalogIds.indexOf(String(active.id));
+    const toIndex = catalogIds.indexOf(String(over.id));
+    if (fromIndex < 0 || toIndex < 0) return;
+    const nextOrder = [...catalogIds];
+    const [movedId] = nextOrder.splice(fromIndex, 1);
+    nextOrder.splice(toIndex, 0, movedId);
+    setProxyCatalogOrder(nextOrder);
+  };
 
   const [copiedPatternKey, setCopiedPatternKey] = useState<string | null>(null);
 
@@ -207,6 +307,15 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                {proxyCatalogOrder.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setProxyCatalogOrder([])}
+                    className="rounded-lg border border-white/10 bg-[#121212] px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition-colors hover:bg-[#181818]"
+                  >
+                    Reset order
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={resetProxyCatalogCustomizations}
@@ -242,117 +351,141 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
               )}
               {proxyCatalogs.length > 0 && (
                 <div className="space-y-3">
-                  {proxyCatalogs.map((catalog) => {
-                    const overrideValue = proxyCatalogNames[catalog.key] || '';
-                    const isHidden = proxyHiddenCatalogs.includes(catalog.key);
-                    const isSearchDisabled = proxySearchDisabledCatalogs.includes(catalog.key);
-                    const isDiscoverOnly = proxyDiscoverOnlyCatalogs[catalog.key] ?? catalog.discoverOnly;
-                    const blockingRequiredExtraKeys = catalog.requiredExtraKeys.filter(
-                      (name) => name !== 'discover'
-                    );
-                    const canSetDiscoverOnly = blockingRequiredExtraKeys.length === 0;
-                    return (
-                      <div
-                        key={catalog.key}
-                        className="rounded-2xl border border-white/10 bg-[#080808]/90 p-4"
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <div className="text-sm font-semibold text-white">{catalog.name}</div>
-                            <div className="mt-1 text-[11px] text-slate-500">
-                              {[catalog.type || 'catalog', catalog.id].filter(Boolean).join(' / ')}
-                            </div>
-                            {catalog.extraKeys.length > 0 && (
-                              <div className="mt-1 text-[10px] text-slate-600">
-                                Extras: {catalog.extraKeys.join(', ')}
+                  <p className="text-[11px] text-slate-500">
+                    Drag the grip on the left to change the order of the catalogs in the generated manifest.
+                  </p>
+                  <DndContext
+                    sensors={catalogSensors}
+                    collisionDetection={closestCorners}
+                    onDragStart={(event) => setDraggedCatalogId(String(event.active.id))}
+                    onDragEnd={handleCatalogDragEnd}
+                    onDragCancel={() => setDraggedCatalogId(null)}
+                  >
+                    <SortableContext items={catalogIds} strategy={verticalListSortingStrategy}>
+                      <div className="space-y-3">
+                        {orderedCatalogs.map((catalog) => {
+                          const overrideValue = proxyCatalogNames[catalog.key] || '';
+                          const isHidden = proxyHiddenCatalogs.includes(catalog.key);
+                          const isSearchDisabled = proxySearchDisabledCatalogs.includes(catalog.key);
+                          const isDiscoverOnly = proxyDiscoverOnlyCatalogs[catalog.key] ?? catalog.discoverOnly;
+                          const blockingRequiredExtraKeys = catalog.requiredExtraKeys.filter(
+                            (name) => name !== 'discover'
+                          );
+                          const canSetDiscoverOnly = blockingRequiredExtraKeys.length === 0;
+                          return (
+                            <SortableCatalogCard key={catalog.key} id={catalog.key} label={catalog.name}>
+                              <div className="rounded-2xl border border-white/10 bg-[#080808]/90 p-4">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div>
+                                    <div className="text-sm font-semibold text-white">{catalog.name}</div>
+                                    <div className="mt-1 text-[11px] text-slate-500">
+                                      {[catalog.type || 'catalog', catalog.id].filter(Boolean).join(' / ')}
+                                    </div>
+                                    {catalog.extraKeys.length > 0 && (
+                                      <div className="mt-1 text-[10px] text-slate-600">
+                                        Extras: {catalog.extraKeys.join(', ')}
+                                      </div>
+                                    )}
+                                    {catalog.supportsSearch && (
+                                      <div className="mt-1 text-[10px] text-slate-600">
+                                        Search: {catalog.searchRequired ? 'search only' : 'search + catalog'}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {overrideValue && (
+                                    <button
+                                      type="button"
+                                      onClick={() => updateProxyCatalogName(catalog.key, '')}
+                                      className="rounded-lg border border-white/10 bg-[#121212] px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-[#181818]"
+                                    >
+                                      Reset
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleProxyCatalogHidden(catalog.key)}
+                                    className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${isHidden ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-[#121212] text-slate-300 hover:bg-[#181818]'}`}
+                                  >
+                                    {isHidden ? 'Hidden' : 'Visible'}
+                                  </button>
+                                  {catalog.supportsSearch && (
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleProxyCatalogSearchDisabled(catalog.key)}
+                                      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${isSearchDisabled ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-[#121212] text-slate-300 hover:bg-[#181818]'}`}
+                                    >
+                                      {isSearchDisabled ? 'Search Off' : 'Search On'}
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    disabled={!canSetDiscoverOnly}
+                                    onClick={() => setProxyCatalogDiscoverOnly(catalog.key, !isDiscoverOnly)}
+                                    className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${!canSetDiscoverOnly ? 'border border-white/5 bg-[#080808] text-slate-600 cursor-not-allowed' : isDiscoverOnly ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-[#121212] text-slate-300 hover:bg-[#181818]'}`}
+                                  >
+                                    {isDiscoverOnly ? 'Discover Only' : 'Home + Discover'}
+                                  </button>
+                                </div>
+                                <div className="mt-3">
+                                  <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                                    Custom Name
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={overrideValue}
+                                    onChange={(event) => updateProxyCatalogName(catalog.key, event.target.value)}
+                                    placeholder={catalog.name}
+                                    className="w-full rounded-lg border border-white/10 bg-[#0a0a0a] px-2.5 py-2 text-xs text-white outline-none focus:border-orange-500/50"
+                                  />
+                                  <p className="mt-2 text-[10px] text-slate-500">
+                                    {overrideValue
+                                      ? `Proxy manifest name: ${overrideValue}`
+                                      : 'Leave empty to keep the original catalog name.'}
+                                  </p>
+                                  {isHidden && (
+                                    <p className="mt-1 text-[10px] text-slate-600">
+                                      {catalog.supportsSearch && !isSearchDisabled
+                                        ? 'This catalog will stay searchable, but it will be converted to search-only so it no longer appears in home/discover.'
+                                        : 'This catalog will be removed from the generated manifest.'}
+                                    </p>
+                                  )}
+                                  {catalog.supportsSearch && isSearchDisabled && (
+                                    <p className="mt-1 text-[10px] text-slate-600">
+                                      {catalog.searchRequired
+                                        ? 'This is a search-only catalog, so disabling search removes it from the generated manifest.'
+                                        : 'Search support will be removed, but the catalog itself will stay available.'}
+                                    </p>
+                                  )}
+                                  {!canSetDiscoverOnly && (
+                                    <p className="mt-1 text-[10px] text-slate-600">
+                                      Discover-only is unavailable while this catalog still has another required extra: {blockingRequiredExtraKeys.join(', ')}.
+                                    </p>
+                                  )}
+                                  {canSetDiscoverOnly && isDiscoverOnly && (
+                                    <p className="mt-1 text-[10px] text-slate-600">
+                                      This catalog will stay available in Discover without appearing on the home rows.
+                                    </p>
+                                  )}
+                                </div>
                               </div>
-                            )}
-                            {catalog.supportsSearch && (
-                              <div className="mt-1 text-[10px] text-slate-600">
-                                Search: {catalog.searchRequired ? 'search only' : 'search + catalog'}
-                              </div>
-                            )}
-                          </div>
-                          {overrideValue && (
-                            <button
-                              type="button"
-                              onClick={() => updateProxyCatalogName(catalog.key, '')}
-                              className="rounded-lg border border-white/10 bg-[#121212] px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-[#181818]"
-                            >
-                              Reset
-                            </button>
-                          )}
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => toggleProxyCatalogHidden(catalog.key)}
-                            className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${isHidden ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-[#121212] text-slate-300 hover:bg-[#181818]'}`}
-                          >
-                            {isHidden ? 'Hidden' : 'Visible'}
-                          </button>
-                          {catalog.supportsSearch && (
-                            <button
-                              type="button"
-                              onClick={() => toggleProxyCatalogSearchDisabled(catalog.key)}
-                              className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${isSearchDisabled ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-[#121212] text-slate-300 hover:bg-[#181818]'}`}
-                            >
-                              {isSearchDisabled ? 'Search Off' : 'Search On'}
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            disabled={!canSetDiscoverOnly}
-                            onClick={() => setProxyCatalogDiscoverOnly(catalog.key, !isDiscoverOnly)}
-                            className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${!canSetDiscoverOnly ? 'border border-white/5 bg-[#080808] text-slate-600 cursor-not-allowed' : isDiscoverOnly ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-[#121212] text-slate-300 hover:bg-[#181818]'}`}
-                          >
-                            {isDiscoverOnly ? 'Discover Only' : 'Home + Discover'}
-                          </button>
-                        </div>
-                        <div className="mt-3">
-                          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                            Custom Name
-                          </label>
-                          <input
-                            type="text"
-                            value={overrideValue}
-                            onChange={(event) => updateProxyCatalogName(catalog.key, event.target.value)}
-                            placeholder={catalog.name}
-                            className="w-full rounded-lg border border-white/10 bg-[#0a0a0a] px-2.5 py-2 text-xs text-white outline-none focus:border-orange-500/50"
-                          />
-                          <p className="mt-2 text-[10px] text-slate-500">
-                            {overrideValue
-                              ? `Proxy manifest name: ${overrideValue}`
-                              : 'Leave empty to keep the original catalog name.'}
-                          </p>
-                          {isHidden && (
-                            <p className="mt-1 text-[10px] text-slate-600">
-                              {catalog.supportsSearch && !isSearchDisabled
-                                ? 'This catalog will stay searchable, but it will be converted to search-only so it no longer appears in home/discover.'
-                                : 'This catalog will be removed from the generated manifest.'}
-                            </p>
-                          )}
-                          {catalog.supportsSearch && isSearchDisabled && (
-                            <p className="mt-1 text-[10px] text-slate-600">
-                              {catalog.searchRequired
-                                ? 'This is a search-only catalog, so disabling search removes it from the generated manifest.'
-                                : 'Search support will be removed, but the catalog itself will stay available.'}
-                            </p>
-                          )}
-                          {!canSetDiscoverOnly && (
-                            <p className="mt-1 text-[10px] text-slate-600">
-                              Discover-only is unavailable while this catalog still has another required extra: {blockingRequiredExtraKeys.join(', ')}.
-                            </p>
-                          )}
-                          {canSetDiscoverOnly && isDiscoverOnly && (
-                            <p className="mt-1 text-[10px] text-slate-600">
-                              This catalog will stay available in Discover without appearing on the home rows.
-                            </p>
-                          )}
-                        </div>
+                            </SortableCatalogCard>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    </SortableContext>
+                    {overlayRoot
+                      ? createPortal(
+                          <DragOverlay zIndex={9999}>
+                            {draggedCatalog ? (
+                              <CatalogDragPreview name={draggedCatalog.name} type={draggedCatalog.type} />
+                            ) : null}
+                          </DragOverlay>,
+                          overlayRoot
+                        )
+                      : null}
+                  </DndContext>
                 </div>
               )}
             </div>
@@ -545,7 +678,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                 <div>
                   <div className="text-sm font-semibold text-white">Rotate Token</div>
                   <p className="mt-0.5 text-[11px] text-slate-400">
-                    Genera un nuovo token e migra automaticamente la configurazione.
+                    Generate a new token and migrate the current configuration automatically.
                   </p>
                 </div>
               </div>

@@ -47,6 +47,7 @@ export type HomePageViewState = {
   proxyManifestUrl: string;
   proxyCatalogs: ProxyCatalogDescriptor[];
   proxyCatalogNames: Record<string, string>;
+  proxyCatalogOrder: string[];
   proxyHiddenCatalogs: string[];
   proxySearchDisabledCatalogs: string[];
   proxyDiscoverOnlyCatalogs: Record<string, boolean>;
@@ -190,6 +191,7 @@ export type HomePageViewActions = {
   reorderRatingPreference: (fromIndex: number, toIndex: number) => void;
   updateProxyManifestUrl: (value: string) => void;
   updateProxyCatalogName: (key: string, value: string) => void;
+  setProxyCatalogOrder: (order: string[]) => void;
   toggleProxyCatalogHidden: (key: string) => void;
   toggleProxyCatalogSearchDisabled: (key: string) => void;
   setProxyCatalogDiscoverOnly: (key: string, enabled: boolean) => void;

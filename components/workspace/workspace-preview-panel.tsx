@@ -5,7 +5,8 @@ import { createPortal } from 'react-dom';
 import { MonitorPlay, TriangleAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { HomePageViewProps } from '@/components/workspace/types';
-import { PREVIEW_PANEL_CLASS } from './constants';
+import { PANEL_CLASS, PANEL_HEADER_CLASS } from './constants';
+import { PanelHeader } from './ui';
 
 type WorkspacePreviewPanelProps = Pick<HomePageViewProps, 'state' | 'derived'>;
 
@@ -65,14 +66,14 @@ function PreviewImage({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
-      className="relative z-10 flex h-full min-h-0 w-full items-center justify-center p-1"
+      className="relative z-10 flex h-full min-h-0 w-full items-center justify-center"
     >
       {!imageLoaded && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 m-4 overflow-hidden rounded-[24px] bg-white/[0.02] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)]"
+          className="absolute inset-2 overflow-hidden rounded-2xl bg-white/[0.02] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)]"
         >
           <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
         </motion.div>
@@ -86,10 +87,8 @@ function PreviewImage({
           initial={{ opacity: 0, filter: 'blur(10px)' }}
           animate={{ opacity: imageLoaded ? 1 : 0, filter: imageLoaded ? 'blur(0px)' : 'blur(10px)' }}
           transition={{ duration: 0.4 }}
-          className={`relative overflow-hidden rounded-[24px] border border-white/10 bg-[#030303] object-contain shadow-[0_24px_70px_-35px_rgba(0,0,0,1)] ring-1 ring-white/8 ${
-            previewType === 'logo'
-              ? 'block h-auto max-h-full w-full max-w-2xl'
-              : 'block h-auto max-h-full max-w-full w-auto'
+          className={`relative overflow-hidden rounded-2xl border border-white/10 bg-[#030303] object-contain shadow-[0_24px_70px_-35px_rgba(0,0,0,1)] ring-1 ring-white/8 ${
+            previewType === 'logo' ? 'block h-auto max-h-full w-full max-w-2xl' : 'block h-auto max-h-full w-auto max-w-full'
           }`}
         />
       )}
@@ -119,71 +118,62 @@ export function WorkspacePreviewPanel({ state, derived }: WorkspacePreviewPanelP
 
   return (
     <>
-      {/* Invisible viewport boundary for drag constraint */}
-      <div ref={viewportRef} className={`fixed bottom-0 left-3 right-3 sm:left-4 sm:right-4 ${topClass} pointer-events-none z-0`} />
+      <div ref={viewportRef} className={`pointer-events-none fixed bottom-0 left-3 right-3 z-0 sm:left-4 sm:right-4 ${topClass}`} />
 
-      {/* Mobile floating notice (keys missing) */}
       {previewNotice && (
-        <div className={`fixed ${topClass} right-3 z-40 xl:hidden`}>
-          <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 px-3 py-2 text-[11px] font-medium text-orange-200 shadow-2xl backdrop-blur-xl max-w-[200px]">
+        <div className={`fixed right-3 z-40 xl:hidden ${topClass}`}>
+          <div className="max-w-[200px] rounded-xl border border-orange-500/30 bg-orange-500/10 px-3 py-2 text-[11px] font-medium text-orange-200 shadow-2xl backdrop-blur-xl">
             {previewNotice}
           </div>
         </div>
       )}
 
-      {/* Mobile floating preview (small, top-right) */}
       {previewUrl && (
         <>
-          {isExpanded && createPortal(
-            <div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm xl:hidden"
-              onClick={() => setIsExpanded(false)}
-            >
-              <motion.img
-                key={previewUrl}
-                src={previewUrl}
-                alt="Preview"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.25 }}
-                className="max-h-[90vh] max-w-[90vw] rounded-2xl border border-white/10 shadow-2xl"
-              />
-            </div>,
-            document.body
-          )}
+          {isExpanded &&
+            createPortal(
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm xl:hidden"
+                onClick={() => setIsExpanded(false)}
+              >
+                <motion.img
+                  key={previewUrl}
+                  src={previewUrl}
+                  alt="Preview"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.25 }}
+                  className="max-h-[90vh] max-w-[90vw] rounded-2xl border border-white/10 shadow-2xl"
+                />
+              </div>,
+              document.body
+            )}
           <motion.div
             drag
             dragMomentum={false}
             dragConstraints={viewportRef}
             whileDrag={{ scale: 1.08, opacity: 0.9 }}
-            className={`fixed ${topClass} right-3 z-40 cursor-grab active:cursor-grabbing xl:hidden`}
+            className={`fixed right-3 z-40 cursor-grab active:cursor-grabbing xl:hidden ${topClass}`}
             onClick={() => setIsExpanded(true)}
           >
             <div className="pointer-events-none overflow-hidden rounded-xl border border-white/15 bg-[#06070b]/80 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl">
-              <img
-                key={previewUrl}
-                src={previewUrl}
-                alt="Preview"
-                className="block h-auto w-24 object-cover"
-              />
+              <img key={previewUrl} src={previewUrl} alt="Preview" className="block h-auto w-24 object-cover" />
             </div>
           </motion.div>
         </>
       )}
 
-      {/* Desktop full preview */}
-      <div className={`xl:order-2 ${PREVIEW_PANEL_CLASS} hidden flex-col p-4 w-full xl:flex xl:min-h-0 xl:flex-1`}>
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-sky-100">
-            <MonitorPlay className="h-3.5 w-3.5" />
-            <span>Preview Output</span>
-          </div>
-          <p className="text-[11px] text-slate-400 sm:text-xs">
-            All ratings are normalized to a 0-10 scale.
-          </p>
+      <div className={`${PANEL_CLASS} hidden xl:order-2 xl:flex`}>
+        <div className={PANEL_HEADER_CLASS}>
+          <PanelHeader
+            icon={<MonitorPlay className="h-4 w-4" />}
+            title="Preview"
+            subtitle="Ratings are normalized to a 0-10 scale."
+            accent="teal"
+          />
         </div>
 
-        <div className={`relative mt-4 flex min-h-[200px] flex-1 items-center justify-center sm:min-h-[280px] xl:min-h-0 ${previewType === 'poster' ? 'xl:mx-auto xl:max-w-[28rem]' : previewType === 'logo' ? 'xl:mx-auto xl:max-w-[56rem]' : ''}`}>
+        <div className="relative flex min-h-0 flex-1 items-center justify-center p-4 pt-3">
           <AnimatePresence mode="wait">
             {previewUrl ? (
               <div key="preview" className="relative flex h-full min-h-0 w-full items-center justify-center">
@@ -217,21 +207,23 @@ export function WorkspacePreviewPanel({ state, derived }: WorkspacePreviewPanelP
               </motion.div>
             )}
           </AnimatePresence>
+
           {previewUrl && previewNotice && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-xl border border-orange-500/30 bg-orange-500/10 px-3 py-2 text-[11px] font-medium text-orange-200 shadow-2xl backdrop-blur-xl max-w-[280px] text-center z-20">
+            <div className="absolute bottom-4 left-1/2 z-20 max-w-[280px] -translate-x-1/2 rounded-xl border border-orange-500/30 bg-orange-500/10 px-3 py-2 text-center text-[11px] font-medium text-orange-200 shadow-2xl backdrop-blur-xl">
               {previewNotice}
             </div>
           )}
         </div>
+
         {collisionWarnings.length > 0 && (
           <div
             role="status"
             aria-live="polite"
-            className="mt-3 w-full rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-3 text-left shadow-[0_12px_30px_-20px_rgba(245,158,11,0.7)]"
+            className="mx-4 mb-4 shrink-0 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-3.5 py-3 shadow-[0_12px_30px_-20px_rgba(245,158,11,0.7)]"
           >
             <div className="flex items-center gap-2 text-xs font-semibold text-amber-200">
               <TriangleAlert className="h-4 w-4 shrink-0" />
-              <span>Collisioni rilevate nella preview</span>
+              <span>Preview collision warnings</span>
             </div>
             <ul className="mt-2 space-y-1 text-[11px] leading-4 text-amber-100/80">
               {collisionWarnings.map((warning) => (

@@ -121,6 +121,9 @@ export const buildProxyConfigFromToken = (
   if (proxyOverrides?.catalogNames || t.proxyCatalogNames || t.catalogNames) {
     config.catalogNames = proxyOverrides?.catalogNames || t.proxyCatalogNames || t.catalogNames;
   }
+  if (proxyOverrides?.catalogOrder || t.proxyCatalogOrder || t.catalogOrder) {
+    config.catalogOrder = proxyOverrides?.catalogOrder || t.proxyCatalogOrder || t.catalogOrder;
+  }
   if (proxyOverrides?.hiddenCatalogs || t.proxyHiddenCatalogs || t.hiddenCatalogs) {
     config.hiddenCatalogs = proxyOverrides?.hiddenCatalogs || t.proxyHiddenCatalogs || t.hiddenCatalogs;
   }

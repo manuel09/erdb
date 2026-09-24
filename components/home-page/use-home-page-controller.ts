@@ -421,6 +421,7 @@ export function useHomePageController({
   const [proxyTranslateMeta, setProxyTranslateMeta] = useState(false);
   const [proxyCatalogs, setProxyCatalogs] = useState<ProxyCatalogDescriptor[]>([]);
   const [proxyCatalogNames, setProxyCatalogNames] = useState<Record<string, string>>({});
+  const [proxyCatalogOrder, setProxyCatalogOrder] = useState<string[]>([]);
   const [proxyHiddenCatalogs, setProxyHiddenCatalogs] = useState<string[]>([]);
   const [proxySearchDisabledCatalogs, setProxySearchDisabledCatalogs] = useState<string[]>([]);
   const [proxyDiscoverOnlyCatalogs, setProxyDiscoverOnlyCatalogs] = useState<Record<string, boolean>>({});
@@ -542,6 +543,10 @@ export function useHomePageController({
   const sanitizedProxyCatalogNames = useMemo(
     () => normalizeProxyCatalogNameOverrides(proxyCatalogNames) || {},
     [proxyCatalogNames]
+  );
+  const sanitizedProxyCatalogOrder = useMemo(
+    () => normalizeProxyCatalogKeyList(proxyCatalogOrder) || [],
+    [proxyCatalogOrder]
   );
   const sanitizedProxyHiddenCatalogs = useMemo(
     () => normalizeProxyCatalogKeyList(proxyHiddenCatalogs) || [],
@@ -1503,6 +1508,9 @@ export function useHomePageController({
       if (Object.keys(sanitizedProxyCatalogNames).length > 0) {
         tokenProxyConfig.catalogNames = sanitizedProxyCatalogNames;
       }
+      if (sanitizedProxyCatalogOrder.length > 0) {
+        tokenProxyConfig.catalogOrder = sanitizedProxyCatalogOrder;
+      }
       if (sanitizedProxyHiddenCatalogs.length > 0) {
         tokenProxyConfig.hiddenCatalogs = sanitizedProxyHiddenCatalogs;
       }
@@ -1655,6 +1663,9 @@ export function useHomePageController({
     if (Object.keys(sanitizedProxyCatalogNames).length > 0) {
       config.catalogNames = sanitizedProxyCatalogNames;
     }
+    if (sanitizedProxyCatalogOrder.length > 0) {
+      config.catalogOrder = sanitizedProxyCatalogOrder;
+    }
     if (sanitizedProxyHiddenCatalogs.length > 0) {
       config.hiddenCatalogs = sanitizedProxyHiddenCatalogs;
     }
@@ -1791,6 +1802,7 @@ export function useHomePageController({
     proxyEnabledTypes,
     proxyTranslateMeta,
     sanitizedProxyCatalogNames,
+    sanitizedProxyCatalogOrder,
     sanitizedProxyHiddenCatalogs,
     sanitizedProxySearchDisabledCatalogs,
     sanitizedProxyDiscoverOnlyCatalogs,
@@ -2028,6 +2040,7 @@ export function useHomePageController({
       proxyEnabledTypes,
       translateMeta: proxyTranslateMeta,
       proxyCatalogNames: sanitizedProxyCatalogNames,
+      proxyCatalogOrder: sanitizedProxyCatalogOrder,
       proxyHiddenCatalogs: sanitizedProxyHiddenCatalogs,
       proxySearchDisabledCatalogs: sanitizedProxySearchDisabledCatalogs,
       proxyDiscoverOnlyCatalogs: sanitizedProxyDiscoverOnlyCatalogs,
@@ -2053,9 +2066,9 @@ export function useHomePageController({
 
   const applyImportedConfig = useCallback((
     payload: Record<string, unknown>,
-    options: { includeProxy?: boolean } = {}
+    options: { includeProxy?: boolean; resetMissingBackdropAsPoster?: boolean } = {}
   ) => {
-    const { includeProxy = true } = options;
+    const { includeProxy = true, resetMissingBackdropAsPoster = false } = options;
     if (typeof payload.tmdbKey === 'string') {
       setTmdbKey(payload.tmdbKey);
     }
@@ -2118,6 +2131,8 @@ export function useHomePageController({
       setBackdropAsPoster(payload.backdropAsPoster);
     } else if (payload.backdropAsPoster === 'on' || payload.backdropAsPoster === 'true') {
       setBackdropAsPoster(true);
+    } else if (payload.backdropAsPoster === 'off' || payload.backdropAsPoster === 'false' || resetMissingBackdropAsPoster) {
+      setBackdropAsPoster(false);
     }
     if (typeof payload.posterStreamBadges === 'string' && isStreamBadgesSetting(payload.posterStreamBadges)) {
       setPosterStreamBadges(payload.posterStreamBadges);
@@ -2349,6 +2364,7 @@ export function useHomePageController({
         setProxyManifestUrl(nextProxyManifestUrl);
         setProxyCatalogs([]);
         setProxyCatalogNames({});
+        setProxyCatalogOrder([]);
         setProxyHiddenCatalogs([]);
         setProxySearchDisabledCatalogs([]);
         setProxyDiscoverOnlyCatalogs({});
@@ -2396,6 +2412,14 @@ export function useHomePageController({
         setProxyCatalogNames(importedProxyCatalogNames);
       } else if ('proxyCatalogNames' in payload || 'catalogNames' in payload) {
         setProxyCatalogNames({});
+      }
+      const importedCatalogOrder =
+        normalizeProxyCatalogKeyList(payload.proxyCatalogOrder) ||
+        normalizeProxyCatalogKeyList(payload.catalogOrder);
+      if (importedCatalogOrder) {
+        setProxyCatalogOrder(importedCatalogOrder);
+      } else if ('proxyCatalogOrder' in payload || 'catalogOrder' in payload) {
+        setProxyCatalogOrder([]);
       }
       const importedHiddenCatalogs =
         normalizeProxyCatalogKeyList(payload.proxyHiddenCatalogs) ||
@@ -2451,7 +2475,7 @@ export function useHomePageController({
       return;
     }
     const frameId = window.requestAnimationFrame(() => {
-      applyImportedConfig(initialConfig, { includeProxy: false });
+      applyImportedConfig(initialConfig, { includeProxy: false, resetMissingBackdropAsPoster: true });
     });
     return () => window.cancelAnimationFrame(frameId);
   }, [applyImportedConfig, initialConfig]);
@@ -2516,6 +2540,7 @@ export function useHomePageController({
       proxyEnabledTypes,
       proxyTranslateMeta,
       proxyCatalogNames: sanitizedProxyCatalogNames,
+      proxyCatalogOrder: sanitizedProxyCatalogOrder,
       proxyHiddenCatalogs: sanitizedProxyHiddenCatalogs,
       proxySearchDisabledCatalogs: sanitizedProxySearchDisabledCatalogs,
       proxyDiscoverOnlyCatalogs: sanitizedProxyDiscoverOnlyCatalogs,
@@ -2583,6 +2608,7 @@ export function useHomePageController({
     proxyEnabledTypes,
     proxyTranslateMeta,
     sanitizedProxyCatalogNames,
+    sanitizedProxyCatalogOrder,
     sanitizedProxyHiddenCatalogs,
     sanitizedProxySearchDisabledCatalogs,
     sanitizedProxyDiscoverOnlyCatalogs,
@@ -2683,6 +2709,7 @@ export function useHomePageController({
       proxyEnabledTypes,
       translateMeta: proxyTranslateMeta,
       proxyCatalogNames: sanitizedProxyCatalogNames,
+      proxyCatalogOrder: sanitizedProxyCatalogOrder,
       proxyHiddenCatalogs: sanitizedProxyHiddenCatalogs,
       proxySearchDisabledCatalogs: sanitizedProxySearchDisabledCatalogs,
       proxyDiscoverOnlyCatalogs: sanitizedProxyDiscoverOnlyCatalogs,
@@ -2746,6 +2773,7 @@ export function useHomePageController({
       proxyEnabledTypes,
       proxyTranslateMeta,
       sanitizedProxyCatalogNames,
+      sanitizedProxyCatalogOrder,
       sanitizedProxyHiddenCatalogs,
       sanitizedProxySearchDisabledCatalogs,
       sanitizedProxyDiscoverOnlyCatalogs,
@@ -2817,6 +2845,11 @@ export function useHomePageController({
       backdropVerticalBadgeContent,
       thumbnailVerticalBadgeContent,
       thumbnailSize,
+      proxyCatalogNames: sanitizedProxyCatalogNames,
+      proxyCatalogOrder: sanitizedProxyCatalogOrder,
+      proxyHiddenCatalogs: sanitizedProxyHiddenCatalogs,
+      proxySearchDisabledCatalogs: sanitizedProxySearchDisabledCatalogs,
+      proxyDiscoverOnlyCatalogs: sanitizedProxyDiscoverOnlyCatalogs,
       tmdbKey,
       mdblistKey,
       simklClientId,
@@ -2881,6 +2914,11 @@ export function useHomePageController({
       thumbnailVerticalBadgeContent,
       thumbnailSize,
       posterSimpleRatingSource,
+      sanitizedProxyCatalogNames,
+      sanitizedProxyCatalogOrder,
+      sanitizedProxyHiddenCatalogs,
+      sanitizedProxySearchDisabledCatalogs,
+      sanitizedProxyDiscoverOnlyCatalogs,
       tmdbKey,
       mdblistKey,
       simklClientId,
@@ -3074,6 +3112,7 @@ export function useHomePageController({
       proxyManifestUrl,
       proxyCatalogs,
       proxyCatalogNames: sanitizedProxyCatalogNames,
+      proxyCatalogOrder: sanitizedProxyCatalogOrder,
       proxyHiddenCatalogs: sanitizedProxyHiddenCatalogs,
       proxySearchDisabledCatalogs: sanitizedProxySearchDisabledCatalogs,
       proxyDiscoverOnlyCatalogs: sanitizedProxyDiscoverOnlyCatalogs,
@@ -3218,12 +3257,14 @@ export function useHomePageController({
         setProxyManifestUrl(normalizeManifestUrl(value, true));
         setProxyCatalogs([]);
         setProxyCatalogNames({});
+        setProxyCatalogOrder([]);
         setProxyHiddenCatalogs([]);
         setProxySearchDisabledCatalogs([]);
         setProxyDiscoverOnlyCatalogs({});
         setProxyCatalogsStatus('idle');
         setProxyCatalogsError('');
       },
+      setProxyCatalogOrder: (order) => setProxyCatalogOrder(normalizeProxyCatalogKeyList(order) || []),
       updateProxyCatalogName: (key, value) =>
         setProxyCatalogNames((current) => {
           const trimmedKey = key.trim();
@@ -3291,6 +3332,7 @@ export function useHomePageController({
       resetProxyCatalogNames: () => setProxyCatalogNames({}),
       resetProxyCatalogCustomizations: () => {
         setProxyCatalogNames({});
+        setProxyCatalogOrder([]);
         setProxyHiddenCatalogs([]);
         setProxySearchDisabledCatalogs([]);
         setProxyDiscoverOnlyCatalogs({});

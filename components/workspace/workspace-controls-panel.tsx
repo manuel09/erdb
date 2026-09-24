@@ -1,10 +1,13 @@
 'use client';
 
-import { Settings2, ChevronDown, KeyRound, Palette, Globe2, Layers, Info } from 'lucide-react';
-import Image from 'next/image';
+import { useMemo } from 'react';
+import {
+  type LucideIcon, Settings2, KeyRound, Palette, Globe2, LayoutGrid, Trophy, ListOrdered,
+  Image as ImageIcon, Check, Type, SlidersHorizontal,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useState, useRef, useEffect } from 'react';
 import { Dropdown } from './dropdown';
+import { Card, Field, Notice, NumberStepper, PanelHeader, Toggle } from './ui';
 import type { HomePageViewProps } from '@/components/workspace/types';
 import { RatingProviderSortableList } from '@/components/rating-provider-sortable-list';
 import { isVerticalPosterRatingLayout, type PosterRatingLayout } from '@/lib/posterRatingLayout';
@@ -15,41 +18,76 @@ import { THUMBNAIL_RATING_LAYOUT_OPTIONS, type ThumbnailRatingLayout } from '@/l
 import { THUMBNAIL_SIZE_OPTIONS, type ThumbnailSize } from '@/lib/thumbnailSize';
 import { LOGO_MODE_OPTIONS } from '@/lib/logoMode';
 import { LOGO_FONT_VARIANT_OPTIONS } from '@/lib/logoFontVariant';
-import { DEFAULT_LOGO_CUSTOM_PRIMARY, DEFAULT_LOGO_CUSTOM_SECONDARY, DEFAULT_LOGO_CUSTOM_OUTLINE } from '@/lib/logoCustomColors';
 import { LOGO_COLOR_PRESETS } from '@/lib/logoColorPresets';
 import { POSTER_RATING_LAYOUT_OPTIONS } from '@/lib/posterRatingLayout';
-import { RATING_PROVIDER_OPTIONS } from '@/lib/ratingPreferences';
 import {
-  STREAM_BADGE_OPTIONS,
-  POSTER_GENRE_POSITION_OPTIONS,
-  POSTER_QUALITY_BADGE_POSITION_OPTIONS,
-  QUALITY_BADGE_SIDE_OPTIONS,
-  VERTICAL_BADGE_CONTENT_OPTIONS,
+  BTN_BASE_CLASS,
+  BTN_GHOST_CLASS,
+  BTN_INACTIVE_CLASS,
   INPUT_CLASS,
-  INPUT_COMPACT_CLASS,
-  SEGMENT_CLASS,
-  BUTTON_BASE_CLASS,
-  BUTTON_ACTIVE_CLASS,
-  BUTTON_INACTIVE_CLASS,
-  INNER_PANEL_CLASS,
-  CONFIG_PANEL_CLASS,
+  JUSTWATCH_COUNTRY_OPTIONS,
+  PANEL_CLASS,
+  PANEL_HEADER_CLASS,
+  POSTER_GENRE_POSITION_OPTIONS,
+  POSTER_PRESET_OPTIONS,
+  POSTER_QUALITY_BADGE_POSITION_OPTIONS,
+  PRESET_CONTROLS_NOTE,
   RANKING_OPTIONS,
   RANKING_POSITION_OPTIONS,
-  JUSTWATCH_COUNTRY_OPTIONS,
+  STREAM_BADGE_OPTIONS,
+  VERTICAL_BADGE_CONTENT_OPTIONS,
 } from './constants';
 
 type WorkspaceControlsPanelProps = Pick<HomePageViewProps, 'state' | 'derived' | 'actions'>;
 
-function Section({ title, badge, children }: { title: string; badge?: string; children: React.ReactNode }) {
+function SectionTitle({ icon: Icon, title, hint }: { icon: LucideIcon; title: string; hint?: string }) {
   return (
-    <div className={`${INNER_PANEL_CLASS}`}>
-      <div className="flex items-center justify-between p-5 pb-3 text-xs font-medium text-slate-300">
-        <div className="flex items-center gap-2">
-          <span>{title}</span>
-          {badge && <span className="rounded-full bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 text-[9px] uppercase tracking-wider text-orange-400 font-bold">{badge}</span>}
-        </div>
+    <div className="flex items-start gap-2.5 px-1">
+      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-400">
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+      <div className="min-w-0">
+        <h3 className="text-xs font-semibold text-slate-200">{title}</h3>
+        {hint && <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">{hint}</p>}
       </div>
-      <div className="px-5 pb-5 space-y-4">{children}</div>
+    </div>
+  );
+}
+
+function KeyField({
+  label,
+  hint,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  value: string;
+  placeholder: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</span>
+        <span
+          className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+            value ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-300' : 'border-white/10 bg-white/[0.03] text-slate-500'
+          }`}
+        >
+          {value ? 'Active' : 'Missing'}
+        </span>
+      </div>
+      <input
+        type="password"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        aria-label={label}
+        className={INPUT_CLASS}
+      />
+      <span className="text-[10px] leading-relaxed text-slate-500">{hint}</span>
     </div>
   );
 }
@@ -92,8 +130,6 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     posterAverageRatingsEnabled,
     posterVignetteEnabled,
     posterGenrePosition,
-    posterSimpleRatingSource,
-    qualityBadgesSide,
     posterQualityBadgesPosition,
     ranking,
     rankingCountry,
@@ -103,15 +139,9 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
   } = state;
 
   const {
-    styleLabel,
-    textLabel,
-    providersLabel,
     activeRatingStyle,
     activeImageText,
     ratingProviderRows,
-    shouldShowQualityBadgesPosition,
-    shouldShowQualityBadgesSide,
-    qualityBadgeTypeLabel,
     activeStreamBadges,
     activeQualityBadgesStyle,
     activeQualityBadgesColorMode,
@@ -149,7 +179,6 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     setPosterAverageRatingsEnabled,
     setPosterVignetteEnabled,
     setPosterGenrePosition,
-    setPosterSimpleRatingSource,
     setLogoMode,
     setLogoFontVariant,
     setLogoCustomPrimary,
@@ -160,11 +189,10 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     setActiveQualityBadgesStyle,
     setActiveQualityBadgesColorMode,
     setPosterQualityBadgesPosition,
-    setQualityBadgesSide,
-    toggleRatingPreference,
     enableAllRatingPreferences,
     disableAllRatingPreferences,
     reorderRatingPreference,
+    toggleRatingPreference,
     setRanking,
     setRankingCountry,
     setRankingNoBox,
@@ -173,474 +201,492 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
   } = actions;
 
   const usesPosterSettings = previewType === 'poster' || (previewType === 'backdrop' && backdropAsPoster);
+  const activePreset = POSTER_PRESET_OPTIONS.find((preset) => preset.id === posterConfiguratorPreset);
+  const typeLabel =
+    previewType === 'backdrop' && backdropAsPoster
+      ? 'Backdrop as poster'
+      : previewType.charAt(0).toUpperCase() + previewType.slice(1);
+  const subtitle = usesPosterSettings ? `${typeLabel} · ${activePreset?.name ?? 'Preset'}` : typeLabel;
 
   const shouldShowVerticalBadgeContent =
     (previewType === 'poster' && isVerticalPosterRatingLayout(posterRatingsLayout)) ||
     (previewType === 'backdrop' && (backdropAsPoster ? isVerticalPosterRatingLayout(posterRatingsLayout) : backdropRatingsLayout === 'right-vertical')) ||
     (previewType === 'thumbnail' && thumbnailRatingsLayout.endsWith('-vertical'));
 
-  const activeVerticalBadgeContent =
-    previewType === 'poster'
-      ? posterVerticalBadgeContent
-      : previewType === 'thumbnail'
-        ? thumbnailVerticalBadgeContent
-        : backdropAsPoster
-          ? posterVerticalBadgeContent
-          : backdropVerticalBadgeContent;
+  const activeVerticalBadgeContent: string =
+    previewType === 'thumbnail'
+      ? thumbnailVerticalBadgeContent
+      : previewType === 'backdrop' && !backdropAsPoster
+        ? backdropVerticalBadgeContent
+        : posterVerticalBadgeContent;
+
+  const setActiveVerticalBadgeContent = (value: string) => {
+    const setter =
+      previewType === 'thumbnail'
+        ? setThumbnailVerticalBadgeContent
+        : previewType === 'backdrop' && !backdropAsPoster
+          ? setBackdropVerticalBadgeContent
+          : setPosterVerticalBadgeContent;
+    setter(value as 'standard' | 'stacked');
+  };
+
   const normalizedRankingCountry = rankingCountry === 'global' ? 'global' : rankingCountry.toUpperCase();
   const hasKnownRankingCountry = JUSTWATCH_COUNTRY_OPTIONS.some((option) => option.id === normalizedRankingCountry);
 
-  const renderSelect = (value: string, onChange: (val: string) => void, options: any[], defaultLabel: string) => {
-    const dropdownOptions = [
-      { id: '', label: defaultLabel },
+  const languageOptions = useMemo(
+    () => [
+      { id: '', label: `Global (${lang})` },
       { id: 'original', label: 'Native Language' },
-      ...options.map((o: any) => ({ id: o.code, label: `${o.flag} ${o.label}` }))
-    ];
-    return <Dropdown value={value} onChange={onChange} options={dropdownOptions} />;
-  };
-
-  const renderDropdown = <T extends string>(value: T, onChange: (val: T) => void, options: readonly { readonly id: T; readonly label: string }[]) => (
-    <Dropdown value={value} onChange={onChange} options={options} />
+      ...supportedLanguages.map((language) => ({
+        id: language.code,
+        label: `${language.flag} ${language.label}`,
+      })),
+    ],
+    [lang, supportedLanguages]
   );
 
+  const renderLanguage = (value: string, onChange: (val: string) => void) => (
+    <Dropdown value={value} onChange={onChange} options={languageOptions} />
+  );
+
+  const renderDropdown = <T extends string>(
+    value: T,
+    onChange: (val: T) => void,
+    options: readonly { readonly id: T; readonly label: string }[]
+  ) => <Dropdown value={value} onChange={onChange} options={options} />;
+
+  const showImageText = previewType === 'backdrop' || (usesPosterSettings && posterConfiguratorPreset === 'custom');
+  const showRatingStyle = !usesPosterSettings || posterConfiguratorPreset !== 'preset7';
+  const showPosterQualityBadges = usesPosterSettings && posterConfiguratorPreset !== 'preset4';
+  const showBackdropQualityBadges = previewType === 'backdrop' && !backdropAsPoster;
+  const showArtworkSection = previewType !== 'thumbnail';
+  const averageRatingNotice =
+    usesPosterSettings && (posterConfiguratorPreset === 'preset1' || (posterConfiguratorPreset === 'custom' && posterAverageRatingsEnabled));
+
   return (
-    <div className={`xl:order-1 ${CONFIG_PANEL_CLASS} flex flex-col xl:self-stretch xl:h-full`}>
-      <div className="shrink-0 p-5 pb-3 bg-black/20">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-500/10 border border-orange-500/20">
-            <Settings2 className="w-4 h-4 text-orange-400" />
-          </div>
-          <h2 className="text-sm font-medium text-white tracking-wide">Configurator</h2>
-        </div>
+    <div className={`${PANEL_CLASS} xl:order-1`}>
+      <div className={PANEL_HEADER_CLASS}>
+        <PanelHeader
+          icon={<Settings2 className="h-4 w-4" />}
+          title="Configuration"
+          subtitle={subtitle}
+          accent="orange"
+        />
       </div>
 
-      <div className="flex-1 overflow-y-auto premium-scrollbar p-5 space-y-5">
+      <div className="premium-scrollbar flex-1 space-y-6 overflow-y-auto p-4">
+        <section className="space-y-3">
+          <SectionTitle icon={KeyRound} title="API keys" hint="Optional integrations unlock more providers and artwork fallbacks." />
 
-        <Section title="Access Keys">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-slate-400">TMDB (v3 Key)</span>
-              <input type="password" value={tmdbKey} onChange={(e) => setTmdbKey(e.target.value)} placeholder="Enter key to enable specific previews" className={INPUT_CLASS} />
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-slate-400">MDBList Key</span>
-              <input type="password" value={mdblistKey} onChange={(e) => setMdblistKey(e.target.value)} placeholder="Optional Integration" className={INPUT_CLASS} />
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-slate-400">SIMKL Client ID</span>
-              <input type="password" value={simklClientId} onChange={(e) => setSimklClientId(e.target.value)} placeholder="Optional Integration" className={INPUT_CLASS} />
-            </label>
-            <label className="flex flex-col gap-1.5 md:col-span-3">
-              <span className="text-xs font-medium text-slate-400">Fanart.tv API Key <span className="text-slate-500 font-normal">(optional)</span></span>
-              <span className="text-xs text-slate-500">Used as fallback for Clean posters/backdrops when TMDB has none. Not required.</span>
-              <input type="password" value={fanartKey} onChange={(e) => setFanartKey(e.target.value)} placeholder="Fanart.tv API key" className={INPUT_CLASS} />
-            </label>
-          </div>
-        </Section>
-
-        {previewType === 'backdrop' && (
-          <Section title="Backdrop Mode" badge="Poster controls">
-            <div className={`rounded-2xl border px-4 py-4 transition-colors ${backdropAsPoster ? 'border-orange-500/40 bg-orange-500/10' : 'border-white/10 bg-[#0a0a0a]'}`}>
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex min-w-0 items-start gap-3">
-                  <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${backdropAsPoster ? 'border-orange-400/30 bg-orange-400/15' : 'border-white/10 bg-white/[0.04]'}`}>
-                    <Layers className={`h-4 w-4 ${backdropAsPoster ? 'text-orange-300' : 'text-slate-400'}`} />
-                  </div>
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <span className="text-sm font-semibold text-slate-100">Use backdrop as poster</span>
-                    <span className="text-[11px] leading-relaxed text-slate-400">Landscape image with all Poster layout, badge and rating settings.</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setBackdropAsPoster((value) => !value)}
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full p-1 transition-colors ${backdropAsPoster ? 'bg-orange-500/80' : 'bg-white/10'}`}
-                  aria-label="Use backdrop as poster"
-                  aria-pressed={backdropAsPoster}
-                >
-                  <span className={`block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${backdropAsPoster ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
-              </div>
-            </div>
-          </Section>
-        )}
-
-        {usesPosterSettings && (
-          <Section title="Poster Preset">
-            <div>
-              <h3 className="text-xs font-medium text-slate-400 mb-2">Preset</h3>
-              {renderDropdown(posterConfiguratorPreset, setPosterConfiguratorPreset, [
-                { id: 'preset1', label: 'Preset 1' },
-                { id: 'preset2', label: 'Preset 2' },
-                { id: 'preset3', label: 'Preset 3' },
-                { id: 'preset4', label: 'Preset 4' },
-                { id: 'preset5', label: 'Preset 5' },
-                { id: 'preset6', label: 'Preset 6' },
-                { id: 'preset7', label: 'Preset 7' },
-                { id: 'custom', label: 'Custom' },
-              ])}
-            </div>
-          </Section>
-        )}
-
-        {(previewType === 'poster' && tmdbKey && !posterConfiguratorPreset.startsWith('preset')) || previewType === 'backdrop' && tmdbKey || previewType === 'logo' && tmdbKey ? (
-          <Section title="Languages">
-            {previewType === 'poster' && !posterConfiguratorPreset.startsWith('preset') && (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-xs font-medium text-slate-300 mb-3">Poster Language</h3>
-                  {renderSelect(posterLang, setPosterLang, supportedLanguages, `Global (${lang})`)}
-                </div>
-                <div>
-                  <h3 className="text-xs font-medium text-slate-300 mb-3">Poster Language (Anime)</h3>
-                  {renderSelect(posterAnimeLang, setPosterAnimeLang, supportedLanguages, `Global (${lang})`)}
-                </div>
-              </div>
-            )}
-            {previewType === 'backdrop' && (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-xs font-medium text-slate-300 mb-3">Backdrop Language</h3>
-                  {renderSelect(backdropLang, setBackdropLang, supportedLanguages, `Global (${lang})`)}
-                </div>
-                <div>
-                  <h3 className="text-xs font-medium text-slate-300 mb-3">Backdrop Language (Anime)</h3>
-                  {renderSelect(backdropAnimeLang, setBackdropAnimeLang, supportedLanguages, `Global (${lang})`)}
-                </div>
-              </div>
-            )}
-            {previewType === 'logo' && (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-xs font-medium text-slate-300 mb-3">Logo Language</h3>
-                  {renderSelect(logoLang, setLogoLang, supportedLanguages, `Global (${lang})`)}
-                </div>
-                <div>
-                  <h3 className="text-xs font-medium text-slate-300 mb-3">Logo Language (Anime)</h3>
-                  {renderSelect(logoAnimeLang, setLogoAnimeLang, supportedLanguages, `Global (${lang})`)}
-                </div>
-              </div>
-            )}
-          </Section>
-        ) : null}
-
-        {(!usesPosterSettings || posterConfiguratorPreset === 'preset1' || posterConfiguratorPreset === 'preset2' || posterConfiguratorPreset === 'preset3' || posterConfiguratorPreset === 'preset4' || posterConfiguratorPreset === 'preset5' || posterConfiguratorPreset === 'preset6' || posterConfiguratorPreset === 'custom') && (
-          <Section title={styleLabel}>
-            {renderDropdown(activeRatingStyle, (v) => setRatingStyleForType(v as RatingStyle), RATING_STYLE_OPTIONS)}
-            {activeRatingStyle === 'glass' && (
-              <div className="mt-3 pt-3 border-t border-slate-800 space-y-2">
-                <h4 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Glass Style</h4>
-                {renderDropdown(activeRatingsColorMode, (v) => setRatingsColorModeForType(v as 'colored' | 'transparent'), [
-                  { id: 'colored', label: 'Colored' },
-                  { id: 'transparent', label: 'Transparent' },
-                ])}
-              </div>
-            )}
-          </Section>
-        )}
-
-        {(previewType === 'backdrop' || (usesPosterSettings && posterConfiguratorPreset === 'custom')) && (
-          <Section title={textLabel}>
-            {renderDropdown(activeImageText, setImageTextForType, [
-              { id: 'default', label: 'Default' },
-              { id: 'clean', label: 'Clean' },
-              { id: 'alternative', label: 'Alternative' },
-            ])}
-            <div>
-              <h3 className="text-xs font-medium text-slate-400 mb-2">Anime Override (Kitsu/MAL)</h3>
-              {renderDropdown(
-                usesPosterSettings ? posterAnimeImageText : backdropAnimeImageText,
-                usesPosterSettings ? setPosterAnimeImageText : setBackdropAnimeImageText,
-                [
-                  { id: 'default', label: 'Default' },
-                  { id: 'clean', label: 'Clean' },
-                  { id: 'alternative', label: 'Alternative' },
-                ]
-              )}
-            </div>
-          </Section>
-        )}
-
-        {usesPosterSettings && (
-          <Section title="Layout">
+          <Card>
             <div className="space-y-4">
-              <label className="flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-[#0a0a0a] px-4 py-3">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs font-medium text-slate-300">Vignette</span>
-                  <span className="text-[10px] text-slate-500">Darken poster edges</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPosterVignetteEnabled((value) => !value)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-1 transition-colors ${posterVignetteEnabled ? 'bg-orange-500/80' : 'bg-white/10'}`}
-                  aria-pressed={posterVignetteEnabled}
-                >
-                  <span className={`block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${posterVignetteEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
-              </label>
+              <KeyField
+                label="TMDB (v3 key)"
+                value={tmdbKey}
+                onChange={setTmdbKey}
+                placeholder="Enter your TMDB API key"
+                hint="Required for previews, title search and language selection."
+              />
+              <KeyField
+                label="MDBList"
+                value={mdblistKey}
+                onChange={setMdblistKey}
+                placeholder="Optional integration"
+                hint="Unlocks MDBList ratings on posters."
+              />
+              <KeyField
+                label="SIMKL Client ID"
+                value={simklClientId}
+                onChange={setSimklClientId}
+                placeholder="Optional integration"
+                hint="Unlocks SIMKL ratings."
+              />
+              <KeyField
+                label="Fanart.tv API key"
+                value={fanartKey}
+                onChange={setFanartKey}
+                placeholder="Optional integration"
+                hint="Fallback for Clean posters and backdrops when TMDB has no artwork."
+              />
+            </div>
+          </Card>
+        </section>
 
-              {posterConfiguratorPreset === 'preset7' && (
-                <div className="pt-2 flex flex-wrap items-center gap-2 border-t border-slate-800">
-                  <span className="text-xs font-medium text-slate-400">Max Badges per Side</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={posterRatingsMaxPerSide ?? ''}
-                    onChange={(e) => setPosterRatingsMaxPerSide(e.target.value === '' ? null : parseInt(e.target.value, 10))}
-                    placeholder="Auto"
-                    className={`w-20 ${INPUT_CLASS}`}
-                  />
+        {usesPosterSettings && (
+          <section className="space-y-3">
+            <SectionTitle
+              icon={Palette}
+              title="Preset"
+              hint="Start from a proven layout, then switch to Custom for full manual control."
+            />
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {POSTER_PRESET_OPTIONS.map((preset) => {
+                const isActive = posterConfiguratorPreset === preset.id;
+                return (
                   <button
-                    onClick={() => setPosterRatingsMaxPerSide(null)}
-                    className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS}
+                    key={preset.id}
+                    type="button"
+                    onClick={() => setPosterConfiguratorPreset(preset.id)}
+                    aria-pressed={isActive}
+                    className={`flex cursor-pointer flex-col gap-1 rounded-2xl border p-3 text-left transition-all ${
+                      isActive
+                        ? 'border-orange-400/40 bg-orange-500/10 shadow-[0_0_24px_-14px_rgba(249,115,22,0.9)]'
+                        : 'border-white/5 bg-black/30 hover:border-white/10 hover:bg-white/[0.04]'
+                    }`}
                   >
-                    Auto
+                    <span className="flex items-center justify-between gap-2">
+                      <span className={`text-xs font-semibold ${isActive ? 'text-white' : 'text-slate-200'}`}>{preset.name}</span>
+                      {isActive && <Check className="h-3.5 w-3.5 shrink-0 text-orange-400" />}
+                    </span>
+                    <span className="text-[10px] leading-relaxed text-slate-500">{preset.description}</span>
+                    <span className="text-[10px] leading-relaxed text-slate-600">{preset.summary}</span>
                   </button>
-                </div>
-              )}
+                );
+              })}
+            </div>
+            {posterConfiguratorPreset !== 'custom' && <Notice tone="info">{PRESET_CONTROLS_NOTE}</Notice>}
+          </section>
+        )}
 
-              {posterConfiguratorPreset === 'custom' && (
-                <div className="space-y-4 pt-4 border-t border-slate-800">
-                  <div>
-                    <h3 className="text-xs font-medium text-slate-400 mb-2">Ratings Position</h3>
-                    {renderDropdown(posterRatingsLayout, setPosterRatingsLayout, POSTER_RATING_LAYOUT_OPTIONS)}
-                  </div>
+        {showArtworkSection && (
+          <section className="space-y-3">
+            <SectionTitle icon={ImageIcon} title="Artwork" hint="Source image, artwork variant and per-type language." />
 
-                  {isVerticalPosterRatingLayout(posterRatingsLayout) && (
+            {previewType === 'backdrop' && (
+              <Toggle
+                checked={backdropAsPoster}
+                onChange={setBackdropAsPoster}
+                label="Use backdrop as poster"
+                hint="Landscape image with all poster layout, badge and rating settings."
+              />
+            )}
+
+            <Card>
+              {!tmdbKey ? (
+                <Notice tone="warning" title="TMDB key required">
+                  Add a TMDB key in the API keys section above to load artwork in a specific language.
+                </Notice>
+              ) : (
+                <div className="space-y-3">
+                  {previewType === 'poster' ? (
                     <>
-                      <div>
-                        <h3 className="text-xs font-medium text-slate-400 mb-2">Vertical Badge Style</h3>
-                        {renderDropdown(posterVerticalBadgeContent, setPosterVerticalBadgeContent, VERTICAL_BADGE_CONTENT_OPTIONS)}
-                      </div>
-                      <div className="pt-2 flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-medium text-slate-400">Max Badges per Side</span>
-                        <input
-                          type="number"
-                          min={1}
-                          max={20}
-                          value={posterRatingsMaxPerSide ?? ''}
-                          onChange={(e) => setPosterRatingsMaxPerSide(e.target.value === '' ? null : parseInt(e.target.value, 10))}
-                          placeholder="Auto"
-                          className={`w-20 ${INPUT_CLASS}`}
-                        />
-                        <button
-                          onClick={() => setPosterRatingsMaxPerSide(null)}
-                          className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS}
-                        >
-                          Auto
-                        </button>
-                      </div>
+                      <Field label="Poster language">{renderLanguage(posterLang, setPosterLang)}</Field>
+                      <Field label="Poster language (anime)">{renderLanguage(posterAnimeLang, setPosterAnimeLang)}</Field>
+                    </>
+                  ) : previewType === 'backdrop' ? (
+                    <>
+                      <Field label="Backdrop language">{renderLanguage(backdropLang, setBackdropLang)}</Field>
+                      <Field label="Backdrop language (anime)">{renderLanguage(backdropAnimeLang, setBackdropAnimeLang)}</Field>
+                    </>
+                  ) : (
+                    <>
+                      <Field label="Logo language">{renderLanguage(logoLang, setLogoLang)}</Field>
+                      <Field label="Logo language (anime)">{renderLanguage(logoAnimeLang, setLogoAnimeLang)}</Field>
                     </>
                   )}
-
-                  <div>
-                    <h3 className="text-xs font-medium text-slate-400 mb-2">Genre Position</h3>
-                    {renderDropdown(posterGenrePosition, setPosterGenrePosition, POSTER_GENRE_POSITION_OPTIONS)}
-                  </div>
-
-                  <div>
-                    <h3 className="text-xs font-medium text-slate-400 mb-2">Quality Badges Position</h3>
-                    {renderDropdown(posterQualityBadgesPosition, setPosterQualityBadgesPosition, POSTER_QUALITY_BADGE_POSITION_OPTIONS)}
-                  </div>
-
-                  <label className="flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-[#0a0a0a] px-4 py-3">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-xs font-medium text-slate-300">Average Ratings</span>
-                      <span className="text-[10px] text-slate-500">Calculate average of active providers</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setPosterAverageRatingsEnabled((value) => !value)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-1 transition-colors ${posterAverageRatingsEnabled ? 'bg-orange-500/80' : 'bg-white/10'}`}
-                      aria-pressed={posterAverageRatingsEnabled}
-                    >
-                      <span className={`block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${posterAverageRatingsEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                    </button>
-                  </label>
                 </div>
               )}
-            </div>
-          </Section>
+            </Card>
+
+          </section>
         )}
 
-        {previewType === 'backdrop' && !backdropAsPoster && (
-          <Section title="Layout">
-            <div className="space-y-4">
-              <>
-                  <h3 className="text-xs font-medium text-slate-400 mb-2">Ratings Position</h3>
-                  {renderDropdown(backdropRatingsLayout, (v) => setBackdropRatingsLayout(v as BackdropRatingLayout), BACKDROP_RATING_LAYOUT_OPTIONS)}
-                  <div>
-                    <h3 className="text-xs font-medium text-slate-400 mb-2">Ratings Size</h3>
-                    {renderDropdown(backdropRatingsSize, (v) => setBackdropRatingsSize(v as BackdropRatingsSize), BACKDROP_RATINGS_SIZE_OPTIONS)}
-                  </div>
-                  {shouldShowVerticalBadgeContent && (
-                    <div>
-                      <h3 className="text-xs font-medium text-slate-400 mb-2">Vertical Badge Style</h3>
-                      {renderDropdown(backdropVerticalBadgeContent, setBackdropVerticalBadgeContent, VERTICAL_BADGE_CONTENT_OPTIONS)}
-                    </div>
+        {showImageText && (
+          <section className="space-y-3">
+            <SectionTitle icon={Type} title="Artwork text" hint="Base artwork variant used before badges are drawn." />
+            <Card>
+              <div className="space-y-3">
+                <Field label="Base artwork">
+                  {renderDropdown(activeImageText, setImageTextForType, [
+                    { id: 'default', label: 'Default' },
+                    { id: 'clean', label: 'Clean' },
+                    { id: 'alternative', label: 'Alternative' },
+                  ])}
+                </Field>
+                <Field label="Anime override (Kitsu/MAL)">
+                  {renderDropdown(
+                    usesPosterSettings ? posterAnimeImageText : backdropAnimeImageText,
+                    usesPosterSettings ? setPosterAnimeImageText : setBackdropAnimeImageText,
+                    [
+                      { id: 'default', label: 'Default' },
+                      { id: 'clean', label: 'Clean' },
+                      { id: 'alternative', label: 'Alternative' },
+                    ]
                   )}
-                  <div className="pt-2 flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-medium text-slate-400">Max Badges</span>
-                    <input type="number" min={1} max={20} value={backdropRatingsMax ?? ''} onChange={(e) => setBackdropRatingsMax(e.target.value === '' ? null : parseInt(e.target.value, 10))} placeholder="Auto" className={`w-20 ${INPUT_CLASS}`} />
-                    <button onClick={() => setBackdropRatingsMax(null)} className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS}>Auto</button>
-                  </div>
-              </>
-            </div>
-          </Section>
-        )}
-
-        {previewType === 'thumbnail' && (
-          <Section title="Layout">
-            <div className="space-y-4">
-              <h3 className="text-xs font-medium text-slate-400 mb-2">Ratings Position</h3>
-              {renderDropdown(thumbnailRatingsLayout, (v) => setThumbnailRatingsLayout(v as ThumbnailRatingLayout), THUMBNAIL_RATING_LAYOUT_OPTIONS)}
-              <div>
-                <h3 className="text-xs font-medium text-slate-400 mb-2">Thumbnail Size</h3>
-                {renderDropdown(thumbnailSize, (v) => setThumbnailSize(v as ThumbnailSize), THUMBNAIL_SIZE_OPTIONS)}
+                </Field>
               </div>
-              {shouldShowVerticalBadgeContent && (
-                <div>
-                  <h3 className="text-xs font-medium text-slate-400 mb-2">Vertical Badge Style</h3>
-                  {renderDropdown(thumbnailVerticalBadgeContent, setThumbnailVerticalBadgeContent, VERTICAL_BADGE_CONTENT_OPTIONS)}
-                </div>
-              )}
-            </div>
-          </Section>
+            </Card>
+          </section>
         )}
 
-        {previewType === 'logo' && (
-          <Section title="Layout">
-            <div className="space-y-4">
-              <h3 className="text-xs font-medium text-slate-400 mb-2">Logo Mode</h3>
-              {renderDropdown(logoMode, setLogoMode, LOGO_MODE_OPTIONS)}
+        <section className="space-y-3">
+          <SectionTitle icon={SlidersHorizontal} title="Style" hint="Rating badge look and quality indicators." />
 
-              <AnimatePresence mode="popLayout">
-                {logoMode === 'custom-logo' && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-4 pt-2 overflow-hidden">
-                    <h3 className="text-xs font-medium text-slate-400 mb-2">Logo Font</h3>
-                    {renderDropdown(logoFontVariant, setLogoFontVariant, LOGO_FONT_VARIANT_OPTIONS)}
+          {showRatingStyle && (
+            <Card title="Rating style">
+              <div className="space-y-3">
+                {renderDropdown(activeRatingStyle, (value) => setRatingStyleForType(value as RatingStyle), RATING_STYLE_OPTIONS)}
+                {activeRatingStyle === 'glass' && (
+                  <Field label="Glass style">
+                    {renderDropdown(
+                      activeRatingsColorMode,
+                      (value) => setRatingsColorModeForType(value as 'colored' | 'transparent'),
+                      [
+                        { id: 'colored', label: 'Colored' },
+                        { id: 'transparent', label: 'Transparent' },
+                      ]
+                    )}
+                  </Field>
+                )}
+              </div>
+            </Card>
+          )}
 
-                    <div className="grid gap-3 lg:grid-cols-3 pt-2">
-                      <label className="space-y-2">
-                        <span className="text-xs font-medium text-slate-400">Primary</span>
-                        <div className="flex min-w-0 items-center gap-2">
-                          <input type="color" value={logoCustomPrimary} onChange={(e) => setLogoCustomPrimary(e.target.value)} className="h-10 w-14 shrink-0 cursor-pointer rounded-lg border border-white/10 bg-transparent p-1" />
-                          <input type="text" value={logoCustomPrimary} onChange={(e) => setLogoCustomPrimary(e.target.value)} className={`min-w-0 flex-1 ${INPUT_CLASS}`} />
-                        </div>
-                      </label>
-                      <label className="space-y-2">
-                        <span className="text-xs font-medium text-slate-400">Secondary</span>
-                        <div className="flex min-w-0 items-center gap-2">
-                          <input type="color" value={logoCustomSecondary} onChange={(e) => setLogoCustomSecondary(e.target.value)} className="h-10 w-14 shrink-0 cursor-pointer rounded-lg border border-white/10 bg-transparent p-1" />
-                          <input type="text" value={logoCustomSecondary} onChange={(e) => setLogoCustomSecondary(e.target.value)} className={`min-w-0 flex-1 ${INPUT_CLASS}`} />
-                        </div>
-                      </label>
-                      <label className="space-y-2">
-                        <span className="text-xs font-medium text-slate-400">Outline</span>
-                        <div className="flex min-w-0 items-center gap-2">
-                          <input type="color" value={logoCustomOutline} onChange={(e) => setLogoCustomOutline(e.target.value)} className="h-10 w-14 shrink-0 cursor-pointer rounded-lg border border-white/10 bg-transparent p-1" />
-                          <input type="text" value={logoCustomOutline} onChange={(e) => setLogoCustomOutline(e.target.value)} className={`min-w-0 flex-1 ${INPUT_CLASS}`} />
-                        </div>
-                      </label>
-                    </div>
+          {(showPosterQualityBadges || showBackdropQualityBadges) && (
+            <Card title="Quality badges" description="Stream quality indicators (4K, HDR, and similar) added to the artwork.">
+              <div className={`grid gap-3 ${showPosterQualityBadges && posterConfiguratorPreset === 'custom' ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+                {(showBackdropQualityBadges || posterConfiguratorPreset === 'custom') && (
+                  <Field label="Mode">
+                    {renderDropdown(activeStreamBadges, setActiveStreamBadges, STREAM_BADGE_OPTIONS)}
+                  </Field>
+                )}
+                <Field label="Style">
+                  {renderDropdown(activeQualityBadgesStyle, (value) => setActiveQualityBadgesStyle(value as RatingStyle), RATING_STYLE_OPTIONS)}
+                </Field>
+                <Field label="Badge style">
+                  {renderDropdown(activeQualityBadgesColorMode, setActiveQualityBadgesColorMode, [
+                    { id: 'white', label: 'White' },
+                    { id: 'colored', label: 'Colored' },
+                  ])}
+                </Field>
+              </div>
+            </Card>
+          )}
 
-                    <div className="space-y-3 pt-2">
-                      <h3 className="text-xs font-medium text-slate-400 mb-2">Color Presets</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {LOGO_COLOR_PRESETS.map((preset) => (
-                          <button key={preset.id} onClick={() => { setLogoCustomPrimary(preset.primary); setLogoCustomSecondary(preset.secondary); setLogoCustomOutline(preset.outline); }} className={`${BUTTON_BASE_CLASS} ${BUTTON_INACTIVE_CLASS} px-3 py-2`}>
-                            <span className="inline-flex items-center gap-2">
-                              <span className="h-3 w-3 rounded-full border border-white/10" style={{ backgroundColor: preset.primary }} />
-                              <span className="h-3 w-3 rounded-full border border-white/10" style={{ backgroundColor: preset.secondary }} />
-                              <span className="h-3 w-3 rounded-full border border-white/10" style={{ backgroundColor: preset.outline }} />
-                            </span>
-                          </button>
+          {previewType === 'logo' && (
+            <Notice tone="info">Logo artwork only shows rating badges. Quality badges and rankings apply to posters and backdrops.</Notice>
+          )}
+        </section>
+
+        <section className="space-y-3">
+          <SectionTitle icon={LayoutGrid} title="Layout" hint="Where ratings, badges, genres and overlays are placed." />
+
+          {usesPosterSettings && (
+            <Card>
+              <div className="space-y-3">
+                <Toggle
+                  checked={posterVignetteEnabled}
+                  onChange={setPosterVignetteEnabled}
+                  label="Vignette"
+                  hint="Darken the poster edges for extra readability."
+                />
+
+                {posterConfiguratorPreset === 'preset7' && (
+                  <Field label="Max badges per side">
+                    <NumberStepper
+                      value={posterRatingsMaxPerSide}
+                      onChange={setPosterRatingsMaxPerSide}
+                      onReset={() => setPosterRatingsMaxPerSide(null)}
+                    />
+                  </Field>
+                )}
+
+                {posterConfiguratorPreset === 'custom' && (
+                  <div className="space-y-3 border-t border-white/5 pt-3">
+                    <Field label="Ratings position">
+                      {renderDropdown(posterRatingsLayout, setPosterRatingsLayout, POSTER_RATING_LAYOUT_OPTIONS)}
+                    </Field>
+                    {isVerticalPosterRatingLayout(posterRatingsLayout) && (
+                      <>
+                        <Field label="Vertical badge style">
+                          {renderDropdown(posterVerticalBadgeContent, setPosterVerticalBadgeContent, VERTICAL_BADGE_CONTENT_OPTIONS)}
+                        </Field>
+                        <Field label="Max badges per side">
+                          <NumberStepper
+                            value={posterRatingsMaxPerSide}
+                            onChange={setPosterRatingsMaxPerSide}
+                            onReset={() => setPosterRatingsMaxPerSide(null)}
+                          />
+                        </Field>
+                      </>
+                    )}
+                    <Field label="Genre position">
+                      {renderDropdown(posterGenrePosition, setPosterGenrePosition, POSTER_GENRE_POSITION_OPTIONS)}
+                    </Field>
+                    <Field label="Quality badges position">
+                      {renderDropdown(posterQualityBadgesPosition, setPosterQualityBadgesPosition, POSTER_QUALITY_BADGE_POSITION_OPTIONS)}
+                    </Field>
+                    <Toggle
+                      checked={posterAverageRatingsEnabled}
+                      onChange={setPosterAverageRatingsEnabled}
+                      label="Average ratings"
+                      hint="Show one badge with the average of all active providers."
+                    />
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {previewType === 'backdrop' && !backdropAsPoster && (
+            <Card>
+              <div className="space-y-3">
+                <Field label="Ratings position">
+                  {renderDropdown(backdropRatingsLayout, (value) => setBackdropRatingsLayout(value as BackdropRatingLayout), BACKDROP_RATING_LAYOUT_OPTIONS)}
+                </Field>
+                <Field label="Ratings size">
+                  {renderDropdown(backdropRatingsSize, (value) => setBackdropRatingsSize(value as BackdropRatingsSize), BACKDROP_RATINGS_SIZE_OPTIONS)}
+                </Field>
+                {shouldShowVerticalBadgeContent && (
+                  <Field label="Vertical badge style">
+                    {renderDropdown(
+                      activeVerticalBadgeContent as 'standard' | 'stacked',
+                      setActiveVerticalBadgeContent,
+                      VERTICAL_BADGE_CONTENT_OPTIONS
+                    )}
+                  </Field>
+                )}
+                <Field label="Max badges">
+                  <NumberStepper
+                    value={backdropRatingsMax}
+                    onChange={setBackdropRatingsMax}
+                    onReset={() => setBackdropRatingsMax(null)}
+                  />
+                </Field>
+              </div>
+            </Card>
+          )}
+
+          {previewType === 'thumbnail' && (
+            <Card>
+              <div className="space-y-3">
+                <Field label="Ratings position">
+                  {renderDropdown(thumbnailRatingsLayout, (value) => setThumbnailRatingsLayout(value as ThumbnailRatingLayout), THUMBNAIL_RATING_LAYOUT_OPTIONS)}
+                </Field>
+                <Field label="Thumbnail size">
+                  {renderDropdown(thumbnailSize, (value) => setThumbnailSize(value as ThumbnailSize), THUMBNAIL_SIZE_OPTIONS)}
+                </Field>
+                {shouldShowVerticalBadgeContent && (
+                  <Field label="Vertical badge style">
+                    {renderDropdown(
+                      activeVerticalBadgeContent as 'standard' | 'stacked',
+                      setActiveVerticalBadgeContent,
+                      VERTICAL_BADGE_CONTENT_OPTIONS
+                    )}
+                  </Field>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {previewType === 'logo' && (
+            <Card>
+              <div className="space-y-3">
+                <Field label="Logo mode">{renderDropdown(logoMode, setLogoMode, LOGO_MODE_OPTIONS)}</Field>
+
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {logoMode === 'custom-logo' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-3 overflow-hidden"
+                    >
+                      <Field label="Logo font">
+                        {renderDropdown(logoFontVariant, setLogoFontVariant, LOGO_FONT_VARIANT_OPTIONS)}
+                      </Field>
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        {(
+                          [
+                            ['Primary', logoCustomPrimary, setLogoCustomPrimary],
+                            ['Secondary', logoCustomSecondary, setLogoCustomSecondary],
+                            ['Outline', logoCustomOutline, setLogoCustomOutline],
+                          ] as const
+                        ).map(([label, value, onChange]) => (
+                          <Field key={label} label={label}>
+                            <div className="flex min-w-0 items-center gap-2">
+                              <input
+                                type="color"
+                                value={value}
+                                onChange={(event) => onChange(event.target.value)}
+                                aria-label={`${label} color`}
+                                className="h-9 w-12 shrink-0 cursor-pointer rounded-lg border border-white/10 bg-transparent p-1"
+                              />
+                              <input
+                                type="text"
+                                value={value}
+                                onChange={(event) => onChange(event.target.value)}
+                                className={`min-w-0 flex-1 ${INPUT_CLASS}`}
+                              />
+                            </div>
+                          </Field>
                         ))}
                       </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                      <Field label="Color presets">
+                        <div className="flex flex-wrap gap-2">
+                          {LOGO_COLOR_PRESETS.map((preset) => (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              onClick={() => {
+                                setLogoCustomPrimary(preset.primary);
+                                setLogoCustomSecondary(preset.secondary);
+                                setLogoCustomOutline(preset.outline);
+                              }}
+                              className={`${BTN_BASE_CLASS} ${BTN_INACTIVE_CLASS} cursor-pointer px-3 py-2`}
+                              title={`Apply ${preset.id} palette`}
+                            >
+                              <span className="inline-flex items-center gap-1.5">
+                                {[preset.primary, preset.secondary, preset.outline].map((color) => (
+                                  <span key={color} className="h-3 w-3 rounded-full border border-white/10" style={{ backgroundColor: color }} />
+                                ))}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </Field>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-              <div className="pt-2 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium text-slate-400">Max Badges</span>
-                <input type="number" min={1} max={20} value={logoRatingsMax ?? ''} onChange={(e) => setLogoRatingsMax(e.target.value === '' ? null : parseInt(e.target.value, 10))} placeholder="Auto" className={`w-20 ${INPUT_CLASS}`} />
-                <button onClick={() => setLogoRatingsMax(null)} className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS}>Auto</button>
+                <Field label="Max badges">
+                  <NumberStepper value={logoRatingsMax} onChange={setLogoRatingsMax} onReset={() => setLogoRatingsMax(null)} />
+                </Field>
               </div>
-            </div>
-          </Section>
-        )}
+            </Card>
+          )}
+        </section>
 
+        <section className="space-y-3">
+          <SectionTitle icon={Trophy} title="Ranking" hint="JustWatch popularity rank drawn on the artwork." />
 
-        {usesPosterSettings && posterConfiguratorPreset !== 'preset4' && (
-          <Section title="Quality Badges (Poster)">
-            <div className={`grid gap-4 ${posterConfiguratorPreset === 'custom' ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-2'}`}>
-              {posterConfiguratorPreset === 'custom' && (
-                <div>
-                  <h3 className="text-xs font-medium text-slate-400 mb-2">Mode</h3>
-                  {renderDropdown(activeStreamBadges, setActiveStreamBadges, STREAM_BADGE_OPTIONS)}
-                </div>
-              )}
-              <div>
-                <h3 className="text-xs font-medium text-slate-400 mb-2">Style</h3>
-                {renderDropdown(activeQualityBadgesStyle, (v) => setActiveQualityBadgesStyle(v as RatingStyle), RATING_STYLE_OPTIONS)}
-              </div>
-              <div>
-                <h3 className="text-xs font-medium text-slate-400 mb-2">Badge Style</h3>
-                {renderDropdown(activeQualityBadgesColorMode, setActiveQualityBadgesColorMode, [
-                  { id: 'white', label: 'White' },
-                  { id: 'colored', label: 'Colored' },
-                ])}
-              </div>
-            </div>
-          </Section>
-        )}
+          {!usesPosterSettings ? (
+            <Notice tone="info" title="Posters only">
+              JustWatch rankings are available on posters and on backdrops rendered as posters.
+            </Notice>
+          ) : (
+            <Card>
+              <div className="space-y-3">
+                <Field label="Interval">{renderDropdown(ranking, setRanking, RANKING_OPTIONS)}</Field>
 
-        {previewType === 'backdrop' && !backdropAsPoster && (
-          <Section title="Quality Badges (Backdrop)">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h3 className="text-xs font-medium text-slate-400 mb-2">Mode</h3>
-                {renderDropdown(activeStreamBadges, setActiveStreamBadges, STREAM_BADGE_OPTIONS)}
-              </div>
-              <div>
-                <h3 className="text-xs font-medium text-slate-400 mb-2">Badge Style</h3>
-                {renderDropdown(activeQualityBadgesColorMode, setActiveQualityBadgesColorMode, [
-                  { id: 'white', label: 'White' },
-                  { id: 'colored', label: 'Colored' },
-                ])}
-              </div>
-            </div>
-          </Section>
-        )}
-
-        {usesPosterSettings && (
-          <Section title="Ranking" badge="New">
-            <p className="text-xs text-slate-500">Show the popularity rank from JustWatch charts on your posters.</p>
-
-            <div className="space-y-4">
-              <div>
-                <h4 className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Ranking Interval</h4>
-                {renderDropdown(ranking, setRanking, RANKING_OPTIONS)}
-              </div>
-
-              <AnimatePresence>
-                {ranking !== 'off' && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-4 overflow-hidden">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-3">
-                        <h4 className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Chart Country</h4>
+                <AnimatePresence initial={false}>
+                  {ranking !== 'off' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-3 overflow-hidden"
+                    >
+                      <Field label="Chart country">
                         <div className="flex items-center gap-2">
-                          <Globe2 className="w-4 h-4 text-slate-500" />
+                          <Globe2 className="h-4 w-4 shrink-0 text-slate-500" />
                           <select
                             value={hasKnownRankingCountry ? normalizedRankingCountry : rankingCountry}
-                            onChange={(e) => setRankingCountry(e.target.value)}
+                            onChange={(event) => setRankingCountry(event.target.value)}
+                            aria-label="Chart country"
                             className={INPUT_CLASS}
                           >
-                            {!hasKnownRankingCountry && (
-                              <option value={rankingCountry}>{rankingCountry}</option>
-                            )}
+                            {!hasKnownRankingCountry && <option value={rankingCountry}>{rankingCountry}</option>}
                             {JUSTWATCH_COUNTRY_OPTIONS.map((option) => (
                               <option key={option.id} value={option.id} className="bg-[#0a0a0a]">
                                 {option.label}
@@ -648,62 +694,83 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                             ))}
                           </select>
                         </div>
-                      </div>
-                      <div className="space-y-3">
-                        <h4 className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Display Style</h4>
-                        <div className="flex items-center gap-2 h-10">
-                          <label className="flex items-center gap-3 cursor-pointer group">
-                            <div className="relative">
-                              <input type="checkbox" checked={rankingNoBox} onChange={(e) => setRankingNoBox(e.target.checked)} className="sr-only peer" />
-                              <div className="w-9 h-5 bg-black/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 peer-checked:after:bg-orange-400 after:border-slate-400 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500/20"></div>
-                            </div>
-                            <span className="text-xs font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Hide Background Box</span>
-                          </label>
+                      </Field>
+
+                      <Toggle
+                        checked={rankingNoBox}
+                        onChange={setRankingNoBox}
+                        label="Hide background box"
+                        hint="Draw the rank directly on the artwork without a container."
+                      />
+
+                      {posterConfiguratorPreset === 'custom' && (
+                        <div className="space-y-3 border-t border-white/5 pt-3">
+                          <Field label="Ranking position">
+                            {renderDropdown(rankingPosition, setRankingPosition, RANKING_POSITION_OPTIONS)}
+                          </Field>
+                          <Toggle
+                            checked={rankingCompact}
+                            onChange={setRankingCompact}
+                            label="Compact badge"
+                            hint="Use the smaller rank badge variant."
+                          />
                         </div>
-                      </div>
-                    </div>
-
-                    {posterConfiguratorPreset === 'custom' && (
-                      <div className="space-y-3 pt-2 border-t border-slate-800/40">
-                        <h4 className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Ranking Position</h4>
-                        {renderDropdown(rankingPosition, setRankingPosition, RANKING_POSITION_OPTIONS)}
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </Section>
-        )}
-
-        <Section title={providersLabel}>
-          <p className="text-xs text-slate-500">Drag the grips to reorder providers. Order flows top to bottom.</p>
-          {usesPosterSettings && (posterConfiguratorPreset === 'preset1' || (posterConfiguratorPreset === 'custom' && posterAverageRatingsEnabled)) && (
-            <div className="flex items-start gap-2.5 rounded-xl border border-orange-500/10 bg-orange-500/5 p-3 text-[11px] text-orange-200/90 mt-2">
-              <Info className="w-3.5 h-3.5 text-orange-400 shrink-0 mt-0.5" />
-              <div className="flex flex-col gap-0.5">
-                <span className="font-semibold text-orange-300">Average Rating Active</span>
-                <span>Calculates the average of all active rating providers selected below.</span>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </div>
+            </Card>
           )}
-          <div className="flex flex-wrap gap-2">
-            <button onClick={enableAllRatingPreferences} className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS + " px-4 py-2"}>
-              Enable All
-            </button>
-            <button onClick={disableAllRatingPreferences} className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS + " px-4 py-2"}>
-              Disable All
-            </button>
-          </div>
-          <RatingProviderSortableList
-            rows={ratingProviderRows}
-            onReorder={reorderRatingPreference}
-            onToggle={toggleRatingPreference}
-            fillDirection="column"
-            singleColumnOnMobile
-          />
-        </Section>
+        </section>
 
+        <section className="space-y-3">
+          <SectionTitle icon={ListOrdered} title="Providers" hint="Which sources feed the rating badges, in display order." />
+
+          <Card>
+            <div className="space-y-3">
+              {averageRatingNotice && (
+                <Notice tone="warning" title="Average rating active">
+                  {posterConfiguratorPreset === 'preset1'
+                    ? 'This preset shows a single average score computed from all active providers.'
+                    : 'Calculates one average badge from all active providers.'}
+                </Notice>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={enableAllRatingPreferences}
+                  className={`${BTN_BASE_CLASS} ${BTN_INACTIVE_CLASS} cursor-pointer px-3 py-2`}
+                >
+                  Enable all
+                </button>
+                <button
+                  type="button"
+                  onClick={disableAllRatingPreferences}
+                  className={`${BTN_BASE_CLASS} ${BTN_INACTIVE_CLASS} cursor-pointer px-3 py-2`}
+                >
+                  Disable all
+                </button>
+              </div>
+
+              <p className="text-[10px] text-slate-500">Drag the grips to reorder. Order flows from the first badge to the last.</p>
+
+              <RatingProviderSortableList
+                rows={ratingProviderRows}
+                onReorder={reorderRatingPreference}
+                onToggle={toggleRatingPreference}
+                fillDirection="column"
+                singleColumnOnMobile
+              />
+            </div>
+          </Card>
+        </section>
+
+        <Notice tone="info" title="Applying changes">
+          Changes are previewed instantly. With a token account, press <span className="font-semibold">Save</span> in the
+          top bar to push them to your installed addons.
+        </Notice>
       </div>
     </div>
   );

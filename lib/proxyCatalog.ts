@@ -349,6 +349,7 @@ export const applyProxyCatalogOverrides = (
     hidden?: unknown;
     searchDisabled?: unknown;
     discoverOnly?: unknown;
+    order?: unknown;
   }
 ) => {
   if (!Array.isArray(catalogsValue)) {
@@ -359,16 +360,17 @@ export const applyProxyCatalogOverrides = (
   const hiddenCatalogs = new Set(normalizeProxyCatalogKeyList(options?.hidden) || []);
   const searchDisabledCatalogs = new Set(normalizeProxyCatalogKeyList(options?.searchDisabled) || []);
   const discoverOnlyCatalogs = normalizeProxyCatalogBooleanOverrides(options?.discoverOnly) || {};
+  const catalogOrder = normalizeProxyCatalogKeyList(options?.order) || [];
   const descriptors = buildProxyCatalogDescriptors(catalogsValue);
 
-  return catalogsValue.flatMap((entry, index) => {
+  const orderedCatalogs = catalogsValue.flatMap((entry, index) => {
     if (!entry || typeof entry !== 'object') {
       return [];
     }
 
     const descriptor = descriptors[index];
     if (!descriptor) {
-      return [entry];
+      return [{ entries: [entry], manifestIndex: index }];
     }
 
     let nextCatalog: Record<string, unknown> = { ...(entry as Record<string, unknown>) };
@@ -395,7 +397,7 @@ export const applyProxyCatalogOverrides = (
       if (currentSearchEntry && blockingRequiredExtras.length === 0) {
         nextCatalog = setCatalogDiscoverOnly(nextCatalog, false);
         nextCatalog = setCatalogSearchRequired(nextCatalog, true);
-        return [applyCatalogNameOverride(nextCatalog, overrideName)];
+        return [{ entries: [applyCatalogNameOverride(nextCatalog, overrideName)], manifestIndex: index }];
       }
 
       if (!currentSearchEntry || blockingRequiredExtras.length > 0) {
@@ -425,13 +427,27 @@ export const applyProxyCatalogOverrides = (
             ),
             overrideName
           );
-          return [discoverCatalog, searchCatalog];
+          return [{ entries: [discoverCatalog, searchCatalog], manifestIndex: index }];
         }
 
         nextCatalog = setCatalogDiscoverOnly(nextCatalog, effectiveDiscoverOnly);
       }
     }
 
-    return [applyCatalogNameOverride(nextCatalog, overrideName)];
+    return [{ entries: [applyCatalogNameOverride(nextCatalog, overrideName)], manifestIndex: index }];
   });
+
+  if (catalogOrder.length === 0) {
+    return orderedCatalogs.flatMap((catalog) => catalog.entries);
+  }
+
+  const orderIndex = new Map(catalogOrder.map((key, index) => [key, index]));
+
+  return orderedCatalogs
+    .map((catalog) => ({
+      ...catalog,
+      position: orderIndex.get(descriptors[catalog.manifestIndex]?.key ?? '') ?? Number.MAX_SAFE_INTEGER,
+    }))
+    .sort((a, b) => a.position - b.position || a.manifestIndex - b.manifestIndex)
+    .flatMap((catalog) => catalog.entries);
 };

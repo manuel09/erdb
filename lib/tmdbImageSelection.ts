@@ -10,6 +10,9 @@ export const getImageLanguageTag = (item: any) => {
   return item.iso_639_1;
 };
 
+const isTextlessImage = (item: any) =>
+  normalizeTmdbLanguageCode(getImageLanguageTag(item)) === null;
+
 export const pickByLanguageWithFallback = (
   items: any[] = [],
   preferredLang: string,
@@ -81,7 +84,7 @@ export const isTextlessPosterSelection = (posters: any[] = [], selectedPoster?: 
 
   return posters.some(
     (poster: any) =>
-      poster?.file_path === selectedPoster.file_path && normalizeTmdbLanguageCode(getImageLanguageTag(poster)) === null
+      poster?.file_path === selectedPoster.file_path && isTextlessImage(poster)
   );
 };
 
@@ -109,16 +112,23 @@ export const pickPosterByPreference = (
     pickByLanguageWithFallback(posters, preferredLang, fallbackLang) ||
     fallbackOriginal;
   const defaultPosterPath = defaultPoster?.file_path || canonicalOriginalPath;
+  const cleanPoster =
+    posters.find(isTextlessImage) ||
+    pickByLanguageWithFallback(posters, preferredLang, fallbackLang, originalPosterPath) ||
+    fallbackOriginal;
+  const cleanPosterPath = cleanPoster?.file_path || canonicalOriginalPath;
   const alternativePosters = posters.filter(
-    (poster: any) => poster.file_path !== defaultPosterPath
+    (poster: any) =>
+      poster.file_path !== defaultPosterPath &&
+      poster.file_path !== cleanPosterPath &&
+      !isTextlessImage(poster)
+  );
+  const distinctPosterFallback = posters.find(
+    (poster: any) => poster.file_path !== defaultPosterPath && poster.file_path !== cleanPosterPath
   );
 
   if (preference === 'clean') {
-    return (
-      posters.find((poster: any) => !poster.iso_639_1) ||
-      pickByLanguageWithFallback(posters, preferredLang, fallbackLang, originalPosterPath) ||
-      fallbackOriginal
-    );
+    return cleanPoster;
   }
 
   if (preference === 'default') {
@@ -129,6 +139,8 @@ export const pickPosterByPreference = (
     pickByLanguageWithFallback(alternativePosters, preferredLang, '') ||
     pickByLanguageWithFallback(alternativePosters, fallbackLang, '') ||
     alternativePosters[0] ||
+    distinctPosterFallback ||
+    defaultPoster ||
     fallbackOriginal
   );
 };
@@ -158,16 +170,23 @@ export const pickBackdropByPreference = (
     pickByLanguageWithFallback(backdrops, preferredLang, fallbackLang) ||
     fallbackOriginal;
   const defaultBackdropPath = defaultBackdrop?.file_path || canonicalOriginalPath;
+  const cleanBackdrop =
+    backdrops.find(isTextlessImage) ||
+    pickByLanguageWithFallback(backdrops, preferredLang, fallbackLang, originalBackdropPath) ||
+    fallbackOriginal;
+  const cleanBackdropPath = cleanBackdrop?.file_path || canonicalOriginalPath;
   const alternativeBackdrops = backdrops.filter(
-    (backdrop: any) => backdrop.file_path !== defaultBackdropPath
+    (backdrop: any) =>
+      backdrop.file_path !== defaultBackdropPath &&
+      backdrop.file_path !== cleanBackdropPath &&
+      !isTextlessImage(backdrop)
+  );
+  const distinctBackdropFallback = backdrops.find(
+    (backdrop: any) => backdrop.file_path !== defaultBackdropPath && backdrop.file_path !== cleanBackdropPath
   );
 
   if (preference === 'clean') {
-    return (
-      backdrops.find((backdrop: any) => !backdrop.iso_639_1) ||
-      pickByLanguageWithFallback(backdrops, preferredLang, fallbackLang, originalBackdropPath) ||
-      fallbackOriginal
-    );
+    return cleanBackdrop;
   }
 
   if (preference === 'default') {
@@ -178,6 +197,8 @@ export const pickBackdropByPreference = (
     pickByLanguageWithFallback(alternativeBackdrops, preferredLang, '') ||
     pickByLanguageWithFallback(alternativeBackdrops, fallbackLang, '') ||
     alternativeBackdrops[0] ||
+    distinctBackdropFallback ||
+    defaultBackdrop ||
     fallbackOriginal
   );
 };

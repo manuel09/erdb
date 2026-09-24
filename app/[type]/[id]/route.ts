@@ -2798,15 +2798,15 @@ export async function GET(
           }
         }
 
-        // Fanart.tv fallback: if TMDB has no textless image and preference is 'clean'/'alternative', try Fanart.tv
+        // Fanart.tv fallback: if TMDB has no textless image and preference is 'clean', try Fanart.tv.
         if (fanartKey && !useRawAnimeImageFallback && !imgUrl && imgPath && mediaType) {
           const needsPosterFallback =
             imageType === 'poster' &&
-            (effectivePosterTextPreference === 'clean' || effectivePosterTextPreference === 'alternative') &&
+            effectivePosterTextPreference === 'clean' &&
             !selectedPosterIsTextless;
           const needsBackdropFallback =
             imageType === 'backdrop' &&
-            (effectiveBackdropTextPreference === 'clean' || effectiveBackdropTextPreference === 'alternative');
+            effectiveBackdropTextPreference === 'clean';
 
           if (needsPosterFallback || needsBackdropFallback) {
             const tvdbId = mediaType === 'tv'
@@ -2887,7 +2887,9 @@ export async function GET(
         usesPosterSettings &&
         effectivePosterTextPreference === 'clean' &&
         (selectedPosterIsTextless || isBackdropAsPoster);
-      const shouldRenderPosterLogo = isBackdropAsPoster || shouldApplyPosterCleanOverlay;
+      const shouldRenderPosterLogo =
+        effectivePosterTextPreference === 'clean' &&
+        (isBackdropAsPoster || shouldApplyPosterCleanOverlay);
       const posterTitleText = shouldApplyPosterCleanOverlay
         ? pickPosterTitleFromMedia(
           localizedMediaDetails || media,

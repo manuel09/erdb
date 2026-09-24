@@ -172,6 +172,7 @@ export async function GET(
       description: `${originalDescription} (proxied via ERDB)`,
       catalogs: applyProxyCatalogOverrides(manifest.catalogs, {
         names: config.catalogNames,
+        order: config.catalogOrder,
         hidden: config.hiddenCatalogs,
         searchDisabled: config.searchDisabledCatalogs,
         discoverOnly: config.discoverOnlyCatalogs,
