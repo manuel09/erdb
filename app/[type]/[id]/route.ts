@@ -139,6 +139,7 @@ export async function GET(
   }
   scheduleImdbDatasetSync();
   const imageType = type;
+  const previewDiagnosticsEnabled = request.nextUrl.searchParams.get('previewDiagnostics') === 'on';
   const outputFormat = pickOutputFormat(imageType, request.headers.get('accept'));
   const cleanId = id.replace('.jpg', '');
 
@@ -148,6 +149,11 @@ export async function GET(
 
   const tokenConfig = (tokenData?.config ? { ...tokenData.config } : {}) as any;
   const tokenUpdatedAt = tokenData?.updatedAt || 0;
+  const backdropAsPosterRaw = tokenConfig.backdropAsPoster ?? request.nextUrl.searchParams.get('backdropAsPoster');
+  const isBackdropAsPoster = imageType === 'backdrop' && (
+    backdropAsPosterRaw === true || backdropAsPosterRaw === 'true' || backdropAsPosterRaw === 'on'
+  );
+  const usesPosterSettings = imageType === 'poster' || isBackdropAsPoster;
 
   const posterConfiguratorPreset =
     tokenConfig.posterConfiguratorPreset || request.nextUrl.searchParams.get('posterConfiguratorPreset') || null;
@@ -231,7 +237,9 @@ export async function GET(
     request.nextUrl.searchParams.get('backdropText') ||
     request.nextUrl.searchParams.get('imageText');
 
-  const imageText = type === 'backdrop' || type === 'thumbnail'
+  const imageText = usesPosterSettings
+    ? (imageTextParam || 'default')
+    : type === 'backdrop' || type === 'thumbnail'
     ? (backdropImageTextParam || 'clean')
     : (imageTextParam || 'default');
 
@@ -282,7 +290,7 @@ export async function GET(
   );
 
   const verticalBadgeContent =
-    imageType === 'poster'
+    usesPosterSettings
       ? isVerticalPosterRatingLayout(posterRatingsLayout)
         ? posterVerticalBadgeContent
         : 'standard'
@@ -310,7 +318,7 @@ export async function GET(
   );
 
   const streamBadgesSetting =
-    imageType === 'poster'
+    usesPosterSettings
       ? posterStreamBadgesSetting
       : imageType === 'backdrop'
         ? backdropStreamBadgesSetting
@@ -358,14 +366,14 @@ export async function GET(
   );
 
   const qualityBadgesStyle =
-    imageType === 'poster'
+    usesPosterSettings
       ? posterQualityBadgesStyle
       : imageType === 'backdrop'
         ? backdropQualityBadgesStyle
         : globalQualityBadgesStyle;
 
   const qualityBadgesColorMode =
-    imageType === 'poster'
+    usesPosterSettings
       ? posterQualityBadgesColorMode
       : imageType === 'backdrop'
         ? backdropQualityBadgesColorMode
@@ -388,7 +396,7 @@ export async function GET(
   );
 
   const ratingStyle =
-    imageType === 'poster'
+    usesPosterSettings
       ? posterRatingStyle
       : imageType === 'backdrop'
         ? backdropRatingStyle
@@ -415,7 +423,7 @@ export async function GET(
   );
 
   const ratingsColorMode =
-    imageType === 'poster'
+    usesPosterSettings
       ? posterRatingsColorMode
       : imageType === 'backdrop'
         ? backdropRatingsColorMode
@@ -550,7 +558,7 @@ export async function GET(
       ? normalizedBackdropAnimeImageText
       : 'clean';
   const ratingsForType =
-    imageType === 'poster'
+    usesPosterSettings
       ? posterRatings
       : imageType === 'backdrop'
         ? backdropRatings
@@ -595,26 +603,27 @@ export async function GET(
     [
       FINAL_IMAGE_RENDERER_CACHE_VERSION,
       imageType,
+      isBackdropAsPoster ? 'backdrop-as-poster' : 'native-layout',
       outputFormat,
       cleanId,
       requestedImageLang,
-      imageType === 'poster'
+      usesPosterSettings
         ? `${posterTextPreference}:${posterAnimeTextPreference}`
         : imageType === 'backdrop'
           ? `${posterTextPreference}:${backdropAnimeTextPreference}`
           : posterTextPreference,
-      imageType === 'poster' ? posterRatingsLayout : '-',
-      imageType === 'poster' ? String(posterRatingsMode || '-') : '-',
-      imageType === 'poster' ? posterGenrePosition : '-',
-      imageType === 'poster' ? String(posterConfiguratorPreset || '-') : '-',
-      imageType === 'poster' ? String(posterRatingsMaxPerSide ?? 'auto') : '-',
-      imageType === 'poster' ? String(posterLang || '-') : '-',
-      imageType === 'poster' ? String(posterAnimeLang || '-') : '-',
+      usesPosterSettings ? posterRatingsLayout : '-',
+      usesPosterSettings ? String(posterRatingsMode || '-') : '-',
+      usesPosterSettings ? posterGenrePosition : '-',
+      usesPosterSettings ? String(posterConfiguratorPreset || '-') : '-',
+      usesPosterSettings ? String(posterRatingsMaxPerSide ?? 'auto') : '-',
+      usesPosterSettings ? String(posterLang || '-') : '-',
+      usesPosterSettings ? String(posterAnimeLang || '-') : '-',
       imageType === 'backdrop' ? String(backdropLang || '-') : '-',
       imageType === 'backdrop' ? String(backdropAnimeLang || '-') : '-',
       imageType === 'logo' ? String(logoLang || '-') : '-',
       imageType === 'logo' ? String(logoAnimeLang || '-') : '-',
-      imageType === 'poster' ? String(posterAnimeImageTextParam || '-') : '-',
+      usesPosterSettings ? String(posterAnimeImageTextParam || '-') : '-',
       imageType === 'backdrop' ? String(backdropAnimeImageTextParam || '-') : '-',
       imageType === 'logo' ? String(logoRatingsMax ?? 'auto') : '-',
       imageType === 'backdrop' ? String(backdropRatingsMax ?? 'auto') : '-',
@@ -623,8 +632,8 @@ export async function GET(
       imageType === 'logo' ? logoPrimary : DEFAULT_LOGO_CUSTOM_PRIMARY,
       imageType === 'logo' ? logoSecondary : DEFAULT_LOGO_CUSTOM_SECONDARY,
       imageType === 'logo' ? logoOutline : DEFAULT_LOGO_CUSTOM_OUTLINE,
-      imageType === 'poster' ? qualityBadgesSide : '-',
-      imageType === 'poster' && (posterRatingsLayout === 'top' || posterRatingsLayout === 'bottom' || posterRatingsLayout === 'top-bottom')
+      usesPosterSettings ? qualityBadgesSide : '-',
+      usesPosterSettings && (posterRatingsLayout === 'top' || posterRatingsLayout === 'bottom' || posterRatingsLayout === 'top-bottom')
         ? posterQualityBadgesPosition
         : '-',
       imageType !== 'logo' ? qualityBadgesStyle : '-',
@@ -1213,17 +1222,27 @@ export async function GET(
       const shouldApplyAnimeTextPreference = isAnimeContent && !isGenericCatalogId;
 
       const effectivePosterTextPreference =
-        type === 'poster' && shouldApplyAnimeTextPreference ? posterAnimeTextPreference : posterTextPreference;
+        usesPosterSettings && shouldApplyAnimeTextPreference ? posterAnimeTextPreference : posterTextPreference;
       const effectiveBackdropTextPreference =
-        type === 'backdrop' && shouldApplyAnimeTextPreference ? backdropAnimeTextPreference : (imageText as PosterTextPreference);
+        isBackdropAsPoster && shouldApplyAnimeTextPreference
+          ? posterAnimeTextPreference
+          : isBackdropAsPoster
+            ? effectivePosterTextPreference
+          : type === 'backdrop' && shouldApplyAnimeTextPreference
+            ? backdropAnimeTextPreference
+            : (imageText as PosterTextPreference);
       const activePosterLanguageSetting =
-        imageType === 'poster'
-          ? isAnimeContent && posterAnimeLang
-            ? posterAnimeLang
-            : posterLang
+        usesPosterSettings
+          ? isBackdropAsPoster
+            ? isAnimeContent && backdropAnimeLang
+              ? backdropAnimeLang
+              : backdropLang
+            : isAnimeContent && posterAnimeLang
+              ? posterAnimeLang
+              : posterLang
           : null;
       const activeBackdropLanguageSetting =
-        imageType === 'backdrop'
+        imageType === 'backdrop' && !isBackdropAsPoster
           ? isAnimeContent && backdropAnimeLang
             ? backdropAnimeLang
             : backdropLang
@@ -1235,9 +1254,9 @@ export async function GET(
             : logoLang
           : null;
       const isEffectiveOriginalPosterLang =
-        imageType === 'poster' && isOriginalLanguageSetting(activePosterLanguageSetting);
+        usesPosterSettings && isOriginalLanguageSetting(activePosterLanguageSetting);
       const isEffectiveOriginalBackdropLang =
-        imageType === 'backdrop' && isOriginalLanguageSetting(activeBackdropLanguageSetting);
+        imageType === 'backdrop' && !isBackdropAsPoster && isOriginalLanguageSetting(activeBackdropLanguageSetting);
       const isEffectiveOriginalLogoLang =
         imageType === 'logo' && isOriginalLanguageSetting(activeLogoLanguageSetting);
       const effectivePosterRequestedImageLang = resolveRequestedImageLanguage({
@@ -1246,7 +1265,7 @@ export async function GET(
         fallbackLanguage: FALLBACK_IMAGE_LANGUAGE,
       });
       const effectiveBackdropRequestedImageLang = resolveRequestedImageLanguage({
-        configuredLanguage: activeBackdropLanguageSetting,
+        configuredLanguage: isBackdropAsPoster ? activePosterLanguageSetting : activeBackdropLanguageSetting,
         requestLanguage: lang,
         fallbackLanguage: FALLBACK_IMAGE_LANGUAGE,
       });
@@ -1268,7 +1287,7 @@ export async function GET(
       const resolvedIncludeImageLanguage = buildIncludeImageLanguage(
         resolveOriginalAwareImageLanguage({
           configuredLanguage:
-            imageType === 'poster'
+            usesPosterSettings
               ? activePosterLanguageSetting
               : imageType === 'backdrop'
                 ? activeBackdropLanguageSetting
@@ -1298,7 +1317,7 @@ export async function GET(
       let selectedPosterLogoPath: string | null = null;
       let selectedPosterIsTextless = false;
       const shouldUsePosterOriginalLanguageForLogo =
-        imageType === 'poster' &&
+        usesPosterSettings &&
         isEffectiveOriginalPosterLang &&
         effectivePosterTextPreference === 'clean';
       const requestedExternalRatings = new Set([...selectedRatings]);
@@ -1323,7 +1342,7 @@ export async function GET(
         requestedExternalRatings.has(rawAnimeProviderForBadges);
       const shouldRenderRatings = shouldApplyRatings && (!useRawAnimeImageFallback || shouldRenderRawAnimeFallbackRating);
       const shouldRenderStreamBadges = shouldApplyStreamBadges && !isAnimeContent;
-      const shouldRenderPosterGenre = imageType === 'poster' && posterGenrePosition !== 'off';
+      const shouldRenderPosterGenre = usesPosterSettings && posterGenrePosition !== 'off';
       const shouldRenderBadges = shouldRenderRatings || shouldRenderStreamBadges || shouldRenderPosterGenre;
       const rawFallbackImageUrlForThumb = rawFallbackImageUrl as string | null;
       const hasRawAnimeThumbnailImage =
@@ -1444,6 +1463,7 @@ export async function GET(
             body: cachedFinalImage.body,
             contentType: cachedFinalImage.contentType,
             cacheControl: cachedFinalImage.cacheControl,
+            collisionWarnings: cachedFinalImage.collisionWarnings,
           };
 
         }
@@ -1697,7 +1717,7 @@ export async function GET(
 
             const combinedRatings = new Map<RatingPreference, string>();
             const shortCircuitLimit =
-              imageType === 'poster' && posterRatingsMode !== 'average'
+              usesPosterSettings && posterRatingsMode !== 'average'
                 ? getPosterRatingLayoutLimit(posterRatingsLayout)
                 : null;
 
@@ -2463,7 +2483,7 @@ export async function GET(
           const preferredLogoLanguage =
             shouldUsePosterOriginalLanguageForLogo && mediaOriginalLanguage
               ? mediaOriginalLanguage
-              : imageType === 'poster'
+              : usesPosterSettings
                 ? resolvedPosterRequestedImageLang
                 : imageType === 'logo' && isEffectiveOriginalLogoLang && mediaOriginalLanguage
                   ? mediaOriginalLanguage
@@ -2478,7 +2498,7 @@ export async function GET(
           );
           const logoPath = selectedLogo?.file_path || null;
           const logoLanguageMatch =
-            imageType === 'poster'
+            usesPosterSettings
               ? matchesImageLanguage(selectedLogo, preferredLogoLanguage)
               : false;
 
@@ -2864,7 +2884,10 @@ export async function GET(
         imgUrl = buildTmdbImageUrl(imageType, imgPath, outputWidth);
       }
       const shouldApplyPosterCleanOverlay =
-        imageType === 'poster' && effectivePosterTextPreference === 'clean' && selectedPosterIsTextless;
+        usesPosterSettings &&
+        effectivePosterTextPreference === 'clean' &&
+        (selectedPosterIsTextless || isBackdropAsPoster);
+      const shouldRenderPosterLogo = isBackdropAsPoster || shouldApplyPosterCleanOverlay;
       const posterTitleText = shouldApplyPosterCleanOverlay
         ? pickPosterTitleFromMedia(
           localizedMediaDetails || media,
@@ -2880,11 +2903,11 @@ export async function GET(
         )
         : null;
       let posterLogoUrl =
-        shouldApplyPosterCleanOverlay && selectedPosterLogoPath
+        shouldRenderPosterLogo && selectedPosterLogoPath
           ? buildTmdbImageUrl('logo', selectedPosterLogoPath, outputWidth)
           : null;
 
-      if (shouldApplyPosterCleanOverlay && !posterLogoUrl) {
+      if (shouldRenderPosterLogo && !posterLogoUrl) {
         let fallbackImdbId = mappedImdbId || (media as any)?.imdb_id || null;
         if (!fallbackImdbId && detailsBundlePromise) {
           const bundle = await detailsBundlePromise;
@@ -2980,7 +3003,7 @@ export async function GET(
         );
         return resolvedPosterGenreName;
       };
-      if (imageType === 'poster' && posterRatingsMode === 'average' && ratingBadges.length > 0) {
+      if (usesPosterSettings && posterRatingsMode === 'average' && ratingBadges.length > 0) {
         const values = ratingBadges
           .map((badge) => parseDisplayRatingValue(badge.value))
           .filter((value): value is number => value !== null);
@@ -3000,7 +3023,7 @@ export async function GET(
         }
       }
       const posterGenreBadge: RatingBadge | null =
-        imageType === 'poster' && posterGenrePosition !== 'off' && posterRatingsMode !== 'average'
+        usesPosterSettings && posterGenrePosition !== 'off' && posterRatingsMode !== 'average'
           ? await resolvePosterGenreName().then((genreName) =>
             genreName
               ? {
@@ -3072,8 +3095,8 @@ export async function GET(
           cacheControl: payload.cacheControl,
         };
       }
-      const usePosterBadgeLayout = imageType === 'poster';
-      const useBackdropBadgeLayout = imageType === 'backdrop' || imageType === 'thumbnail';
+      const usePosterBadgeLayout = usesPosterSettings;
+      const useBackdropBadgeLayout = !usePosterBadgeLayout && (imageType === 'backdrop' || imageType === 'thumbnail');
       const useLogoBadgeLayout = imageType === 'logo';
       const logoBadgeScale = 1;
       const usePosterRowLayout =
@@ -3217,7 +3240,7 @@ export async function GET(
           };
         }
       } else if (usePosterBadgeLayout) {
-        const posterOutputScale = outputWidth / 500;
+        const posterOutputScale = (isBackdropAsPoster ? Math.min(outputWidth, outputHeight) : outputWidth) / 500;
         const posterScale = (posterConfiguratorPreset === 'advanced' ? 1.25 : 1.15) * posterOutputScale;
         badgeIconSize = Math.round(46 * posterScale);
         badgeFontSize = Math.round(35 * posterScale);
@@ -3238,7 +3261,10 @@ export async function GET(
           gap: Math.round(7 * posterOutputScale),
         };
         badgeTopOffset = Math.round(24 * posterScale);
-        badgeBottomOffset = Math.round(24 * posterScale);
+        const posterBottomVisualCompensation = Math.round(16 * posterOutputScale);
+        badgeBottomOffset = isBackdropAsPoster
+          ? Math.max(8, badgeTopOffset - posterBottomVisualCompensation)
+          : Math.round(18 * posterScale);
         posterReferenceBadgeHeight = estimateBadgeHeight(
           badgeFontSize,
           badgePaddingX,
@@ -3291,7 +3317,7 @@ export async function GET(
             'standard'
           );
           const posterOverlayPresent = Boolean(posterTitleText || posterLogoUrl);
-          const posterOverlayGap = posterOverlayPresent ? Math.max(8, Math.round(badgeGap * 0.9)) : 0;
+          const posterOverlayGap = posterOverlayPresent ? Math.max(16, Math.round(badgeGap * 1.4)) : 0;
           const posterQualityPlacement = resolvePosterQualityBadgePlacement(
             posterRatingsLayout,
             qualityBadgesSide,
@@ -3674,7 +3700,8 @@ export async function GET(
           logoBadgeMaxWidth,
           logoBadgesPerRow,
           posterRowHorizontalInset,
-          posterCleanOverlayEnabled: imageType === 'poster' && effectivePosterTextPreference === 'clean',
+          posterCleanOverlayEnabled: usesPosterSettings && effectivePosterTextPreference === 'clean',
+          backdropAsPoster: isBackdropAsPoster,
           posterTitleText,
           posterLogoUrl,
           posterReferenceBadgeHeight,
@@ -3733,6 +3760,7 @@ export async function GET(
             contentType: renderedPayload.contentType,
             cacheControl: storageCacheControl,
             cacheVersion: FINAL_IMAGE_RENDERER_CACHE_VERSION,
+            collisionWarnings: renderedPayload.collisionWarnings,
           });
         } catch {
           // Ignore distributed cache persistence failures.
@@ -3742,10 +3770,16 @@ export async function GET(
     });
 
     const finalPayload = renderedImage as RenderedImagePayload;
+    const collisionHeaders: Record<string, string> = {};
+    if (previewDiagnosticsEnabled && finalPayload.collisionWarnings?.length) {
+      collisionHeaders['X-ERDB-Collision-Warnings'] = finalPayload.collisionWarnings.map(encodeURIComponent).join('|');
+      collisionHeaders['Access-Control-Expose-Headers'] = 'X-ERDB-Collision-Warnings';
+    }
     return respond(finalPayload.body, 200, {
       'Content-Type': finalPayload.contentType,
       'Cache-Control': finalPayload.cacheControl,
       'Vary': 'Accept',
+      ...collisionHeaders,
     });
   } catch (e: any) {
     if (e instanceof HttpError) {

@@ -68,6 +68,7 @@ export type HomePageViewState = {
   logoCustomSecondary: string;
   logoCustomOutline: string;
   backdropRatingsLayout: BackdropRatingLayout;
+  backdropAsPoster: boolean;
   backdropRatingsMax: number | null;
   backdropRatingsSize: BackdropRatingsSize;
   thumbnailRatingsLayout: ThumbnailRatingLayout;
@@ -159,6 +160,7 @@ export type HomePageViewActions = {
   setLogoCustomSecondary: Dispatch<SetStateAction<string>>;
   setLogoCustomOutline: Dispatch<SetStateAction<string>>;
   setBackdropRatingsLayout: Dispatch<SetStateAction<BackdropRatingLayout>>;
+  setBackdropAsPoster: Dispatch<SetStateAction<boolean>>;
   setBackdropRatingsMax: Dispatch<SetStateAction<number | null>>;
   setBackdropRatingsSize: Dispatch<SetStateAction<BackdropRatingsSize>>;
   setThumbnailRatingsLayout: Dispatch<SetStateAction<ThumbnailRatingLayout>>;

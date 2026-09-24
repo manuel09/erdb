@@ -660,29 +660,53 @@ export const buildAiometadataPatternBlock = (options: {
       pushIfString('backdropAnimeLang');
       pushIfString('backdropAnimeImageText');
     }
-    const typeRatingStyle = options.imageType === 'thumbnail' ? config.thumbnailRatingStyle : config.backdropRatingStyle;
-    const typeRatingsColorMode = options.imageType === 'thumbnail' ? config.thumbnailRatingsColorMode : config.backdropRatingsColorMode;
-    if (typeof typeRatingsColorMode === 'string' && typeRatingsColorMode !== '') {
-      params.push(['ratingsColorMode', typeRatingsColorMode]);
-    }
-    if (typeof typeRatingStyle === 'string' && typeRatingStyle !== '') {
-      params.push(['ratingStyle', typeRatingStyle]);
-    }
-    if (options.imageType !== 'thumbnail' && typeof config.backdropImageText === 'string' && config.backdropImageText !== '') {
-      params.push(['imageText', config.backdropImageText]);
-    }
-    pushIfString(options.imageType === 'thumbnail' ? 'thumbnailRatingsLayout' : 'backdropRatingsLayout');
-    pushIfString(options.imageType === 'thumbnail' ? 'thumbnailVerticalBadgeContent' : 'backdropVerticalBadgeContent');
-    if (options.imageType === 'thumbnail') {
-      const thumbnailRatingsSource = config.thumbnailRatings ?? config.ratings;
-      const thumbnailRatings = filterThumbnailRatings(thumbnailRatingsSource);
-      if (typeof thumbnailRatingsSource === 'string') {
-        params.push(['ratings', thumbnailRatings]);
+    if (options.imageType === 'backdrop' && (config.backdropAsPoster === 'on' || config.backdropAsPoster === true)) {
+      pushIfString('backdropAsPoster');
+      pushIfString('posterRatings');
+      pushIfString('posterRatingsLayout');
+      pushIfString('posterGenrePosition');
+      pushIfString('posterVerticalBadgeContent');
+      pushIfString('posterStreamBadges');
+      pushIfString('posterQualityBadgesPosition');
+      pushIfString('posterQualityBadgesStyle');
+      pushIfString('posterQualityBadgesColorMode');
+      if (typeof config.posterRatingsColorMode === 'string' && config.posterRatingsColorMode !== '') {
+        params.push(['ratingsColorMode', config.posterRatingsColorMode]);
       }
-      pushIfString('thumbnailSize');
+      if (typeof config.posterRatingStyle === 'string' && config.posterRatingStyle !== '') {
+        params.push(['ratingStyle', config.posterRatingStyle]);
+      }
+      if (typeof config.posterImageText === 'string' && config.posterImageText !== '') {
+        params.push(['imageText', config.posterImageText]);
+      }
+      if (typeof config.posterRatingsMaxPerSide === 'string' || typeof config.posterRatingsMaxPerSide === 'number') {
+        params.push(['posterRatingsMaxPerSide', String(config.posterRatingsMaxPerSide)]);
+      }
     } else {
-      pushIfString('backdropRatings');
-      pushIfString('backdropRatingsSize');
+      const typeRatingStyle = options.imageType === 'thumbnail' ? config.thumbnailRatingStyle : config.backdropRatingStyle;
+      const typeRatingsColorMode = options.imageType === 'thumbnail' ? config.thumbnailRatingsColorMode : config.backdropRatingsColorMode;
+      if (typeof typeRatingsColorMode === 'string' && typeRatingsColorMode !== '') {
+        params.push(['ratingsColorMode', typeRatingsColorMode]);
+      }
+      if (typeof typeRatingStyle === 'string' && typeRatingStyle !== '') {
+        params.push(['ratingStyle', typeRatingStyle]);
+      }
+      if (options.imageType !== 'thumbnail' && typeof config.backdropImageText === 'string' && config.backdropImageText !== '') {
+        params.push(['imageText', config.backdropImageText]);
+      }
+      pushIfString(options.imageType === 'thumbnail' ? 'thumbnailRatingsLayout' : 'backdropRatingsLayout');
+      pushIfString(options.imageType === 'thumbnail' ? 'thumbnailVerticalBadgeContent' : 'backdropVerticalBadgeContent');
+      if (options.imageType === 'thumbnail') {
+        const thumbnailRatingsSource = config.thumbnailRatings ?? config.ratings;
+        const thumbnailRatings = filterThumbnailRatings(thumbnailRatingsSource);
+        if (typeof thumbnailRatingsSource === 'string') {
+          params.push(['ratings', thumbnailRatings]);
+        }
+        pushIfString('thumbnailSize');
+      } else {
+        pushIfString('backdropRatings');
+        pushIfString('backdropRatingsSize');
+      }
     }
   } else {
     pushIfString('logoLang');

@@ -89,6 +89,9 @@ export const buildProxyConfigFromToken = (
   if (typeof t.posterVignette === 'boolean' || typeof t.posterVignette === 'string') {
     config.posterVignette = t.posterVignette;
   }
+  if (typeof t.backdropAsPoster === 'boolean' || typeof t.backdropAsPoster === 'string') {
+    config.backdropAsPoster = t.backdropAsPoster;
+  }
   if (typeof t.rankingNoBox === 'boolean' || typeof t.rankingNoBox === 'string') {
     config.rankingNoBox = t.rankingNoBox;
   }

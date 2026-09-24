@@ -74,6 +74,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     posterRatingsLayout,
     posterRatingsMaxPerSide,
     backdropRatingsLayout,
+    backdropAsPoster,
     backdropRatingsMax,
     backdropRatingsSize,
     thumbnailRatingsLayout,
@@ -137,6 +138,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     setPosterRatingsMaxPerSide,
     setPosterVerticalBadgeContent,
     setBackdropRatingsLayout,
+    setBackdropAsPoster,
     setBackdropRatingsMax,
     setBackdropRatingsSize,
     setBackdropVerticalBadgeContent,
@@ -170,9 +172,11 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     setRankingPosition,
   } = actions;
 
+  const usesPosterSettings = previewType === 'poster' || (previewType === 'backdrop' && backdropAsPoster);
+
   const shouldShowVerticalBadgeContent =
     (previewType === 'poster' && isVerticalPosterRatingLayout(posterRatingsLayout)) ||
-    (previewType === 'backdrop' && backdropRatingsLayout === 'right-vertical') ||
+    (previewType === 'backdrop' && (backdropAsPoster ? isVerticalPosterRatingLayout(posterRatingsLayout) : backdropRatingsLayout === 'right-vertical')) ||
     (previewType === 'thumbnail' && thumbnailRatingsLayout.endsWith('-vertical'));
 
   const activeVerticalBadgeContent =
@@ -180,7 +184,9 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
       ? posterVerticalBadgeContent
       : previewType === 'thumbnail'
         ? thumbnailVerticalBadgeContent
-        : backdropVerticalBadgeContent;
+        : backdropAsPoster
+          ? posterVerticalBadgeContent
+          : backdropVerticalBadgeContent;
   const normalizedRankingCountry = rankingCountry === 'global' ? 'global' : rankingCountry.toUpperCase();
   const hasKnownRankingCountry = JUSTWATCH_COUNTRY_OPTIONS.some((option) => option.id === normalizedRankingCountry);
 
@@ -232,7 +238,34 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
           </div>
         </Section>
 
-        {previewType === 'poster' && (
+        {previewType === 'backdrop' && (
+          <Section title="Backdrop Mode" badge="Poster controls">
+            <div className={`rounded-2xl border px-4 py-4 transition-colors ${backdropAsPoster ? 'border-orange-500/40 bg-orange-500/10' : 'border-white/10 bg-[#0a0a0a]'}`}>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${backdropAsPoster ? 'border-orange-400/30 bg-orange-400/15' : 'border-white/10 bg-white/[0.04]'}`}>
+                    <Layers className={`h-4 w-4 ${backdropAsPoster ? 'text-orange-300' : 'text-slate-400'}`} />
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <span className="text-sm font-semibold text-slate-100">Use backdrop as poster</span>
+                    <span className="text-[11px] leading-relaxed text-slate-400">Landscape image with all Poster layout, badge and rating settings.</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBackdropAsPoster((value) => !value)}
+                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full p-1 transition-colors ${backdropAsPoster ? 'bg-orange-500/80' : 'bg-white/10'}`}
+                  aria-label="Use backdrop as poster"
+                  aria-pressed={backdropAsPoster}
+                >
+                  <span className={`block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${backdropAsPoster ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+            </div>
+          </Section>
+        )}
+
+        {usesPosterSettings && (
           <Section title="Poster Preset">
             <div>
               <h3 className="text-xs font-medium text-slate-400 mb-2">Preset</h3>
@@ -291,7 +324,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
           </Section>
         ) : null}
 
-        {(previewType !== 'poster' || posterConfiguratorPreset === 'preset1' || posterConfiguratorPreset === 'preset2' || posterConfiguratorPreset === 'preset3' || posterConfiguratorPreset === 'preset4' || posterConfiguratorPreset === 'preset5' || posterConfiguratorPreset === 'preset6' || posterConfiguratorPreset === 'custom') && (
+        {(!usesPosterSettings || posterConfiguratorPreset === 'preset1' || posterConfiguratorPreset === 'preset2' || posterConfiguratorPreset === 'preset3' || posterConfiguratorPreset === 'preset4' || posterConfiguratorPreset === 'preset5' || posterConfiguratorPreset === 'preset6' || posterConfiguratorPreset === 'custom') && (
           <Section title={styleLabel}>
             {renderDropdown(activeRatingStyle, (v) => setRatingStyleForType(v as RatingStyle), RATING_STYLE_OPTIONS)}
             {activeRatingStyle === 'glass' && (
@@ -306,7 +339,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
           </Section>
         )}
 
-        {(previewType === 'backdrop' || (previewType === 'poster' && posterConfiguratorPreset === 'custom')) && (
+        {(previewType === 'backdrop' || (usesPosterSettings && posterConfiguratorPreset === 'custom')) && (
           <Section title={textLabel}>
             {renderDropdown(activeImageText, setImageTextForType, [
               { id: 'default', label: 'Default' },
@@ -316,8 +349,8 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
             <div>
               <h3 className="text-xs font-medium text-slate-400 mb-2">Anime Override (Kitsu/MAL)</h3>
               {renderDropdown(
-                previewType === 'poster' ? posterAnimeImageText : backdropAnimeImageText,
-                previewType === 'poster' ? setPosterAnimeImageText : setBackdropAnimeImageText,
+                usesPosterSettings ? posterAnimeImageText : backdropAnimeImageText,
+                usesPosterSettings ? setPosterAnimeImageText : setBackdropAnimeImageText,
                 [
                   { id: 'default', label: 'Default' },
                   { id: 'clean', label: 'Clean' },
@@ -328,7 +361,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
           </Section>
         )}
 
-        {previewType === 'poster' && (
+        {usesPosterSettings && (
           <Section title="Layout">
             <div className="space-y-4">
               <label className="flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-[#0a0a0a] px-4 py-3">
@@ -431,26 +464,28 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
           </Section>
         )}
 
-        {previewType === 'backdrop' && (
+        {previewType === 'backdrop' && !backdropAsPoster && (
           <Section title="Layout">
             <div className="space-y-4">
-              <h3 className="text-xs font-medium text-slate-400 mb-2">Ratings Position</h3>
-              {renderDropdown(backdropRatingsLayout, (v) => setBackdropRatingsLayout(v as BackdropRatingLayout), BACKDROP_RATING_LAYOUT_OPTIONS)}
-              <div>
-                <h3 className="text-xs font-medium text-slate-400 mb-2">Ratings Size</h3>
-                {renderDropdown(backdropRatingsSize, (v) => setBackdropRatingsSize(v as BackdropRatingsSize), BACKDROP_RATINGS_SIZE_OPTIONS)}
-              </div>
-              {shouldShowVerticalBadgeContent && (
-                <div>
-                  <h3 className="text-xs font-medium text-slate-400 mb-2">Vertical Badge Style</h3>
-                  {renderDropdown(backdropVerticalBadgeContent, setBackdropVerticalBadgeContent, VERTICAL_BADGE_CONTENT_OPTIONS)}
-                </div>
-              )}
-              <div className="pt-2 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium text-slate-400">Max Badges</span>
-                <input type="number" min={1} max={20} value={backdropRatingsMax ?? ''} onChange={(e) => setBackdropRatingsMax(e.target.value === '' ? null : parseInt(e.target.value, 10))} placeholder="Auto" className={`w-20 ${INPUT_CLASS}`} />
-                <button onClick={() => setBackdropRatingsMax(null)} className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS}>Auto</button>
-              </div>
+              <>
+                  <h3 className="text-xs font-medium text-slate-400 mb-2">Ratings Position</h3>
+                  {renderDropdown(backdropRatingsLayout, (v) => setBackdropRatingsLayout(v as BackdropRatingLayout), BACKDROP_RATING_LAYOUT_OPTIONS)}
+                  <div>
+                    <h3 className="text-xs font-medium text-slate-400 mb-2">Ratings Size</h3>
+                    {renderDropdown(backdropRatingsSize, (v) => setBackdropRatingsSize(v as BackdropRatingsSize), BACKDROP_RATINGS_SIZE_OPTIONS)}
+                  </div>
+                  {shouldShowVerticalBadgeContent && (
+                    <div>
+                      <h3 className="text-xs font-medium text-slate-400 mb-2">Vertical Badge Style</h3>
+                      {renderDropdown(backdropVerticalBadgeContent, setBackdropVerticalBadgeContent, VERTICAL_BADGE_CONTENT_OPTIONS)}
+                    </div>
+                  )}
+                  <div className="pt-2 flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-medium text-slate-400">Max Badges</span>
+                    <input type="number" min={1} max={20} value={backdropRatingsMax ?? ''} onChange={(e) => setBackdropRatingsMax(e.target.value === '' ? null : parseInt(e.target.value, 10))} placeholder="Auto" className={`w-20 ${INPUT_CLASS}`} />
+                    <button onClick={() => setBackdropRatingsMax(null)} className={BUTTON_BASE_CLASS + " " + BUTTON_INACTIVE_CLASS}>Auto</button>
+                  </div>
+              </>
             </div>
           </Section>
         )}
@@ -538,7 +573,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
         )}
 
 
-        {previewType === 'poster' && posterConfiguratorPreset !== 'preset4' && (
+        {usesPosterSettings && posterConfiguratorPreset !== 'preset4' && (
           <Section title="Quality Badges (Poster)">
             <div className={`grid gap-4 ${posterConfiguratorPreset === 'custom' ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-2'}`}>
               {posterConfiguratorPreset === 'custom' && (
@@ -562,7 +597,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
           </Section>
         )}
 
-        {previewType === 'backdrop' && (
+        {previewType === 'backdrop' && !backdropAsPoster && (
           <Section title="Quality Badges (Backdrop)">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -580,7 +615,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
           </Section>
         )}
 
-        {previewType === 'poster' && (
+        {usesPosterSettings && (
           <Section title="Ranking" badge="New">
             <p className="text-xs text-slate-500">Show the popularity rank from JustWatch charts on your posters.</p>
 
@@ -643,7 +678,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
 
         <Section title={providersLabel}>
           <p className="text-xs text-slate-500">Drag the grips to reorder providers. Order flows top to bottom.</p>
-          {previewType === 'poster' && (posterConfiguratorPreset === 'preset1' || (posterConfiguratorPreset === 'custom' && posterAverageRatingsEnabled)) && (
+          {usesPosterSettings && (posterConfiguratorPreset === 'preset1' || (posterConfiguratorPreset === 'custom' && posterAverageRatingsEnabled)) && (
             <div className="flex items-start gap-2.5 rounded-xl border border-orange-500/10 bg-orange-500/5 p-3 text-[11px] text-orange-200/90 mt-2">
               <Info className="w-3.5 h-3.5 text-orange-400 shrink-0 mt-0.5" />
               <div className="flex flex-col gap-0.5">

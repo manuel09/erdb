@@ -1,6 +1,6 @@
 {
   "name": "easy-ratings-db",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
@@ -8,6 +8,7 @@
     "start": "node scripts/start-server.js",
     "start:single": "node .next/standalone/server.js",
     "lint": "eslint .",
+    "test:collisions": "node scripts/test-collisions.cjs",
     "clean": "next clean",
     "imdb:import": "node scripts/imdb-import.js",
     "fonts:install": "bash scripts/install-fonts-linux.sh",

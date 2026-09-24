@@ -33,6 +33,7 @@ import {
 } from '@/lib/ratingBadgeLogic';
 import { RANKING_ICON_URL } from '@/lib/routeConfig';
 import { measurePhase } from '@/lib/routeShared';
+import { findFirstNonOverlappingRect, rectsOverlap, type OverlayRect } from '@/lib/overlayCollision';
 import type { FastRenderInput, PhaseDurations, QualityBadgesSide, RenderedImagePayload } from '@/lib/routeTypes';
 export const renderWithSharp = async (
   input: FastRenderInput,
@@ -46,7 +47,13 @@ export const renderWithSharp = async (
     const sourcePayload = await getSourceImagePayload(input.imgUrl);
     const sourceBuffer = Buffer.from(sourcePayload.body);
     const overlays: Array<{ input: Buffer; top: number; left: number }> = [];
+    const collisionWarnings: string[] = [];
+    const warnCollision = (message: string) => {
+      collisionWarnings.push(message);
+      console.warn(`[ERDB] ${message}`);
+    };
     const transparentBackground = { r: 0, g: 0, b: 0, alpha: 0 };
+    const usePosterLayout = input.imageType === 'poster' || input.backdropAsPoster === true;
     let imageLeft = Math.max(0, Math.floor((input.outputWidth - imageWidth) / 2));
     let imageTop = 0;
     let renderedImageHeight = imageHeight;
@@ -136,23 +143,26 @@ export const renderWithSharp = async (
       input.verticalBadgeContent
     );
     const posterReferenceBadgeHeight =
-      input.imageType === 'poster' ? input.posterReferenceBadgeHeight ?? badgeHeight : badgeHeight;
+      usePosterLayout ? input.posterReferenceBadgeHeight ?? badgeHeight : badgeHeight;
     const posterReferenceVerticalBadgeHeight =
-      input.imageType === 'poster'
+      usePosterLayout
         ? input.posterReferenceVerticalBadgeHeight ?? verticalBadgeHeight
         : verticalBadgeHeight;
     const posterReferenceBadgeGap =
-      input.imageType === 'poster' ? input.posterReferenceBadgeGap ?? input.badgeGap : input.badgeGap;
-    const posterOutputScale = input.imageType === 'poster' ? Math.max(1, input.outputWidth / 500) : 1;
+      usePosterLayout ? input.posterReferenceBadgeGap ?? input.badgeGap : input.badgeGap;
+    const posterReferenceSize = input.backdropAsPoster
+      ? Math.min(input.outputWidth, input.outputHeight)
+      : input.outputWidth;
+    const posterOutputScale = usePosterLayout ? Math.max(1, posterReferenceSize / 500) : 1;
     const posterQualityMaxHeight = Math.round(40 * posterOutputScale);
     const posterQualityMinHeight = Math.round(28 * posterOutputScale);
     const compactPosterRowText =
-      input.imageType === 'poster' &&
+      usePosterLayout &&
       input.posterRatingsLayout !== 'left' &&
       input.posterRatingsLayout !== 'right' &&
       input.posterRatingsLayout !== 'left-right';
     const posterQualityBadgePlacement =
-      input.imageType === 'poster'
+      usePosterLayout
         ? resolvePosterQualityBadgePlacement(
           input.posterRatingsLayout,
           input.qualityBadgesSide,
@@ -164,15 +174,41 @@ export const renderWithSharp = async (
         ? posterQualityBadgePlacement
         : null;
     const posterRowRegionWidth = Math.max(0, input.outputWidth - input.posterRowHorizontalInset * 2);
+    const posterQualitySideBadgeWidth = posterQualityBadgeSidePlacement
+      ? Math.min(
+        Math.max(72, Math.round(posterReferenceBadgeHeight * 1.75)),
+        Math.max(72, input.outputWidth - input.posterRowHorizontalInset * 2)
+      )
+      : 0;
+    const posterSideOverlayGap = Math.max(12, Math.round(posterReferenceBadgeGap * 1.2));
+    const posterSideOverlayMaxWidth = posterQualityBadgeSidePlacement
+      ? Math.max(
+        1,
+        input.outputWidth -
+        input.posterRowHorizontalInset * 2 -
+        posterQualitySideBadgeWidth -
+        posterSideOverlayGap
+      )
+      : posterRowRegionWidth;
     const alignPosterRowWithQuality =
-      input.imageType === 'poster' && input.qualityBadges.length > 0 && posterQualityBadgeSidePlacement !== null;
-    const posterRowAlign: 'left' | 'center' | 'right' = alignPosterRowWithQuality
+      usePosterLayout && input.qualityBadges.length > 0 && posterQualityBadgeSidePlacement !== null;
+    const topRatingsShareRankingRow =
+      usePosterLayout &&
+      input.rankingBadge != null &&
+      input.rankingPosition === 'top' &&
+      input.topBadges.length > 0 &&
+      (input.posterRatingsLayout === 'top' || input.posterRatingsLayout === 'top-bottom');
+    const posterQualityRowAlign: 'left' | 'center' | 'right' = alignPosterRowWithQuality
       ? posterQualityBadgeSidePlacement === 'right'
         ? 'right'
         : 'left'
       : 'center';
+    const posterTopRowAlign: 'left' | 'center' | 'right' = topRatingsShareRankingRow
+      ? 'right'
+      : posterQualityRowAlign;
+    const posterBottomRowAlign = posterQualityRowAlign;
     const posterTitleSpec =
-      input.imageType === 'poster' && input.posterTitleText
+      usePosterLayout && input.posterTitleText
         ? buildPosterTitleSvg(input.posterTitleText, posterRowRegionWidth)
         : null;
     const thumbnailFallbackTitleSpec =
@@ -185,13 +221,17 @@ export const renderWithSharp = async (
         )
         : null;
     let posterLogoSpec: { buffer: Buffer; width: number; height: number } | null = null;
-    if (input.imageType === 'poster' && input.posterLogoUrl) {
+    if (usePosterLayout && input.posterLogoUrl) {
       try {
         const logoPayload = await getSourceImagePayload(input.posterLogoUrl);
         const logoBuffer = Buffer.from(logoPayload.body);
         const logoMeta = await sharp(logoBuffer).metadata();
         if (logoMeta.width && logoMeta.height) {
-          const maxLogoWidth = Math.min(posterRowRegionWidth, Math.round(input.outputWidth * 0.78));
+          const maxLogoWidth = Math.min(
+            posterRowRegionWidth,
+            Math.round(input.outputWidth * 0.78),
+            posterSideOverlayMaxWidth
+          );
           const maxLogoHeight = Math.max(48, Math.round(input.outputHeight * 0.16));
           const scale = Math.min(
             1,
@@ -215,7 +255,7 @@ export const renderWithSharp = async (
       ((input.rankingPosition || 'auto') === 'top' ||
         ((input.rankingPosition || 'auto') === 'auto' && !posterTitleSpec && !posterLogoSpec));
     const hasTopElements = input.topBadges.length > 0 || rankingUsesTopBand;
-    const shouldRenderTopBlur = input.imageType === 'poster' && (posterTitleSpec || posterLogoSpec) && (input.posterConfiguratorPreset !== 'simple' || hasTopElements);
+    const shouldRenderTopBlur = usePosterLayout && (posterTitleSpec || posterLogoSpec) && (input.posterConfiguratorPreset !== 'simple' || hasTopElements);
     if (shouldRenderTopBlur) {
       const blurTopBandHeight = Math.max(110, Math.round(input.outputHeight * 0.22));
       const blurTopHeight = Math.min(input.outputHeight, blurTopBandHeight);
@@ -313,7 +353,7 @@ export const renderWithSharp = async (
       }
     }
 
-    if (input.imageType === 'poster' && input.posterVignetteEnabled !== false) {
+    if (usePosterLayout && input.posterVignetteEnabled !== false) {
       const vignetteSvg = `<svg width="${input.outputWidth}" height="${input.finalOutputHeight}">
         <defs>
           <radialGradient id="vignette" cx="50%" cy="50%" r="70%" fx="50%" fy="50%">
@@ -326,10 +366,9 @@ export const renderWithSharp = async (
       </svg>`;
       overlays.push({ input: Buffer.from(vignetteSvg), top: 0, left: 0 });
     }
-    type OverlayRect = { left: number; top: number; width: number; height: number };
     const posterBlockingRects: OverlayRect[] = [];
     const addPosterBlockingRect = (left: number, top: number, width: number, height: number) => {
-      if (input.imageType !== 'poster' || width <= 0 || height <= 0) return;
+      if (!usePosterLayout || width <= 0 || height <= 0) return;
       posterBlockingRects.push({
         left: Math.round(left),
         top: Math.round(top),
@@ -337,11 +376,17 @@ export const renderWithSharp = async (
         height: Math.round(height),
       });
     };
-    const rectsOverlap = (a: OverlayRect, b: OverlayRect) =>
-      a.left < b.left + b.width &&
-      a.left + a.width > b.left &&
-      a.top < b.top + b.height &&
-      a.top + a.height > b.top;
+    let lastTopBadgeRowLeft = 0;
+    let lastTopBadgeRowRight = 0;
+    let lastTopBadgeRowTop = 0;
+    let lastTopBadgeRowBottom = 0;
+    const rememberTopBadgeRow = (rowBadges: RatingBadge[], left: number, width: number, top: number, height: number) => {
+      if (!usePosterLayout || rowBadges !== input.topBadges || width <= 0 || height <= 0) return;
+      lastTopBadgeRowLeft = left;
+      lastTopBadgeRowRight = left + width;
+      lastTopBadgeRowTop = top;
+      lastTopBadgeRowBottom = top + height;
+    };
     const composeBadgeRow = (
       rowBadges: RatingBadge[],
       rowY: number,
@@ -434,7 +479,7 @@ export const renderWithSharp = async (
         rowWidth = measureCurrentRowWidth();
       }
       const isPosterRowLayout =
-        input.imageType === 'poster' &&
+        usePosterLayout &&
         (input.posterRatingsLayout === 'top' ||
           input.posterRatingsLayout === 'bottom' ||
           input.posterRatingsLayout === 'top-bottom');
@@ -444,8 +489,13 @@ export const renderWithSharp = async (
       const shouldSpreadRow =
         (isPosterRowLayout || options?.spreadAcrossThirds === true) && rowEntries.length === 3;
       if (shouldCenterSingle) {
+        const singleAlign = options?.align || 'center';
         const centerX =
-          regionLeft + Math.floor(regionWidth / 2) - Math.floor(rowEntries[0].badgeWidth / 2);
+          singleAlign === 'right'
+            ? regionRight - rowEntries[0].badgeWidth - 12
+            : singleAlign === 'left'
+              ? regionLeft + 12
+              : regionLeft + Math.floor(regionWidth / 2) - Math.floor(rowEntries[0].badgeWidth / 2);
         const clampedX = Math.max(
           regionLeft,
           Math.min(centerX, Math.max(regionLeft, regionRight - rowEntries[0].badgeWidth))
@@ -474,6 +524,7 @@ export const renderWithSharp = async (
         });
         overlays.push({ input: Buffer.from(badgeSvg), top: rowY, left: clampedX });
         addPosterBlockingRect(clampedX, rowY, entry.badgeWidth, rowBadgeHeight);
+        rememberTopBadgeRow(rowBadges, clampedX, entry.badgeWidth, rowY, rowBadgeHeight);
         return;
       }
       if (shouldSplitRow) {
@@ -523,6 +574,13 @@ export const renderWithSharp = async (
               overlays.push({ input: Buffer.from(badgeSvg), top: rowY, left: positions[index] });
               addPosterBlockingRect(positions[index], rowY, entry.badgeWidth, rowBadgeHeight);
             }
+            rememberTopBadgeRow(
+              rowBadges,
+              positions[0],
+              positions[positions.length - 1] + rowEntries[rowEntries.length - 1].badgeWidth - positions[0],
+              rowY,
+              rowBadgeHeight
+            );
             return;
           }
         }
@@ -563,6 +621,13 @@ export const renderWithSharp = async (
             overlays.push({ input: Buffer.from(badgeSvg), top: rowY, left: positions[index] });
             addPosterBlockingRect(positions[index], rowY, entry.badgeWidth, rowBadgeHeight);
           }
+          rememberTopBadgeRow(
+            rowBadges,
+            positions[0],
+            positions[positions.length - 1] + rowEntries[rowEntries.length - 1].badgeWidth - positions[0],
+            rowY,
+            rowBadgeHeight
+          );
           return;
         }
       }
@@ -589,6 +654,7 @@ export const renderWithSharp = async (
               : regionLeft + Math.floor((regionWidth - rowWidth) / 2);
       }
       rowX = Math.max(regionLeft, Math.min(rowX, Math.max(regionLeft, regionRight - rowWidth)));
+      const composedRowStartX = rowX;
 
       for (const entry of rowEntries) {
         const monogram = buildProviderMonogram(
@@ -616,6 +682,7 @@ export const renderWithSharp = async (
         addPosterBlockingRect(rowX, rowY, entry.badgeWidth, rowBadgeHeight);
         rowX += entry.badgeWidth + rowGap;
       }
+      rememberTopBadgeRow(rowBadges, composedRowStartX, rowWidth, rowY, rowBadgeHeight);
     };
     let lastOverlayTopY = 0;
     let lastOverlayBottomY = 0;
@@ -634,7 +701,7 @@ export const renderWithSharp = async (
     let rankingSharesGenreRow = false;
     let posterGenreBadgeComposed = false;
     const composePosterCleanOverlayAboveBottom = () => {
-      if (input.imageType !== 'poster') return;
+      if (!usePosterLayout) return;
       const overlay = posterLogoSpec
         ? {
           buffer: posterLogoSpec.buffer,
@@ -649,7 +716,7 @@ export const renderWithSharp = async (
           }
           : null;
       if (!overlay && !input.posterCleanOverlayEnabled) return;
-      const baseOverlayGap = Math.max(10, Math.round(posterReferenceBadgeGap * 0.9));
+      const baseOverlayGap = Math.max(16, Math.round(posterReferenceBadgeGap * 1.4));
       const overlayGap = input.posterConfiguratorPreset === 'advanced' ? baseOverlayGap + 12 : baseOverlayGap;
       const stableBottomAnchorY = Math.max(
         input.badgeTopOffset,
@@ -669,14 +736,47 @@ export const renderWithSharp = async (
       if (overlayY + overlayHeight + overlayGap > overlayAnchorY) {
         return;
       }
-      const overlayX = Math.max(
-        input.posterRowHorizontalInset,
+      const reservePad = Math.max(8, Math.round(posterReferenceBadgeGap * 0.9));
+      const overlayInset = input.posterRowHorizontalInset;
+      const centeredOverlayX = Math.max(
+        overlayInset,
         Math.round((input.outputWidth - overlayWidth) / 2)
       );
+      const sideOverlayX = posterQualityBadgeSidePlacement === 'right'
+        ? overlayInset
+        : posterQualityBadgeSidePlacement === 'left'
+          ? Math.max(overlayInset, input.outputWidth - overlayWidth - overlayInset)
+          : centeredOverlayX;
+      const reservedQualitySideRect =
+        input.qualityBadges.length > 0 && posterQualityBadgeSidePlacement
+          ? {
+            left: posterQualityBadgeSidePlacement === 'right'
+              ? input.outputWidth - posterQualitySideBadgeWidth - overlayInset
+              : overlayInset,
+            top: input.badgeTopOffset,
+            width: posterQualitySideBadgeWidth,
+            height: Math.max(0, input.outputHeight - input.badgeTopOffset - input.badgeBottomOffset),
+          }
+          : null;
+      const overlayCandidates = [
+        sideOverlayX,
+        centeredOverlayX,
+        overlayInset,
+        Math.max(overlayInset, input.outputWidth - overlayWidth - overlayInset),
+      ].filter((left, index, values) => values.indexOf(left) === index);
+      const selectedOverlay = findFirstNonOverlappingRect(
+        overlayCandidates.map((left) => ({ left, top: overlayY, width: overlayWidth, height: overlayHeight })),
+        reservedQualitySideRect ? [...posterBlockingRects, reservedQualitySideRect] : posterBlockingRects,
+        0
+      );
+      if (!selectedOverlay) {
+        warnCollision('Poster clean overlay could not avoid collision');
+        return;
+      }
+      const overlayX = selectedOverlay.left;
       if (overlay) {
         overlays.push({ input: overlay.buffer, top: overlayY, left: overlayX });
       }
-      const reservePad = Math.max(8, Math.round(posterReferenceBadgeGap * 0.9));
       addPosterBlockingRect(
         Math.max(0, overlayX - reservePad),
         Math.max(input.badgeTopOffset, overlayY - reservePad),
@@ -848,10 +948,11 @@ export const renderWithSharp = async (
         input.verticalBadgeContent
       );
       const badgeWidth = Math.min(estimatedWidth, maxBadgeWidth);
+      const rowInset = input.posterRowHorizontalInset;
       const rowX =
         side === 'left'
-          ? 12
-          : Math.max(12, input.outputWidth - badgeWidth - 12);
+          ? rowInset
+          : Math.max(rowInset, input.outputWidth - badgeWidth - rowInset);
       composePosterBadgeAt(badge, rowX, rowY, maxBadgeWidth, input.verticalBadgeContent);
     };
     const composeBadgeColumn = (
@@ -1033,16 +1134,16 @@ export const renderWithSharp = async (
     ) => {
       if (columnBadges.length === 0) return;
       const qualityBaseHeight =
-        input.imageType === 'poster' ? posterReferenceBadgeHeight : badgeHeight;
-      const qualityGap = input.imageType === 'poster' ? (input.qualityBadgeGap ?? posterReferenceBadgeGap) : input.badgeGap;
+        usePosterLayout ? posterReferenceBadgeHeight : badgeHeight;
+      const qualityGap = usePosterLayout ? (input.qualityBadgeGap ?? posterReferenceBadgeGap) : input.badgeGap;
       const qualityHeight = Math.min(posterQualityMaxHeight, Math.round(qualityBaseHeight));
-      const columnInset = input.imageType === 'poster' ? input.posterRowHorizontalInset : 12;
+      const columnInset = usePosterLayout ? input.posterRowHorizontalInset : 12;
       const uniformBadgeWidth = Math.min(
         Math.max(72, Math.round(qualityHeight * 1.75)),
         Math.max(72, input.outputWidth - columnInset * 2)
       );
       const findColumnBadgeY = (preferredY: number, x: number, width: number, height: number) => {
-        if (input.imageType !== 'poster') return Math.max(input.badgeTopOffset, preferredY);
+        if (!usePosterLayout) return Math.max(input.badgeTopOffset, preferredY);
         const minTop = input.badgeTopOffset;
         const maxTop = Math.max(minTop, input.outputHeight - input.badgeBottomOffset - height);
         const gap = Math.max(4, Math.round(qualityGap * 0.75));
@@ -1094,14 +1195,14 @@ export const renderWithSharp = async (
         if (!spec) continue;
         const badgeWidth = Math.min(spec.width, uniformBadgeWidth);
         const badgeHeightForRow = spec.height;
-        const rowInset = input.imageType === 'poster' ? input.posterRowHorizontalInset : 12;
+        const rowInset = usePosterLayout ? input.posterRowHorizontalInset : 12;
         const rowX =
           side === 'right'
             ? Math.max(rowInset, input.outputWidth - badgeWidth - rowInset)
             : rowInset;
         const freeRowY = findColumnBadgeY(rowY, rowX, badgeWidth, badgeHeightForRow);
         if (freeRowY === null) {
-          console.warn(`[ERDB] Poster quality badge "${badge.key}" could not avoid collision on ${side}`);
+          warnCollision(`Poster quality badge "${badge.key}" could not avoid collision on ${side}`);
           rowY += badgeHeightForRow + qualityGap;
           continue;
         }
@@ -1123,11 +1224,11 @@ export const renderWithSharp = async (
       baseHeight?: number
     ): QualityBadgeRowLayout | null => {
       if (rowBadges.length === 0) return null;
-      const rowInset = input.imageType === 'poster' ? input.posterRowHorizontalInset : 12;
+      const rowInset = usePosterLayout ? input.posterRowHorizontalInset : 12;
       const maxRowWidth = Math.max(0, input.outputWidth - rowInset * 2);
       const qualityBaseHeight =
-        input.imageType === 'poster' ? posterReferenceBadgeHeight : badgeHeight;
-      const qualityBaseGap = input.imageType === 'poster' ? (input.qualityBadgeGap ?? posterReferenceBadgeGap) : input.badgeGap;
+        usePosterLayout ? posterReferenceBadgeHeight : badgeHeight;
+      const qualityBaseGap = usePosterLayout ? (input.qualityBadgeGap ?? posterReferenceBadgeGap) : input.badgeGap;
       let qualityHeight = Math.min(posterQualityMaxHeight, Math.round(baseHeight ?? qualityBaseHeight));
       let rowGap = qualityBaseGap;
 
@@ -1178,7 +1279,7 @@ export const renderWithSharp = async (
       const layout = getQualityBadgeRowLayout(rowBadges, baseHeight);
       if (!layout) return 0;
       const { badgeWidths, height: qualityHeight, rowGap } = layout;
-      const rowInset = input.imageType === 'poster' ? input.posterRowHorizontalInset : 12;
+      const rowInset = usePosterLayout ? input.posterRowHorizontalInset : 12;
       let rowX = align === 'left' ? rowInset : align === 'right' ? Math.max(rowInset, input.outputWidth - layout.rowWidth - rowInset) : layout.rowX;
       const rowStartX = rowX;
       for (let index = 0; index < rowBadges.length; index += 1) {
@@ -1258,7 +1359,7 @@ export const renderWithSharp = async (
       return boundaryCandidates.find(fitsAt) ?? null;
     };
     const getPosterBottomQualityRowY = () => {
-      if (input.imageType !== 'poster' || input.qualityBadges.length === 0) return null;
+      if (!usePosterLayout || input.qualityBadges.length === 0) return null;
       const qualityPlacement = resolvePosterQualityBadgePlacement(
         input.posterRatingsLayout,
         input.qualityBadgesSide,
@@ -1286,7 +1387,7 @@ export const renderWithSharp = async (
       uniformBadgeWidth: number
     ) => {
       if (columnBadges.length === 0) return;
-      const columnInset = input.imageType === 'poster' ? input.posterRowHorizontalInset : 12;
+      const columnInset = usePosterLayout ? input.posterRowHorizontalInset : 12;
       let rowY = Math.max(input.badgeTopOffset, startY);
       const clampedX = Math.max(
         columnInset,
@@ -1330,9 +1431,9 @@ export const renderWithSharp = async (
       }
     } else if (
       input.badges.length > 0 ||
-      (input.imageType === 'poster' && (posterTitleSpec || posterLogoSpec))
+      (usePosterLayout && (posterTitleSpec || posterLogoSpec))
     ) {
-      if (input.imageType === 'backdrop' || input.imageType === 'thumbnail') {
+      if (!usePosterLayout && (input.imageType === 'backdrop' || input.imageType === 'thumbnail')) {
         const backdropPlacement = getBackdropBadgePlacement(
           input.outputWidth,
           input.backdropRatingsLayout,
@@ -1392,7 +1493,7 @@ export const renderWithSharp = async (
           }
         }
         composeThumbnailFallbackOverlay();
-      } else if (input.imageType === 'poster') {
+      } else if (usePosterLayout) {
         const bottomRatingHeight = Math.max(badgeHeight, posterReferenceBadgeHeight);
         const bottomRowY = Math.max(
           input.badgeTopOffset,
@@ -1435,14 +1536,14 @@ export const renderWithSharp = async (
             composeBadgeRow(input.topBadges, input.badgeTopOffset, {
               regionLeft: input.posterRowHorizontalInset,
               regionWidth: posterRowRegionWidth,
-              align: posterRowAlign,
+              align: posterTopRowAlign,
             });
           }
           if (input.bottomBadges.length > 0) {
             composeBadgeRow(input.bottomBadges, bottomRowY, {
               regionLeft: input.posterRowHorizontalInset,
               regionWidth: posterRowRegionWidth,
-              align: posterRowAlign,
+              align: posterBottomRowAlign,
             });
           }
         }
@@ -1450,7 +1551,7 @@ export const renderWithSharp = async (
       }
     }
 
-    if (input.imageType === 'poster' && input.qualityBadges.length > 0) {
+    if (usePosterLayout && input.qualityBadges.length > 0) {
       let qualityPlacement = resolvePosterQualityBadgePlacement(
         input.posterRatingsLayout,
         input.qualityBadgesSide,
@@ -1492,7 +1593,7 @@ export const renderWithSharp = async (
             'down'
           );
           if (rowY === null) {
-            console.warn('[ERDB] Poster quality badges could not avoid collision at top');
+            warnCollision('Poster quality badges could not avoid collision at top');
           } else {
             const actualQualityHeight = composeQualityBadgeRow(input.qualityBadges, rowY, posterReferenceBadgeHeight, 'top', qualityAlign);
             lastPosterQualityTopY = rowY;
@@ -1516,7 +1617,7 @@ export const renderWithSharp = async (
             )
             : null;
         if (bottomRowY === null) {
-          console.warn('[ERDB] Poster quality badges could not avoid collision at bottom');
+          warnCollision('Poster quality badges could not avoid collision at bottom');
         } else {
           const actualQualityHeight = composeQualityBadgeRow(input.qualityBadges, bottomRowY, posterReferenceBadgeHeight, 'bottom', qualityAlign);
           lastPosterQualityTopY = bottomRowY;
@@ -1542,7 +1643,7 @@ export const renderWithSharp = async (
             'up'
           );
           if (rowY === null) {
-            console.warn('[ERDB] Poster quality badges could not avoid collision above logo');
+            warnCollision('Poster quality badges could not avoid collision above logo');
           } else {
             const actualQualityHeight = composeQualityBadgeRow(input.qualityBadges, rowY, posterReferenceBadgeHeight, 'above-logo', qualityAlign);
             lastPosterQualityTopY = rowY;
@@ -1584,7 +1685,7 @@ export const renderWithSharp = async (
       }
     }
 
-    if (input.imageType === 'backdrop' && input.qualityBadges.length > 0) {
+    if (!usePosterLayout && input.imageType === 'backdrop' && input.qualityBadges.length > 0) {
       const qualityHeight = Math.max(44, Math.round(badgeHeight * 1.25));
       const uniformBadgeWidth = Math.min(
         Math.max(72, Math.round(qualityHeight * 1.75)),
@@ -1793,7 +1894,7 @@ export const renderWithSharp = async (
     function composePosterGenreBadge() {
       if (
         posterGenreBadgeComposed ||
-        input.imageType !== 'poster' ||
+        !usePosterLayout ||
         !input.posterGenreBadge ||
         input.posterGenrePosition === 'off'
       ) {
@@ -1817,7 +1918,7 @@ export const renderWithSharp = async (
         if (lastPosterQualityTopY <= 0 || !lastPosterQualityPlacement) return null;
         if (rankingPlacedSameRowAsQuality) return null;
         if (position !== lastPosterQualityPlacement) return null;
-        const rowInset = input.imageType === 'poster' ? input.posterRowHorizontalInset : 12;
+        const rowInset = usePosterLayout ? input.posterRowHorizontalInset : 12;
         if (genreWidth > lastPosterQualityRowLeft - rowInset) return null;
         const genreLeft = rowInset;
         const rowY = Math.max(0, lastPosterQualityTopY + Math.round((lastPosterQualityBottomY - lastPosterQualityTopY - genreHeight) / 2));
@@ -1830,7 +1931,7 @@ export const renderWithSharp = async (
         if (lastRankingRowTopY <= 0 || !lastRankingPlacement) return null;
         if (rankingSharesGenreRow) return null;
         if (position !== lastRankingPlacement) return null;
-        const rowInset = input.imageType === 'poster' ? input.posterRowHorizontalInset : 12;
+        const rowInset = usePosterLayout ? input.posterRowHorizontalInset : 12;
         const genreRight = input.outputWidth - rowInset;
         const genreLeft = genreRight - genreWidth;
         if (genreLeft < lastRankingRowRight + Math.max(3, Math.round(input.badgeGap * 0.35))) return null;
@@ -1869,10 +1970,10 @@ export const renderWithSharp = async (
         return;
       }
 
-      const rowInset = input.imageType === 'poster' ? input.posterRowHorizontalInset : 12;
+      const rowInset = usePosterLayout ? input.posterRowHorizontalInset : 12;
       const sharesPositionWithQuality = !!lastPosterQualityPlacement && position === lastPosterQualityPlacement;
       const sharesPositionWithRanking = !!lastRankingPlacement && position === lastRankingPlacement && !rankingPlacedSameRowAsQuality;
-      const left = (sharesPositionWithQuality || sharesPositionWithRanking)
+      let left = (sharesPositionWithQuality || sharesPositionWithRanking)
         ? rowInset
         : Math.round((input.outputWidth - genreWidth) / 2);
 
@@ -1932,6 +2033,51 @@ export const renderWithSharp = async (
         }
       }
 
+      const minGenreTop = input.badgeTopOffset;
+      const maxGenreTop = Math.max(
+        minGenreTop,
+        input.outputHeight - input.badgeBottomOffset - genreHeight
+      );
+      const genreTopCandidates = [
+        top,
+        minGenreTop,
+        maxGenreTop,
+        ...posterBlockingRects.flatMap((blockedRect) => [
+          blockedRect.top - genreHeight - overlapGap,
+          blockedRect.top + blockedRect.height + overlapGap,
+        ]),
+      ];
+      for (let y = minGenreTop; y <= maxGenreTop; y += overlapGap) {
+        genreTopCandidates.push(y);
+      }
+      const genreLeftCandidates = [
+        left,
+        rowInset,
+        Math.max(rowInset, input.outputWidth - genreWidth - rowInset),
+        Math.max(rowInset, Math.round((input.outputWidth - genreWidth) / 2)),
+      ].filter((candidateLeft, index, values) => values.indexOf(candidateLeft) === index);
+      const freeGenreRect = findFirstNonOverlappingRect(
+        genreTopCandidates
+          .map((candidateTop) => Math.max(minGenreTop, Math.min(Math.round(candidateTop), maxGenreTop)))
+          .filter((candidateTop, index, values) => values.indexOf(candidateTop) === index)
+          .flatMap((candidateTop) =>
+            genreLeftCandidates.map((candidateLeft) => ({
+              left: candidateLeft,
+              top: candidateTop,
+              width: genreWidth,
+              height: genreHeight,
+            }))
+          ),
+        posterBlockingRects,
+        0
+      );
+      if (!freeGenreRect) {
+        warnCollision(`Poster genre badge "${badge.value}" could not avoid collision`);
+        return;
+      }
+      left = freeGenreRect.left;
+      top = freeGenreRect.top;
+
       const badgeSvg = buildBadgeSvg({
         width: genreWidth,
         height: genreHeight,
@@ -1961,7 +2107,7 @@ export const renderWithSharp = async (
       );
     }
 
-    if (input.imageType === 'poster' && input.rankingBadge) {
+    if (usePosterLayout && input.rankingBadge) {
       const badge = input.rankingBadge;
       const rankingIconDataUri = await getProviderIconDataUri(
         RANKING_ICON_URL,
@@ -1995,21 +2141,48 @@ export const renderWithSharp = async (
           : Buffer.from(rankingSpec.svg);
       const left = Math.max(12, Math.floor((input.outputWidth - renderedWidth) / 2));
       const rankingGap = Math.max(3, Math.round(input.badgeGap * 0.35));
-      const trySameRowAsQuality = (): { left: number; top: number; scaled?: boolean } | null => {
+      type SameRowPlacement = { left: number; top: number; scaled?: boolean; kind: 'top' | 'quality' };
+      const trySameRowAsTopRatings = (): SameRowPlacement | null => {
+        if (
+          input.rankingPosition !== 'top' ||
+          lastTopBadgeRowRight <= lastTopBadgeRowLeft ||
+          lastTopBadgeRowBottom <= lastTopBadgeRowTop
+        ) {
+          return null;
+        }
+        const rowInset = input.posterRowHorizontalInset;
+        const preferredLeft = Math.max(
+          rowInset,
+          lastTopBadgeRowLeft - renderedWidth - rankingGap
+        );
+        const maxLeft = Math.max(rowInset, input.outputWidth - renderedWidth - rowInset);
+        const candidates = [preferredLeft, rowInset, maxLeft]
+          .map((candidateLeft) => Math.max(rowInset, Math.min(candidateLeft, maxLeft)))
+          .filter((candidateLeft, index, values) => values.indexOf(candidateLeft) === index)
+          .map((candidateLeft) => ({
+            left: candidateLeft,
+            top: lastTopBadgeRowTop,
+            width: renderedWidth,
+            height: renderedHeight,
+          }));
+        const placement = findFirstNonOverlappingRect(candidates, posterBlockingRects, 0);
+        return placement ? { ...placement, kind: 'top' } : null;
+      };
+      const trySameRowAsQuality = (): SameRowPlacement | null => {
         if (lastPosterQualityTopY <= 0 || !lastPosterQualityPlacement) return null;
         const rankingPosRaw2 = input.rankingPosition || 'auto';
         const resolvedRankingPos2: string = rankingPosRaw2 === 'auto'
           ? (lastOverlayTopY > 0 ? 'above-logo' : 'top')
           : rankingPosRaw2;
         if (resolvedRankingPos2 !== lastPosterQualityPlacement) return null;
-        const rowInset = input.imageType === 'poster' ? input.posterRowHorizontalInset : 12;
+        const rowInset = usePosterLayout ? input.posterRowHorizontalInset : 12;
         const rankingLeft = rowInset;
         const qualityHeight = lastPosterQualityBottomY - lastPosterQualityTopY;
         if (renderedHeight > qualityHeight && qualityHeight > 0) {
-          return { left: rankingLeft, top: lastPosterQualityTopY, scaled: true };
+          return { left: rankingLeft, top: lastPosterQualityTopY, scaled: true, kind: 'quality' };
         }
         const rowY = Math.max(input.badgeTopOffset, lastPosterQualityTopY);
-        return { left: rankingLeft, top: rowY };
+        return { left: rankingLeft, top: rowY, kind: 'quality' };
       };
       const getTopRankingTop = () => {
         const qualityRefHeight = Math.min(posterQualityMaxHeight, posterReferenceBadgeHeight);
@@ -2175,7 +2348,7 @@ export const renderWithSharp = async (
           (rankingPosition === 'auto' && lastOverlayTopY > 0)
           ? 'up'
           : 'down';
-      const sameRowResult = trySameRowAsQuality();
+      const sameRowResult = trySameRowAsTopRatings() ?? trySameRowAsQuality();
       if (sameRowResult) {
         let useBuffer = rankingBuffer;
         let useWidth = renderedWidth;
@@ -2198,16 +2371,16 @@ export const renderWithSharp = async (
           : sameRowResult.top;
         overlays.push({ input: useBuffer, top: rowY, left: sameRowResult.left });
         addPosterBlockingRect(sameRowResult.left, rowY, useWidth, useHeight);
-        rankingPlacedSameRowAsQuality = true;
+        rankingPlacedSameRowAsQuality = sameRowResult.kind === 'quality';
         lastRankingRowLeft = sameRowResult.left;
         lastRankingRowRight = sameRowResult.left + useWidth;
         lastRankingRowTopY = rowY;
         lastRankingRowBottomY = rowY + useHeight;
-        lastRankingPlacement = lastPosterQualityPlacement;
+        lastRankingPlacement = sameRowResult.kind === 'top' ? 'top' : lastPosterQualityPlacement;
       } else {
       const resolvedRankingTop = findRankingTop(top, rankingSearchDirection);
       if (resolvedRankingTop === null) {
-        console.warn(`[ERDB] Ranking badge "${badge.value}" could not avoid collision`);
+        warnCollision(`Ranking badge "${badge.value}" could not avoid collision`);
       } else {
         top = resolvedRankingTop;
         overlays.push({ input: rankingBuffer, top, left });
@@ -2260,6 +2433,7 @@ export const renderWithSharp = async (
       body: bufferToArrayBuffer(finalBuffer),
       contentType: outputContentType,
       cacheControl: input.cacheControl,
+      collisionWarnings: Array.from(new Set(collisionWarnings)),
     };
   });
 };

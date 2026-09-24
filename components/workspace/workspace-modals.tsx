@@ -7,6 +7,38 @@ import type { HomePageViewProps } from '@/components/workspace/types';
 import { AIOMETADATA_EPISODE_PROVIDER_OPTIONS } from './constants';
 import type { AiometadataPatternType } from '@/components/workspace/types';
 
+const TITLE_ID_PATTERNS = [
+  ['IMDb title', '{imdb_id}'],
+  ['TMDB inferred', 'tmdb:{tmdb_id}'],
+  ['TMDB movie', 'tmdb:movie:{tmdb_id}'],
+  ['TMDB series', 'tmdb:tv:{tmdb_id}'],
+  ['TVDB bridge', 'tvdb:{tvdb_id}'],
+  ['IMDb TV bridge', 'realimdb:{imdb_id}'],
+  ['Kitsu anime', 'kitsu:{kitsu_id}'],
+  ['AniList anime', 'anilist:{anilist_id}'],
+  ['AniDB anime', 'anidb:{anidb_id}'],
+  ['MyAnimeList anime', 'mal:{mal_id}'],
+] as const;
+
+const EPISODE_ID_PATTERNS = [
+  ['IMDb episode', '{series_imdb_id}:{season}:{episode}'],
+  ['TMDB episode', 'tmdb:{tmdb_id}:{season}:{episode}'],
+  ['TMDB TV episode', 'tmdb:tv:{tmdb_id}:{season}:{episode}'],
+  ['TVDB episode', 'tvdb:{tvdb_id}:{season}:{episode}'],
+  ['IMDb TV episode', 'realimdb:{series_imdb_id}:{season}:{episode}'],
+  ['Kitsu episode', 'kitsu:{kitsu_id}:{season}:{episode}'],
+  ['AniList episode', 'anilist:{anilist_id}:{season}:{episode}'],
+  ['AniDB episode', 'anidb:{anidb_id}:{season}:{episode}'],
+  ['MyAnimeList episode', 'mal:{mal_id}:{season}:{episode}'],
+] as const;
+
+const URL_PATTERN_GROUPS = [
+  { type: 'poster', label: 'Poster', ids: TITLE_ID_PATTERNS },
+  { type: 'backdrop', label: 'Backdrop', ids: TITLE_ID_PATTERNS },
+  { type: 'logo', label: 'Logo', ids: TITLE_ID_PATTERNS },
+  { type: 'thumbnail', label: 'Episode thumbnail', ids: EPISODE_ID_PATTERNS },
+] as const;
+
 type WorkspaceModalsProps = Pick<HomePageViewProps, 'state' | 'actions' | 'derived'> & {
   isCatalogModalOpen: boolean;
   setIsCatalogModalOpen: (v: boolean) => void;
@@ -26,9 +58,10 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
     proxySearchDisabledCatalogs,
     proxyDiscoverOnlyCatalogs,
     aiometadataEpisodeProvider,
+    activeToken,
   } = state;
 
-  const { aiometadataPatterns } = derived;
+  const { aiometadataPatterns, baseUrl } = derived;
   const hasCatalogCustomizations = Object.keys(proxyCatalogNames).length > 0 || proxyHiddenCatalogs.length > 0 || proxySearchDisabledCatalogs.length > 0 || Object.keys(proxyDiscoverOnlyCatalogs).length > 0;
 
   const {
@@ -40,16 +73,23 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
     setAiometadataEpisodeProvider,
   } = actions;
 
-  // Local state for AiOMetadata copying
-  const [aiometadataCopiedType, setAiometadataCopiedType] = useState<AiometadataPatternType | null>(null);
+  const [copiedPatternKey, setCopiedPatternKey] = useState<string | null>(null);
+
+  const handleCopyPattern = async (key: string, pattern: string) => {
+    if (!pattern) return;
+    await navigator.clipboard.writeText(pattern);
+    setCopiedPatternKey(key);
+    setTimeout(() => setCopiedPatternKey((current) => (current === key ? null : current)), 2000);
+  };
 
   const handleCopyAiometadataPattern = async (type: AiometadataPatternType) => {
     const pattern = aiometadataPatterns[type];
-    if (!pattern) return;
-    await navigator.clipboard.writeText(pattern);
-    setAiometadataCopiedType(type);
-    setTimeout(() => setAiometadataCopiedType(null), 2000);
+    await handleCopyPattern(`aiometadata-${type}`, pattern);
   };
+
+  const rendererBaseUrl = (baseUrl || 'https://easyratingsdb.com').replace(/\/+$/, '');
+  const rendererToken = activeToken || '{token}';
+  const buildRendererUrl = (type: string, id: string) => `${rendererBaseUrl}/${rendererToken}/${type}/${id}.jpg`;
 
   // Local state for Rotation Modal
   const [rotatePassword, setRotatePassword] = useState('');
@@ -341,10 +381,10 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
               <div>
                 <h4 className="flex items-center gap-2 text-lg font-[var(--font-display)] text-white">
                   <Terminal className="h-5 w-5 text-orange-500" />
-                  <span>Aiometadata Patterns</span>
+                  <span>URL Patterns</span>
                 </h4>
                 <p className="mt-1 text-xs text-slate-400">
-                  Choose whether AiOMetadata episode IDs should use `IMDb` or `TVDB`, then copy the URL patterns you need.
+                  Copy every supported renderer URL combination, including the AiOMetadata-specific patterns.
                 </p>
               </div>
               <button
@@ -356,64 +396,125 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
               </button>
             </div>
             <div className="overflow-y-auto overscroll-contain px-5 py-4 premium-scrollbar">
-              <p className="max-w-3xl text-sm text-slate-400">
-                Series and anime should use the same provider here. For anime, AiOMetadata may send a Kitsu ID in the season slot when TVDB mapping fails, so TVDB thumbnails can still be incorrect.
-              </p>
-              <div className="mt-4 rounded-2xl border border-white/10 bg-[#080808]/90 p-3">
-                <div className="text-[11px] font-semibold text-slate-400">AiOMetadata Series/Anime Provider</div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {AIOMETADATA_EPISODE_PROVIDER_OPTIONS.map((option) => (
-                    <button
-                      key={option.id}
-                      onClick={() => setAiometadataEpisodeProvider(option.id)}
-                      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-colors ${aiometadataEpisodeProvider === option.id ? 'border-orange-500/60 bg-[#121212] text-white' : 'border-white/10 bg-[#0a0a0a] text-slate-400 hover:text-white'}`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
+              <section aria-labelledby="url-patterns-heading">
+                <div className="flex flex-wrap items-end justify-between gap-2">
+                  <div>
+                    <h5 id="url-patterns-heading" className="text-sm font-semibold text-white">Renderer URL combinations</h5>
+                    <p className="mt-1 max-w-3xl text-xs text-slate-500">
+                      Every image type paired with supported IMDb, TMDB, TVDB, bridge, and anime ID formats.
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-white/10 bg-[#121212] px-2.5 py-1 text-[10px] font-mono text-slate-500">
+                    {rendererBaseUrl}/{rendererToken}
+                  </span>
                 </div>
-              </div>
-              <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
-                {([
-                  ['poster', 'Poster URL Pattern'],
-                  ['background', 'Background URL Pattern'],
-                  ['logo', 'Logo URL Pattern'],
-                  ['episodeThumbnail', 'Episode Thumbnail URL Pattern'],
-                ] as Array<[AiometadataPatternType, string]>).map(([type, label]) => {
-                  const value = aiometadataPatterns[type];
-                  const isCopied = aiometadataCopiedType === type;
-                  const isAvailable = Boolean(value);
-                  return (
-                    <div key={type} className="rounded-2xl border border-white/10 bg-[#080808]/90 p-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="text-[11px] font-semibold text-slate-400">{label}</div>
-                        <button
-                          onClick={() => handleCopyAiometadataPattern(type)}
-                          disabled={!isAvailable}
-                          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-all ${isAvailable ? (isCopied ? 'bg-green-500 text-white' : 'bg-orange-500 text-black hover:bg-orange-400') : 'cursor-not-allowed bg-[#121212] text-slate-500'}`}
-                        >
-                          {isCopied ? (
-                            <>
-                              <Check className="h-3.5 w-3.5" />
-                              <span>COPIED</span>
-                            </>
-                          ) : (
-                            <>
-                              <Clipboard className="h-3.5 w-3.5" />
-                              <span>COPY</span>
-                            </>
-                          )}
-                        </button>
+                <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  {URL_PATTERN_GROUPS.map((group) => (
+                    <div key={group.type} className="rounded-2xl border border-white/10 bg-[#080808]/90 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-[11px] font-semibold text-slate-300">{group.label}</div>
+                        <span className="text-[10px] text-slate-600">{group.ids.length} formats</span>
                       </div>
-                      <div className="mt-2 min-h-[7rem] rounded-xl border border-white/10 bg-[#0a0a0a]/80 p-3">
-                        <div className="whitespace-pre-wrap break-all font-mono text-xs text-slate-300">
-                          {value || 'Not available.'}
-                        </div>
+                      <div className="mt-3 space-y-2">
+                        {group.ids.map(([label, id]) => {
+                          const key = `url-${group.type}-${id}`;
+                          const value = buildRendererUrl(group.type, id);
+                          const isCopied = copiedPatternKey === key;
+                          return (
+                            <div key={id} className="flex items-center gap-2 rounded-xl border border-white/5 bg-[#0a0a0a] p-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="text-[10px] text-slate-600">{label}</div>
+                                <code className="mt-0.5 block break-all font-mono text-[11px] leading-5 text-slate-300">{value}</code>
+                              </div>
+                              <button
+                                type="button"
+                                aria-label={`Copy ${group.label} ${label} URL`}
+                                title={`Copy ${group.label} ${label} URL`}
+                                onClick={() => handleCopyPattern(key, value)}
+                                className={`shrink-0 rounded-lg p-2 transition-colors ${isCopied ? 'cursor-pointer bg-green-500 text-white' : 'cursor-pointer bg-orange-500 text-black hover:bg-orange-400'}`}
+                              >
+                                {isCopied ? <Check className="h-3.5 w-3.5" /> : <Clipboard className="h-3.5 w-3.5" />}
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              </section>
+
+              <section aria-labelledby="aiometadata-patterns-heading" className="mt-6 border-t border-white/10 pt-5">
+                <div>
+                  <h5 id="aiometadata-patterns-heading" className="flex items-center gap-2 text-sm font-semibold text-white">
+                    <Terminal className="h-4 w-4 text-teal-400" />
+                    AiOMetadata Patterns
+                  </h5>
+                  <p className="mt-1 max-w-3xl text-xs text-slate-500">
+                    Exact token/config patterns for AiOMetadata. Series and anime should use the same episode provider.
+                  </p>
+                </div>
+                <div className="mt-4 rounded-2xl border border-white/10 bg-[#080808]/90 p-3">
+                  <div className="text-[11px] font-semibold text-slate-400">AiOMetadata Series/Anime Provider</div>
+                  <p className="mt-1 text-[10px] text-slate-600">
+                    TVDB can be incorrect when AiOMetadata sends a Kitsu ID in the season slot.
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {AIOMETADATA_EPISODE_PROVIDER_OPTIONS.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setAiometadataEpisodeProvider(option.id)}
+                        className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-colors ${aiometadataEpisodeProvider === option.id ? 'border-orange-500/60 bg-[#121212] text-white' : 'border-white/10 bg-[#0a0a0a] text-slate-400 hover:text-white'}`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  {([
+                    ['poster', 'Poster URL Pattern'],
+                    ['background', 'Background URL Pattern'],
+                    ['logo', 'Logo URL Pattern'],
+                    ['episodeThumbnail', 'Episode Thumbnail URL Pattern'],
+                  ] as Array<[AiometadataPatternType, string]>).map(([type, label]) => {
+                    const value = aiometadataPatterns[type];
+                    const isCopied = copiedPatternKey === `aiometadata-${type}`;
+                    const isAvailable = Boolean(value);
+                    return (
+                      <div key={type} className="rounded-2xl border border-white/10 bg-[#080808]/90 p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="text-[11px] font-semibold text-slate-400">{label}</div>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyAiometadataPattern(type)}
+                            disabled={!isAvailable}
+                            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-all ${isAvailable ? (isCopied ? 'cursor-pointer bg-green-500 text-white' : 'cursor-pointer bg-orange-500 text-black hover:bg-orange-400') : 'cursor-not-allowed bg-[#121212] text-slate-500'}`}
+                          >
+                            {isCopied ? (
+                              <>
+                                <Check className="h-3.5 w-3.5" />
+                                <span>COPIED</span>
+                              </>
+                            ) : (
+                              <>
+                                <Clipboard className="h-3.5 w-3.5" />
+                                <span>COPY</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        <div className="mt-2 min-h-[7rem] rounded-xl border border-white/10 bg-[#0a0a0a]/80 p-3">
+                          <div className="whitespace-pre-wrap break-all font-mono text-xs text-slate-300">
+                            {value || 'Not available.'}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
             </div>
           </motion.div>
         </div>

@@ -200,6 +200,7 @@ export function useHomePageController({
   const [posterGenrePosition, setPosterGenrePosition] = useState<PosterGenrePosition>('top');
   const [posterSimpleRatingSource, setPosterSimpleRatingSource] = useState<'average' | RatingPreference>('average');
   const [backdropImageText, setBackdropImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
+  const [backdropAsPoster, setBackdropAsPoster] = useState(false);
   const [backdropAnimeImageText, setBackdropAnimeImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
   const [posterRatingRows, setPosterRatingRows] = useState<RatingProviderRow[]>(() =>
     enabledOrderedToRows([
@@ -238,7 +239,8 @@ export function useHomePageController({
   );
   const logoRatingPreferences = useMemo(() => rowsToEnabledOrdered(logoRatingRows), [logoRatingRows]);
   const shouldUsePosterAverageRatings =
-    previewType === 'poster' && (posterConfiguratorPreset === 'preset1' || posterAverageRatingsEnabled);
+    (previewType === 'poster' || (previewType === 'backdrop' && backdropAsPoster)) &&
+    (posterConfiguratorPreset === 'preset1' || posterAverageRatingsEnabled);
   const [posterStreamBadges, setPosterStreamBadges] = useState<StreamBadgesSetting>('on');
   const [backdropStreamBadges, setBackdropStreamBadges] = useState<StreamBadgesSetting>('off');
   const [qualityBadgesSide, setQualityBadgesSide] = useState<QualityBadgesSide>('left');
@@ -557,36 +559,27 @@ export function useHomePageController({
   const [copied, setCopied] = useState(false);
   const shouldShowPosterQualityBadgesSide = false;
   const shouldShowPosterQualityBadgesPosition = true;
-  const shouldShowQualityBadgesSide = previewType === 'poster' && shouldShowPosterQualityBadgesSide;
+  const usesPosterSettings = previewType === 'poster' || (previewType === 'backdrop' && backdropAsPoster);
+  const shouldShowQualityBadgesSide = usesPosterSettings && shouldShowPosterQualityBadgesSide;
   const shouldShowQualityBadgesPosition =
-    previewType === 'poster' && shouldShowPosterQualityBadgesPosition;
+    usesPosterSettings && shouldShowPosterQualityBadgesPosition;
   const shouldShowVerticalBadgeContent =
-    (previewType === 'poster' && isVerticalPosterRatingLayout(posterRatingsLayout)) ||
-    (previewType === 'backdrop' && backdropRatingsLayout === 'right-vertical') ||
+    (usesPosterSettings && isVerticalPosterRatingLayout(posterRatingsLayout)) ||
+    (previewType === 'backdrop' && !backdropAsPoster && backdropRatingsLayout === 'right-vertical') ||
     (previewType === 'thumbnail' && thumbnailRatingsLayout.endsWith('-vertical'));
-  const qualityBadgeTypeLabel = previewType === 'backdrop' || previewType === 'thumbnail' ? 'Backdrop' : 'Poster';
+  const qualityBadgeTypeLabel = usesPosterSettings ? 'Poster' : previewType === 'backdrop' || previewType === 'thumbnail' ? 'Backdrop' : 'Poster';
   const activeStreamBadges =
-    previewType === 'backdrop' || previewType === 'thumbnail' ? backdropStreamBadges : posterStreamBadges;
+    usesPosterSettings ? posterStreamBadges : previewType === 'backdrop' || previewType === 'thumbnail' ? backdropStreamBadges : posterStreamBadges;
   const setActiveStreamBadges =
-    previewType === 'backdrop' || previewType === 'thumbnail'
-      ? setBackdropStreamBadges
-      : setPosterStreamBadges;
+    usesPosterSettings ? setPosterStreamBadges : previewType === 'backdrop' || previewType === 'thumbnail' ? setBackdropStreamBadges : setPosterStreamBadges;
   const activeQualityBadgesStyle =
-    previewType === 'backdrop' || previewType === 'thumbnail'
-      ? backdropQualityBadgesStyle
-      : posterQualityBadgesStyle;
+    usesPosterSettings ? posterQualityBadgesStyle : previewType === 'backdrop' || previewType === 'thumbnail' ? backdropQualityBadgesStyle : posterQualityBadgesStyle;
   const setActiveQualityBadgesStyle =
-    previewType === 'backdrop' || previewType === 'thumbnail'
-      ? setBackdropQualityBadgesStyle
-      : setPosterQualityBadgesStyle;
+    usesPosterSettings ? setPosterQualityBadgesStyle : previewType === 'backdrop' || previewType === 'thumbnail' ? setBackdropQualityBadgesStyle : setPosterQualityBadgesStyle;
   const activeQualityBadgesColorMode =
-    previewType === 'backdrop' || previewType === 'thumbnail'
-      ? backdropQualityBadgesColorMode
-      : posterQualityBadgesColorMode;
+    usesPosterSettings ? posterQualityBadgesColorMode : previewType === 'backdrop' || previewType === 'thumbnail' ? backdropQualityBadgesColorMode : posterQualityBadgesColorMode;
   const setActiveQualityBadgesColorMode =
-    previewType === 'backdrop' || previewType === 'thumbnail'
-      ? setBackdropQualityBadgesColorMode
-      : setPosterQualityBadgesColorMode;
+    usesPosterSettings ? setPosterQualityBadgesColorMode : previewType === 'backdrop' || previewType === 'thumbnail' ? setBackdropQualityBadgesColorMode : setPosterQualityBadgesColorMode;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -873,7 +866,7 @@ export function useHomePageController({
 
   const previewUrl = useMemo(() => {
     const ratingPreferencesForType =
-      previewType === 'poster'
+      usesPosterSettings
         ? posterRatingPreferences
         : previewType === 'backdrop'
           ? backdropRatingPreferences
@@ -881,16 +874,16 @@ export function useHomePageController({
             ? thumbnailRatingPreferences
             : logoRatingPreferences;
     const ratingsQuery = stringifyRatingPreferencesAllowEmpty(ratingPreferencesForType);
-    const isPreset1 = previewType === 'poster' && posterConfiguratorPreset === 'preset1';
-    const isPreset2 = previewType === 'poster' && posterConfiguratorPreset === 'preset2';
-    const isPreset3 = previewType === 'poster' && posterConfiguratorPreset === 'preset3';
-    const isPreset4 = previewType === 'poster' && posterConfiguratorPreset === 'preset4';
-    const isPreset5 = previewType === 'poster' && posterConfiguratorPreset === 'preset5';
-    const isPreset6 = previewType === 'poster' && posterConfiguratorPreset === 'preset6';
-    const isPreset7 = previewType === 'poster' && posterConfiguratorPreset === 'preset7';
+    const isPreset1 = usesPosterSettings && posterConfiguratorPreset === 'preset1';
+    const isPreset2 = usesPosterSettings && posterConfiguratorPreset === 'preset2';
+    const isPreset3 = usesPosterSettings && posterConfiguratorPreset === 'preset3';
+    const isPreset4 = usesPosterSettings && posterConfiguratorPreset === 'preset4';
+    const isPreset5 = usesPosterSettings && posterConfiguratorPreset === 'preset5';
+    const isPreset6 = usesPosterSettings && posterConfiguratorPreset === 'preset6';
+    const isPreset7 = usesPosterSettings && posterConfiguratorPreset === 'preset7';
     const isPreset = isPreset1 || isPreset2 || isPreset3 || isPreset4 || isPreset5 || isPreset6 || isPreset7;
     const ratingStyleForType =
-      previewType === 'poster'
+      usesPosterSettings
         ? posterRatingStyle
         : previewType === 'backdrop'
           ? backdropRatingStyle
@@ -898,25 +891,31 @@ export function useHomePageController({
             ? thumbnailRatingStyle
             : logoRatingStyle;
     const imageTextForType =
-      previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : (isPreset ? 'clean' : posterImageText);
+      usesPosterSettings ? (isPreset && !backdropAsPoster ? 'clean' : posterImageText) : previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : posterImageText;
     const streamBadgesForType =
-      previewType === 'backdrop' || previewType === 'thumbnail'
-        ? backdropStreamBadges
-        : isPreset4
+      usesPosterSettings
+        ? isPreset4
           ? 'off'
           : isPreset
             ? 'on'
-            : posterStreamBadges;
+            : posterStreamBadges
+        : previewType === 'backdrop' || previewType === 'thumbnail'
+        ? backdropStreamBadges
+        : posterStreamBadges;
     const qualityBadgesStyleForType =
-      previewType === 'backdrop' || previewType === 'thumbnail'
+      usesPosterSettings
+        ? posterQualityBadgesStyle
+        : previewType === 'backdrop' || previewType === 'thumbnail'
         ? backdropQualityBadgesStyle
         : posterQualityBadgesStyle;
     const qualityBadgesColorModeForType =
-      previewType === 'backdrop' || previewType === 'thumbnail'
+      usesPosterSettings
+        ? posterQualityBadgesColorMode
+        : previewType === 'backdrop' || previewType === 'thumbnail'
         ? backdropQualityBadgesColorMode
         : posterQualityBadgesColorMode;
     const ratingsColorModeForType =
-      previewType === 'poster'
+      usesPosterSettings
         ? posterRatingsColorMode
         : previewType === 'backdrop'
           ? backdropRatingsColorMode
@@ -926,18 +925,27 @@ export function useHomePageController({
     const query = new URLSearchParams({
       ratingStyle: ratingStyleForType,
       lang: effectiveLang,
+      previewDiagnostics: 'on',
     });
     if (ratingsColorModeForType !== 'colored') {
       query.set('ratingsColorMode', ratingsColorModeForType);
     }
-    if (previewType === 'poster') {
-      if (posterLang) {
+    if (usesPosterSettings) {
+      if (previewType === 'backdrop') {
+        query.set('backdropAsPoster', 'on');
+        if (backdropLang) {
+          query.set('backdropLang', effectiveBackdropLang);
+        }
+        if (backdropAnimeLang) {
+          query.set('backdropAnimeLang', effectiveBackdropAnimeLang);
+        }
+      } else if (posterLang) {
         query.set('posterLang', effectivePosterLang);
       }
-      if (posterAnimeLang) {
+      if (previewType !== 'backdrop' && posterAnimeLang) {
         query.set('posterAnimeLang', effectivePosterAnimeLang);
       }
-      query.set('posterAnimeImageText', isPreset ? 'default' : posterAnimeImageText);
+      query.set('posterAnimeImageText', isPreset && !backdropAsPoster ? 'default' : posterAnimeImageText);
       query.set('posterRatings', ratingsQuery);
       if (isPreset1 || shouldUsePosterAverageRatings) {
         query.set('posterRatingsMode', 'average');
@@ -982,9 +990,9 @@ export function useHomePageController({
     }
     if (previewType !== 'logo' && previewType !== 'thumbnail' && streamBadgesForType !== 'auto') {
       query.set(
-        previewType === 'backdrop'
-          ? 'backdropStreamBadges'
-          : 'posterStreamBadges',
+        usesPosterSettings
+          ? 'posterStreamBadges'
+          : 'backdropStreamBadges',
         streamBadgesForType
       );
     }
@@ -997,7 +1005,7 @@ export function useHomePageController({
     }
     if (previewType !== 'logo' && previewType !== 'thumbnail' && qualityBadgesStyleForType !== DEFAULT_QUALITY_BADGES_STYLE) {
       query.set(
-        previewType === 'backdrop'
+        !usesPosterSettings && previewType === 'backdrop'
           ? 'backdropQualityBadgesStyle'
           : 'posterQualityBadgesStyle',
         qualityBadgesStyleForType
@@ -1005,7 +1013,7 @@ export function useHomePageController({
     }
     if (previewType !== 'logo' && previewType !== 'thumbnail' && qualityBadgesColorModeForType !== 'white') {
       query.set(
-        previewType === 'backdrop'
+        !usesPosterSettings && previewType === 'backdrop'
           ? 'backdropQualityBadgesColorMode'
           : 'posterQualityBadgesColorMode',
         qualityBadgesColorModeForType
@@ -1028,7 +1036,7 @@ export function useHomePageController({
     if (previewType === 'poster' || previewType === 'backdrop') {
       query.set('imageText', imageTextForType);
     }
-    if (previewType === 'poster') {
+    if (usesPosterSettings) {
       const effectivePosterRatingsLayout = isPreset3 ? 'top' : (isPreset4 || isPreset5 ? 'top-bottom' : ((isPreset6 || isPreset7) ? 'left-right' : (isPreset ? 'bottom' : posterRatingsLayout)));
       query.set('posterRatingsLayout', effectivePosterRatingsLayout);
       if (isVerticalPosterRatingLayout(effectivePosterRatingsLayout) && posterRatingsMaxPerSide !== null) {
@@ -1065,7 +1073,7 @@ export function useHomePageController({
         query.set('previewVariant', `${thumbnailSize}-${thumbnailRatingsLayout}`);
       }
     }
-    if (previewType === 'poster' && ranking !== 'off') {
+    if (usesPosterSettings && ranking !== 'off') {
       query.set('ranking', ranking);
       if (effectiveRankingCountry !== 'global') {
         query.set('rankingCountry', effectiveRankingCountry);
@@ -1081,7 +1089,7 @@ export function useHomePageController({
         query.set('rankingPosition', effectiveRankingPosition);
       }
     }
-    if (previewType === 'poster' && !posterVignetteEnabled) {
+    if (usesPosterSettings && !posterVignetteEnabled) {
       query.set('posterVignette', 'off');
     }
 
@@ -1091,6 +1099,9 @@ export function useHomePageController({
     return `${baseUrl}/${previewType}/${mediaId}.jpg?${query.toString()}`;
   }, [
     previewType,
+    backdropAsPoster,
+    usesPosterSettings,
+    posterConfiguratorPreset,
     mediaId,
     effectiveLang,
     effectivePosterLang,
@@ -1195,6 +1206,9 @@ export function useHomePageController({
     if (fanart) {
       config.fanartKey = fanart;
     }
+    if (backdropAsPoster) {
+      config.backdropAsPoster = 'on';
+    }
 
     const posterRatingsQuery = stringifyRatingPreferencesAllowEmpty(posterRatingPreferences);
     const backdropRatingsQuery = stringifyRatingPreferencesAllowEmpty(backdropRatingPreferences);
@@ -1225,7 +1239,7 @@ export function useHomePageController({
     const isPreset = isPreset1 || isPreset2 || isPreset3 || isPreset4 || isPreset5 || isPreset6 || isPreset7;
     const effectivePosterRatingsLayout = isPreset3 ? 'top' : (isPreset4 || isPreset5 ? 'top-bottom' : ((isPreset6 || isPreset7) ? 'left-right' : (isPreset ? 'bottom' : posterRatingsLayout)));
     if (posterAnimeImageText) {
-      config.posterAnimeImageText = isPreset ? 'default' : posterAnimeImageText;
+      config.posterAnimeImageText = isPreset && !backdropAsPoster ? 'default' : posterAnimeImageText;
     }
     if (backdropAnimeImageText) {
       config.backdropAnimeImageText = backdropAnimeImageText;
@@ -1299,7 +1313,7 @@ export function useHomePageController({
       config.logoRatingsColorMode = logoRatingsColorMode;
     }
     if (posterImageText) {
-      config.posterImageText = isPreset ? 'clean' : posterImageText;
+      config.posterImageText = isPreset && !backdropAsPoster ? 'clean' : posterImageText;
     }
     if (backdropImageText) {
       config.backdropImageText = backdropImageText;
@@ -1386,6 +1400,7 @@ export function useHomePageController({
     return encodeBase64Url(JSON.stringify(config));
   }, [
     baseUrl,
+    backdropAsPoster,
     tmdbKey,
     mdblistKey,
     simklClientId,
@@ -1482,6 +1497,9 @@ export function useHomePageController({
       if (proxyTranslateMeta) {
         tokenProxyConfig.translateMeta = true;
       }
+      if (backdropAsPoster) {
+        tokenProxyConfig.backdropAsPoster = true;
+      }
       if (Object.keys(sanitizedProxyCatalogNames).length > 0) {
         tokenProxyConfig.catalogNames = sanitizedProxyCatalogNames;
       }
@@ -1520,6 +1538,9 @@ export function useHomePageController({
     };
     if (simkl) {
       config.simklClientId = simkl;
+    }
+    if (backdropAsPoster) {
+      config.backdropAsPoster = 'on';
     }
 
     const proxyPosterRatingsQuery = stringifyRatingPreferencesAllowEmpty(posterRatingPreferences);
@@ -1568,7 +1589,7 @@ export function useHomePageController({
     const isPreset7 = posterConfiguratorPreset === 'preset7';
     const isPreset = isPreset1 || isPreset2 || isPreset3 || isPreset4 || isPreset5 || isPreset6 || isPreset7;
     const effectivePosterRatingsLayout = isPreset3 ? 'top' : (isPreset4 || isPreset5 ? 'top-bottom' : ((isPreset6 || isPreset7) ? 'left-right' : (isPreset ? 'bottom' : posterRatingsLayout)));
-    config.posterAnimeImageText = isPreset ? 'default' : posterAnimeImageText;
+    config.posterAnimeImageText = isPreset && !backdropAsPoster ? 'default' : posterAnimeImageText;
     config.backdropAnimeImageText = backdropAnimeImageText;
     const proxyEffectivePosterStreamBadges = isPreset4 ? 'off' : (isPreset ? 'on' : posterStreamBadges);
     if (proxyEffectivePosterStreamBadges !== 'auto') {
@@ -1622,7 +1643,7 @@ export function useHomePageController({
     config.logoPrimary = logoCustomPrimary;
     config.logoSecondary = logoCustomSecondary;
     config.logoOutline = logoCustomOutline;
-    config.posterImageText = isPreset ? 'clean' : posterImageText;
+    config.posterImageText = isPreset && !backdropAsPoster ? 'clean' : posterImageText;
     config.backdropImageText = backdropImageText;
     config.posterEnabled = proxyEnabledTypes.poster;
     config.backdropEnabled = proxyEnabledTypes.backdrop;
@@ -1711,6 +1732,7 @@ export function useHomePageController({
     return `${baseUrl}/proxy/${encoded}/manifest.json`;
   }, [
     proxyManifestUrl,
+    backdropAsPoster,
     tmdbKey,
     mdblistKey,
     simklClientId,
@@ -1877,22 +1899,24 @@ export function useHomePageController({
     setLogoRatingRows(updater);
   };
 
+  const ratingSettingsType: PreviewType = usesPosterSettings ? 'poster' : previewType;
+
   const toggleRatingPreference = (rating: RatingPreference) => {
-    updateRatingRowsForType(previewType, (rows) =>
+    updateRatingRowsForType(ratingSettingsType, (rows) =>
       rows.map((r) => (r.id === rating ? { ...r, enabled: !r.enabled } : r))
     );
   };
 
   const enableAllRatingPreferences = () => {
-    updateRatingRowsForType(previewType, (rows) => rows.map((row) => ({ ...row, enabled: true })));
+    updateRatingRowsForType(ratingSettingsType, (rows) => rows.map((row) => ({ ...row, enabled: true })));
   };
 
   const disableAllRatingPreferences = () => {
-    updateRatingRowsForType(previewType, (rows) => rows.map((row) => ({ ...row, enabled: false })));
+    updateRatingRowsForType(ratingSettingsType, (rows) => rows.map((row) => ({ ...row, enabled: false })));
   };
 
   const reorderRatingPreference = (fromIndex: number, toIndex: number) => {
-    updateRatingRowsForType(previewType, (rows) => {
+    updateRatingRowsForType(ratingSettingsType, (rows) => {
       if (
         fromIndex === toIndex ||
         fromIndex < 0 ||
@@ -1902,7 +1926,7 @@ export function useHomePageController({
       ) {
         return rows;
       }
-      if (previewType === 'thumbnail') {
+      if (ratingSettingsType === 'thumbnail') {
         const supportedSet = new Set<RatingPreference>(THUMBNAIL_SUPPORTED_RATINGS);
         const thumbnailRows = rows.filter((row) => supportedSet.has(row.id));
         if (fromIndex >= thumbnailRows.length || toIndex >= thumbnailRows.length) {
@@ -1965,6 +1989,7 @@ export function useHomePageController({
       posterImageText,
       posterAnimeImageText,
       backdropImageText,
+      backdropAsPoster,
       posterRatingPreferences,
       backdropRatingPreferences,
       thumbnailRatingPreferences,
@@ -2088,6 +2113,11 @@ export function useHomePageController({
     }
     if (typeof payload.backdropImageText === 'string' && isImageText(payload.backdropImageText)) {
       setBackdropImageText(payload.backdropImageText);
+    }
+    if (typeof payload.backdropAsPoster === 'boolean') {
+      setBackdropAsPoster(payload.backdropAsPoster);
+    } else if (payload.backdropAsPoster === 'on' || payload.backdropAsPoster === 'true') {
+      setBackdropAsPoster(true);
     }
     if (typeof payload.posterStreamBadges === 'string' && isStreamBadgesSetting(payload.posterStreamBadges)) {
       setPosterStreamBadges(payload.posterStreamBadges);
@@ -2448,6 +2478,7 @@ export function useHomePageController({
       posterSimpleRatingSource,
       backdropAnimeImageText,
       backdropImageText,
+      backdropAsPoster,
       posterRatingPreferences,
       backdropRatingPreferences,
       thumbnailRatingPreferences,
@@ -2510,6 +2541,7 @@ export function useHomePageController({
     posterAnimeImageText,
     backdropAnimeImageText,
     backdropImageText,
+    backdropAsPoster,
     posterRatingPreferences,
     backdropRatingPreferences,
     thumbnailRatingPreferences,
@@ -2608,6 +2640,7 @@ export function useHomePageController({
       posterImageText,
       posterAnimeImageText,
       backdropImageText,
+      backdropAsPoster,
       posterRatingPreferences,
       backdropRatingPreferences,
       thumbnailRatingPreferences,
@@ -2670,6 +2703,7 @@ export function useHomePageController({
       posterImageText,
       posterAnimeImageText,
       backdropImageText,
+      backdropAsPoster,
       posterRatingPreferences,
       backdropRatingPreferences,
       thumbnailRatingPreferences,
@@ -2746,6 +2780,7 @@ export function useHomePageController({
       posterSimpleRatingSource,
       backdropAnimeImageText,
       backdropImageText,
+      backdropAsPoster,
       posterRatingPreferences,
       backdropRatingPreferences,
       thumbnailRatingPreferences,
@@ -2808,6 +2843,7 @@ export function useHomePageController({
       posterVignetteEnabled,
       backdropAnimeImageText,
       backdropImageText,
+      backdropAsPoster,
       posterRatingPreferences,
       backdropRatingPreferences,
       thumbnailRatingPreferences,
@@ -2903,7 +2939,7 @@ export function useHomePageController({
   const proxyDisplayValue = proxyUrl || `${baseUrl || 'https://erdb.example.com'}/proxy/{config}/manifest.json`;
   const displayedProxyUrl = isProxyUrlVisible ? proxyDisplayValue : maskSensitiveText(proxyDisplayValue);
   const activeRatingStyle =
-    previewType === 'poster'
+    usesPosterSettings
       ? posterRatingStyle
       : previewType === 'backdrop'
         ? backdropRatingStyle
@@ -2911,7 +2947,7 @@ export function useHomePageController({
           ? thumbnailRatingStyle
           : logoRatingStyle;
   const activeRatingsColorMode =
-    previewType === 'poster'
+    usesPosterSettings
       ? posterRatingsColorMode
       : previewType === 'backdrop'
         ? backdropRatingsColorMode
@@ -2919,9 +2955,9 @@ export function useHomePageController({
           ? thumbnailRatingsColorMode
           : logoRatingsColorMode;
   const activeImageText =
-    previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : posterImageText;
+    usesPosterSettings ? posterImageText : previewType === 'backdrop' || previewType === 'thumbnail' ? backdropImageText : posterImageText;
   const styleLabel =
-    previewType === 'poster'
+    usesPosterSettings
       ? 'Poster Ratings Style'
       : previewType === 'backdrop'
         ? 'Backdrop Ratings Style'
@@ -2929,9 +2965,9 @@ export function useHomePageController({
           ? 'Thumbnail Ratings Style'
           : 'Logo Ratings Style';
   const textLabel =
-    previewType === 'backdrop' ? 'Text on Backdrop' : previewType === 'thumbnail' ? 'Text on Thumbnail' : 'Text on Poster';
+    usesPosterSettings ? 'Text on Poster' : previewType === 'backdrop' ? 'Text on Backdrop' : previewType === 'thumbnail' ? 'Text on Thumbnail' : 'Text on Poster';
   const providersLabel =
-    previewType === 'poster'
+    usesPosterSettings
       ? 'Poster Providers'
       : previewType === 'backdrop'
         ? 'Backdrop Providers'
@@ -2939,7 +2975,7 @@ export function useHomePageController({
           ? 'Thumbnail Providers'
           : 'Logo Providers';
   const ratingProviderRows =
-    previewType === 'poster'
+    usesPosterSettings
       ? posterRatingRows
       : previewType === 'backdrop'
         ? backdropRatingRows
@@ -2961,7 +2997,7 @@ export function useHomePageController({
           : null;
 
   const setRatingStyleForType = (value: RatingStyle) => {
-    if (previewType === 'poster') {
+    if (usesPosterSettings) {
       setPosterRatingStyle(value);
       return;
     }
@@ -2977,7 +3013,7 @@ export function useHomePageController({
   };
 
   const setRatingsColorModeForType = (value: 'colored' | 'transparent') => {
-    if (previewType === 'poster') {
+    if (usesPosterSettings) {
       setPosterRatingsColorMode(value);
       return;
     }
@@ -2993,6 +3029,10 @@ export function useHomePageController({
   };
 
   const setImageTextForType = (value: 'default' | 'clean' | 'alternative') => {
+    if (usesPosterSettings) {
+      setPosterImageText(value);
+      return;
+    }
     if (previewType === 'backdrop' || previewType === 'thumbnail') {
       setBackdropImageText(value);
       return;
@@ -3053,6 +3093,7 @@ export function useHomePageController({
       logoCustomSecondary,
       logoCustomOutline,
       backdropRatingsLayout,
+      backdropAsPoster,
       backdropRatingsMax,
       backdropRatingsSize,
       thumbnailRatingsLayout,
@@ -3145,6 +3186,7 @@ export function useHomePageController({
       setLogoCustomSecondary,
       setLogoCustomOutline,
       setBackdropRatingsLayout,
+      setBackdropAsPoster,
       setBackdropRatingsMax,
       setBackdropRatingsSize,
       setThumbnailRatingsLayout,

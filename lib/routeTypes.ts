@@ -52,6 +52,7 @@ export type RenderedImagePayload = {
   body: ArrayBuffer;
   contentType: string;
   cacheControl: string;
+  collisionWarnings?: string[];
 };
 
 export type PhaseDurations = {
@@ -77,6 +78,7 @@ export type FastRenderInput = {
   logoBadgesPerRow: number;
   posterRowHorizontalInset: number;
   posterCleanOverlayEnabled?: boolean;
+  backdropAsPoster?: boolean;
   posterTitleText?: string | null;
   posterLogoUrl?: string | null;
   posterReferenceBadgeHeight?: number;

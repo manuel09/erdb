@@ -12,6 +12,7 @@ type ObjectStorageResult = {
   body: ArrayBuffer;
   contentType: string;
   cacheControl: string;
+  collisionWarnings?: string[];
 };
 
 const FALLBACK_IMAGE_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -220,6 +221,7 @@ export const getCachedImageFromObjectStorage = async (key: string): Promise<Obje
       body: body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength),
       contentType: metadata.contentType || 'image/png',
       cacheControl,
+      collisionWarnings: Array.isArray(metadata.collisionWarnings) ? metadata.collisionWarnings : [],
     };
   } catch (error) {
     console.error(`Error reading cached image ${key}:`, error);
@@ -229,7 +231,7 @@ export const getCachedImageFromObjectStorage = async (key: string): Promise<Obje
 
 export const putCachedImageToObjectStorage = async (
   key: string,
-  payload: { body: ArrayBuffer; contentType: string; cacheControl: string; cacheVersion?: string }
+  payload: { body: ArrayBuffer; contentType: string; cacheControl: string; cacheVersion?: string; collisionWarnings?: string[] }
 ) => {
   const filePath = getFilePath(key);
   const metadataPath = `${filePath}.json`;
@@ -248,6 +250,7 @@ export const putCachedImageToObjectStorage = async (
         contentType: payload.contentType,
         cacheControl: payload.cacheControl,
         ...(payload.cacheVersion ? { cacheVersion: payload.cacheVersion } : {}),
+        ...(payload.collisionWarnings?.length ? { collisionWarnings: payload.collisionWarnings } : {}),
       }),
       'utf8'
     );

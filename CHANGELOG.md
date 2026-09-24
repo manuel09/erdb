@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.6.0](https://github.com/realbestia1/erdb/compare/v0.5.3...v0.6.0) - 2026-09-24
+
+- Add backdrop poster mode and collision diagnostics ([582f881](https://github.com/realbestia1/erdb/commit/582f88173f921c66f8a0c979630041d7390a8e21))
+  This adds a backdrop-as-poster mode across the route, proxy config, and preview UI. It reuses poster layout settings for backdrop previews, tracks overlay collision warnings, exposes them in preview responses, and adds a collision helper plus regression tests to keep badge/logo placement stable.
+
+## [0.5.3](https://github.com/realbestia1/erdb/compare/v0.5.2...v0.5.3) - 2026-09-24
+
+- Add renderer URL patterns and copy UI ([4547eac](https://github.com/realbestia1/erdb/commit/4547eacfa9b96c6a2cc62198d540d49fd178487f))
+  Introduce renderer URL patterns UI and copy actions in workspace modals: add title/episode ID pattern lists and URL pattern groups (poster/backdrop/logo/thumbnail), build renderer URLs from baseUrl and active token, and provide per-pattern copy buttons with visual feedback. Reorganize modal into Renderer URL combinations and AiOMetadata Patterns sections and update related headings/text elsewhere. Also bump package version to 0.5.3. These changes make it easier to view and copy every supported renderer/AiOMetadata URL combination.
+
 ## [0.5.2](https://github.com/realbestia1/erdb/compare/v0.5.1...v0.5.2) - 2026-09-24
 
 - Improve image cache invalidation and TMDB rendering ([1e10b2d](https://github.com/realbestia1/erdb/commit/1e10b2ddc512313282ff774f3bee989803520c57))

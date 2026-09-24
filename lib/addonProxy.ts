@@ -40,6 +40,7 @@ const ERDB_OPTIONAL_PARAMS = [
   'thumbnailRatingsColorMode',
   'logoRatingsColorMode',
   'ratingsColorMode',
+  'backdropAsPoster',
 ];
 const ERDB_TYPE_OPTIONAL_PARAMS = {
   poster: [
@@ -58,7 +59,27 @@ const ERDB_TYPE_OPTIONAL_PARAMS = {
     'posterAverageRatingsEnabled',
     'posterVignette',
   ],
-  backdrop: ['backdropStreamBadges', 'backdropQualityBadgesStyle', 'backdropQualityBadgesColorMode', 'backdropRatings', 'backdropRatingsMax'],
+  backdrop: [
+    'backdropStreamBadges',
+    'backdropQualityBadgesStyle',
+    'backdropQualityBadgesColorMode',
+    'backdropRatings',
+    'backdropRatingsMax',
+    'posterRatings',
+    'posterStreamBadges',
+    'posterQualityBadgesStyle',
+    'posterQualityBadgesColorMode',
+    'posterRatingsMode',
+    'posterConfiguratorPreset',
+    'posterGenrePosition',
+    'ranking',
+    'rankingCountry',
+    'rankingNoBox',
+    'rankingCompact',
+    'rankingPosition',
+    'posterAverageRatingsEnabled',
+    'posterVignette',
+  ],
   logo: ['logoRatings', 'logoRatingsMax', 'logoMode', 'logoFontVariant', 'logoPrimary', 'logoSecondary', 'logoOutline'],
   thumbnail: ['backdropStreamBadges', 'backdropQualityBadgesStyle', 'backdropQualityBadgesColorMode', 'thumbnailRatings'],
 } as const;
@@ -199,6 +220,7 @@ export type ProxyConfig = {
   rankingPosition?: string;
   posterAverageRatingsEnabled?: boolean | string;
   posterVignette?: boolean | string;
+  backdropAsPoster?: boolean | string;
   posterSimpleRatingSource?: string;
   seriesMetadataProvider?: string;
   aiometadataProvider?: string;
@@ -295,6 +317,7 @@ const PROXY_OPTIONAL_BOOLEAN_KEYS = [
   'thumbnailEnabled',
   'posterAverageRatingsEnabled',
   'posterVignette',
+  'backdropAsPoster',
 ] as const satisfies readonly (keyof ProxyConfig)[];
 type ProxyOptionalBooleanKey = (typeof PROXY_OPTIONAL_BOOLEAN_KEYS)[number];
 
@@ -557,7 +580,16 @@ export const buildErdbImageUrl = (options: {
     if (value !== null) base.searchParams.set(key, value);
   }
 
-  const styleParams = ERDB_TYPE_STYLE_PARAMS[imageType];
+  const proxyUsesPosterSettings = imageType === 'backdrop' && ['true', 'on', '1'].includes(
+    getProxyParam(reqUrl, config, 'backdropAsPoster') || ''
+  );
+  const styleParams = proxyUsesPosterSettings
+    ? {
+      ratingStyle: ['posterRatingStyle', 'ratingStyle'],
+      ratingsColorMode: ['posterRatingsColorMode', 'ratingsColorMode'],
+      imageText: ['posterImageText', 'imageText'],
+    }
+    : ERDB_TYPE_STYLE_PARAMS[imageType];
   const ratingStyle =
     styleParams.ratingStyle.map((key) => getProxyParam(reqUrl, config, key as any)).find((value) => value) || null;
   if (ratingStyle) base.searchParams.set('ratingStyle', ratingStyle);
@@ -568,7 +600,7 @@ export const buildErdbImageUrl = (options: {
 
   if (styleParams.imageText.length > 0) {
     const imageText =
-      styleParams.imageText.map((key) => getProxyParam(reqUrl, config, key)).find((value) => value) || null;
+      styleParams.imageText.map((key) => getProxyParam(reqUrl, config, key as keyof ProxyConfig)).find((value) => value) || null;
     if (imageText) base.searchParams.set('imageText', imageText);
   }
 

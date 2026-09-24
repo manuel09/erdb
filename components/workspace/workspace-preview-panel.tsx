@@ -1,16 +1,62 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { MonitorPlay } from 'lucide-react';
+import { MonitorPlay, TriangleAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { HomePageViewProps } from '@/components/workspace/types';
 import { PREVIEW_PANEL_CLASS } from './constants';
 
 type WorkspacePreviewPanelProps = Pick<HomePageViewProps, 'state' | 'derived'>;
 
-function PreviewImage({ previewUrl, previewType }: { previewUrl: string; previewType: HomePageViewProps['state']['previewType'] }) {
+function readCollisionWarnings(header: string | null) {
+  if (!header) return [];
+  return header.split('|').flatMap((value) => {
+    try {
+      return [decodeURIComponent(value)];
+    } catch {
+      return [];
+    }
+  });
+}
+
+function PreviewImage({
+  previewUrl,
+  previewType,
+  onCollisionWarnings,
+}: {
+  previewUrl: string;
+  previewType: HomePageViewProps['state']['previewType'];
+  onCollisionWarnings: (warnings: string[]) => void;
+}) {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | null = null;
+
+    void fetch(previewUrl, { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Preview request failed: ${response.status}`);
+        const warnings = readCollisionWarnings(response.headers.get('X-ERDB-Collision-Warnings'));
+        const blob = await response.blob();
+        if (cancelled) return;
+        onCollisionWarnings(warnings);
+        objectUrl = URL.createObjectURL(blob);
+        setImageSrc(objectUrl);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        onCollisionWarnings([]);
+        setImageSrc(previewUrl);
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [onCollisionWarnings, previewUrl]);
 
   return (
     <motion.div
@@ -31,20 +77,22 @@ function PreviewImage({ previewUrl, previewType }: { previewUrl: string; preview
           <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
         </motion.div>
       )}
-      <motion.img
-        key={previewUrl}
-        src={previewUrl}
-        alt="Preview"
-        onLoad={() => setImageLoaded(true)}
-        initial={{ opacity: 0, filter: 'blur(10px)' }}
-        animate={{ opacity: imageLoaded ? 1 : 0, filter: imageLoaded ? 'blur(0px)' : 'blur(10px)' }}
-        transition={{ duration: 0.4 }}
-        className={`relative overflow-hidden rounded-[24px] border border-white/10 bg-[#030303] object-contain shadow-[0_24px_70px_-35px_rgba(0,0,0,1)] ring-1 ring-white/8 ${
-          previewType === 'logo'
-            ? 'block h-auto max-h-full w-full max-w-2xl'
-            : 'block h-auto max-h-full max-w-full w-auto'
-        }`}
-      />
+      {imageSrc && (
+        <motion.img
+          key={imageSrc}
+          src={imageSrc}
+          alt="Preview"
+          onLoad={() => setImageLoaded(true)}
+          initial={{ opacity: 0, filter: 'blur(10px)' }}
+          animate={{ opacity: imageLoaded ? 1 : 0, filter: imageLoaded ? 'blur(0px)' : 'blur(10px)' }}
+          transition={{ duration: 0.4 }}
+          className={`relative overflow-hidden rounded-[24px] border border-white/10 bg-[#030303] object-contain shadow-[0_24px_70px_-35px_rgba(0,0,0,1)] ring-1 ring-white/8 ${
+            previewType === 'logo'
+              ? 'block h-auto max-h-full w-full max-w-2xl'
+              : 'block h-auto max-h-full max-w-full w-auto'
+          }`}
+        />
+      )}
     </motion.div>
   );
 }
@@ -52,6 +100,7 @@ function PreviewImage({ previewUrl, previewType }: { previewUrl: string; preview
 export function WorkspacePreviewPanel({ state, derived }: WorkspacePreviewPanelProps) {
   const { previewType } = state;
   const { previewUrl, previewNotice } = derived;
+  const [collisionWarnings, setCollisionWarnings] = useState<string[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -64,6 +113,9 @@ export function WorkspacePreviewPanel({ state, derived }: WorkspacePreviewPanelP
   }, []);
 
   const topClass = scrolled ? 'top-24' : 'top-36';
+  const handleCollisionWarnings = useCallback((warnings: string[]) => {
+    setCollisionWarnings(Array.from(new Set(warnings)));
+  }, []);
 
   return (
     <>
@@ -135,7 +187,12 @@ export function WorkspacePreviewPanel({ state, derived }: WorkspacePreviewPanelP
           <AnimatePresence mode="wait">
             {previewUrl ? (
               <div key="preview" className="relative flex h-full min-h-0 w-full items-center justify-center">
-                <PreviewImage previewUrl={previewUrl} previewType={previewType} />
+                <PreviewImage
+                  key={previewUrl}
+                  previewUrl={previewUrl}
+                  previewType={previewType}
+                  onCollisionWarnings={handleCollisionWarnings}
+                />
               </div>
             ) : previewNotice ? (
               <motion.div
@@ -166,6 +223,23 @@ export function WorkspacePreviewPanel({ state, derived }: WorkspacePreviewPanelP
             </div>
           )}
         </div>
+        {collisionWarnings.length > 0 && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="mt-3 w-full rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-3 text-left shadow-[0_12px_30px_-20px_rgba(245,158,11,0.7)]"
+          >
+            <div className="flex items-center gap-2 text-xs font-semibold text-amber-200">
+              <TriangleAlert className="h-4 w-4 shrink-0" />
+              <span>Collisioni rilevate nella preview</span>
+            </div>
+            <ul className="mt-2 space-y-1 text-[11px] leading-4 text-amber-100/80">
+              {collisionWarnings.map((warning) => (
+                <li key={warning}>[ERDB] {warning}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </>
   );

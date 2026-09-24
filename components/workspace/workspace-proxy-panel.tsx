@@ -267,9 +267,9 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenAiometadata
         <div>
           <h3 className="text-xs font-medium text-slate-300 flex items-center gap-2 mb-1">
             <Terminal className="w-3.5 h-3.5 text-teal-400" />
-            AiOMetadata Patterns
+            URL Patterns
           </h3>
-          <p className="text-xs text-slate-500">View exact parameters for custom metadata integrations.</p>
+          <p className="text-xs text-slate-500">View all renderer URL combinations and AiOMetadata patterns.</p>
         </div>
         <button
           type="button"
