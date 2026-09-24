@@ -3217,7 +3217,8 @@ export async function GET(
           };
         }
       } else if (usePosterBadgeLayout) {
-        const posterScale = posterConfiguratorPreset === 'advanced' ? 1.25 : 1.15;
+        const posterOutputScale = outputWidth / 500;
+        const posterScale = (posterConfiguratorPreset === 'advanced' ? 1.25 : 1.15) * posterOutputScale;
         badgeIconSize = Math.round(46 * posterScale);
         badgeFontSize = Math.round(35 * posterScale);
         badgePaddingY = Math.round(8 * posterScale);
@@ -3228,13 +3229,13 @@ export async function GET(
         baseBadgePaddingX = badgePaddingX;
         baseBadgePaddingY = badgePaddingY;
         baseBadgeGap = badgeGap;
-        posterRowHorizontalInset = usePosterRowLayout ? 12 : 12;
+        posterRowHorizontalInset = Math.round(12 * posterOutputScale);
         posterMinMetrics = {
-          iconSize: 26,
-          fontSize: 20,
-          paddingX: 9,
-          paddingY: 7,
-          gap: 7,
+          iconSize: Math.round(26 * posterOutputScale),
+          fontSize: Math.round(20 * posterOutputScale),
+          paddingX: Math.round(9 * posterOutputScale),
+          paddingY: Math.round(7 * posterOutputScale),
+          gap: Math.round(7 * posterOutputScale),
         };
         badgeTopOffset = Math.round(24 * posterScale);
         badgeBottomOffset = Math.round(24 * posterScale);

@@ -307,7 +307,7 @@ export const getSourceImagePayload = async (
     // turns repeats into local file reads. data: URLs are already local, skip.
     const cacheKey = normalizedImgUrl.startsWith('data:')
       ? null
-      : `source/${sha1Hex(normalizedImgUrl)}.bin`;
+      : `source/${sha1Hex(`v2|${normalizedImgUrl}`)}.bin`;
     if (cacheKey) {
       try {
         const cached = await getCachedImageFromObjectStorage(cacheKey);
@@ -325,10 +325,12 @@ export const getSourceImagePayload = async (
     const fresh = await fetchSourceImageUncached(normalizedImgUrl, fallbackTtlMs);
     if (cacheKey && SOURCE_CACHE_MAX_FILES > 0) {
       try {
-        // ponytail: store WebP ≤1280px (~80-200KB) not the original (MBs).
-        // Render decodes it identically; one extra lossy gen is invisible
-        // under badges/resize. Falls back to raw bytes if encode fails.
-        const compressed = await compressSourceForCache(Buffer.from(fresh.body));
+        // TMDB already returns bounded poster/backdrop sizes. Keep those bytes
+        // intact: re-encoding them to WebP adds a lossy generation before the
+        // final render. Other providers still use the compact source cache.
+        const compressed = isTmdbSourceImageUrl(normalizedImgUrl)
+          ? null
+          : await compressSourceForCache(Buffer.from(fresh.body));
         await putCachedImageToObjectStorage(cacheKey, {
           body: compressed?.body ?? fresh.body,
           contentType: compressed?.contentType ?? fresh.contentType,

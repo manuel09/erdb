@@ -2,6 +2,44 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.5.2](https://github.com/realbestia1/erdb/compare/v0.5.1...v0.5.2) - 2026-09-24
+
+- Improve image cache invalidation and TMDB rendering ([1e10b2d](https://github.com/realbestia1/erdb/commit/1e10b2ddc512313282ff774f3bee989803520c57))
+  This updates the source image cache key to invalidate stale entries and preserves TMDB source bytes instead of re-encoding them. It also avoids unnecessary composite overlays for logo renders, keeps the render pipeline aligned with the new asset behavior, and bumps the cache version and package metadata to match the change.
+
+## [0.5.1](https://github.com/realbestia1/erdb/compare/v0.5.0...v0.5.1) - 2026-09-23
+
+- Scale poster badge sizing with output dimensions ([e46b27d](https://github.com/realbestia1/erdb/commit/e46b27d7348014cf6049e8068cac16cdd015bdd9))
+  Poster badges, quality rows, and ranking assets now scale relative to the rendered output width instead of fixed 500px baselines. This keeps poster compositions proportional across larger outputs while preserving minimum/maximum badge sizes. The cache version and app version were bumped to invalidate stale poster renders.
+
+## [0.5.0](https://github.com/realbestia1/erdb/compare/v0.4.99...v0.5.0) - 2026-09-23
+
+- Bump version ([67285ac](https://github.com/realbestia1/erdb/commit/67285acd68066e6ec80a872cbddd8c442101873e))
+- Bump version to 0.4.55 ([4267d5b](https://github.com/realbestia1/erdb/commit/4267d5b8b9dc3a8073a70ccbe14fb58d7000b543))
+  Update the package version for the next release.
+- Extend dedupe timeout for slow image fetches ([68ad591](https://github.com/realbestia1/erdb/commit/68ad5915909ad597736b53f6b408093334b828be))
+  The dedupe wrapper was timing out the shared in-flight work itself, which could cancel a slow upstream image fetch before it completed. This raises the dedupe timeout to 90s and keeps the shared promise alive until it actually settles, while still enforcing the timeout for callers waiting on it. The related fetch comment was updated to reflect the new guard behavior, and the package version was bumped to 0.4.54.
+- Add /health endpoint and Docker healthchecks ([618155a](https://github.com/realbestia1/erdb/commit/618155a7319301318ef7e56f7a0c98360642306e))
+  Add a simple /health app route (returns 'ok') and configure HEALTHCHECK in Dockerfile and docker-compose to probe it. Increase 'poster' output size from 500x750 to 780x1170. Bump FINAL_IMAGE_RENDERER_CACHE_VERSION to 'poster-backdrop-logo-thumbnail-v245-webp' and package version to 0.4.53.
+- Increase image prune interval and add cache eviction ([32ff74d](https://github.com/realbestia1/erdb/commit/32ff74deef32f9d8a29d3a5965918971b342fc9f))
+  Raise IMAGE_CACHE_PRUNE_INTERVAL_MS from 10min to 60min to reduce I/O on overloaded machines. Add batched cache eviction: collectCacheFiles walks cache subdirs, enforceCacheFileLimit evicts the oldest files (up to a 25k batch) by mtime, and export enforceSourceCacheLimit using this new logic. Preserve failure-safety (ignore mid-scan errors) and rely on TTL as a secondary bound. Also bump package version to 0.4.52.
+- Stabilize upstream fetches and rendering ([57f3ff7](https://github.com/realbestia1/erdb/commit/57f3ff7ec0cf96dbfa323b2251c743dd2570db39))
+  This change adds fetch timeout/retry guardrails and a global concurrency cap to prevent slow upstreams from piling up and starving the app. It also reduces image-processing cost by optimizing blur passes, yields during IMDb imports, avoids unnecessary CSP work for render responses, and sets SQLite busy timeout to reduce lock contention.
+- Improve performance: caching, LRU, sharp tuning ([f122173](https://github.com/realbestia1/erdb/commit/f122173751eb9e0f32e404b890df1cc81c27b554))
+  Add multiple performance and stability improvements:
+
+  - Environment & compose: document ERDB_SOURCE_CACHE_MAX_FILES and ERDB_SHARP_CONCURRENCY; set docker defaults.
+  - Sharp & TMDB: default Sharp concurrency to 1 and pick smaller TMDB sizes to reduce decode/resize CPU.
+  - Source disk cache: compress source images to WebP, cache smaller <=1280px versions, and add enforceSourceCacheLimit eviction.
+  - Object storage: run full prune only on one worker (cluster check) and add source eviction routine.
+  - Metadata cache: per-worker in-memory LRU, reuse prepared statements, avoid frequent last_accessed writes, safer prune, add deleteMetadata.
+  - DB: set SQLite busy_timeout to 5000ms to reduce busy errors.
+  - Tokens: add 30s in-memory LRU for token configs and invalidate on update/delete.
+  - Responses: use payload.cacheControl, add Vary: Accept, and include cache-control on errors.
+  - Cache control: cap browser max-age to 1 day while keeping CDN s-maxage.
+
+  These changes reduce CPU, DB contention, and unbounded disk growth while improving throughput.
+
 ## [0.4.50](https://github.com/realbestia1/erdb/compare/v0.4.99...v0.4.50) - 2026-09-12
 
 - Improve performance: caching, LRU, sharp tuning ([f122173](https://github.com/realbestia1/erdb/commit/f122173751eb9e0f32e404b890df1cc81c27b554))
