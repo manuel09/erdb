@@ -124,7 +124,7 @@ export default function DocsPage() {
             <Table
               columns={['Method', 'Path', 'Purpose', 'Notes']}
               rows={[
-                [<Code key="1">GET</Code>, <Code key="2">/{'{token}'}/{'{type}'}/{'{id}'}.jpg</Code>, 'Token-based poster/backdrop/logo/thumbnail rendering.', 'Main image API. Resolves configurations via accounts.db.'],
+                [<Code key="1">GET</Code>, <Code key="2">/{'{token}'}/{'{type}'}/{'{kind}'}/{'{id}'}.jpg</Code>, 'Token-based poster/backdrop/logo/thumbnail rendering.', 'Main image API. Resolves configurations via accounts.db. kind is optional but recommended.'],
                 [<Code key="3">POST</Code>, <Code key="4">/api/workspace-auth</Code>, 'Login, register, and logout for the workspace.', 'Cookie-based session for /configurator.'],
                 [<Code key="5">POST</Code>, <Code key="6">/api/token</Code>, 'Create a new token with the current settings.', 'Used by the workspace.'],
                 [<Code key="7">PUT</Code>, <Code key="8">/api/token</Code>, 'Update settings for an existing token.', 'Requires matching password.'],
@@ -134,7 +134,7 @@ export default function DocsPage() {
             />
           </Section>
 
-          <Section icon={<ImageIcon className="h-3.5 w-3.5 text-orange-300" />} title="Image Renderer" description="Canonical route: GET /{token}/{type}/{id}.jpg">
+          <Section icon={<ImageIcon className="h-3.5 w-3.5 text-orange-300" />} title="Image Renderer" description="Canonical route: GET /{token}/{type}/{kind}/{id}.jpg">
             <div className="rounded-3xl border border-white/10 bg-[#0a0f16]/90 p-5 text-sm leading-7 text-slate-400 mb-4">
               <p>The image renderer no longer relies on query strings. All settings, including API keys, layouts, badges, and providers, are stored in the server database and resolved using the provided token.</p>
             </div>
@@ -143,6 +143,8 @@ export default function DocsPage() {
               rows={[
                 [<Code key="token">token</Code>, 'Tk-xxxxxxxxxxxxxxx', 'required', 'Unique account token generated via the UI or /api/token.'],
                 [<Code key="type">type</Code>, 'poster, backdrop, logo, thumbnail', '-', 'thumbnail is episode-only.'],
+                [<Code key="kind">kind</Code>, 'movie, series, anime', 'optional', 'Optional: path segment after the type or ?type= query param. movie/series force movie/TV resolution and are the recommended form for TMDB IDs; anime is accepted and ignored (the ID prefix drives anime resolution).'],
+                [<Code key="shape">shape</Code>, 'poster, landscape', 'from panel', 'poster-only. landscape forces the backdrop-as-poster rendering for that request, overriding the panel setting; poster forces the normal poster; unsupported values (e.g. square) are ignored.'],
                 [<Code key="stored">stored config</Code>, `providers: ${providers}`, 'saved in token', `Saved server-side, including styles (${styles}), layouts (${posterLayouts}; ${backdropLayouts}; ${thumbnailLayouts}), thumbnail sizes (${thumbnailSizes}), logo fonts (${logoFonts}), and logo modes (${logoModes}).`],
                 [<Code key="lang">lang behavior</Code>, 'TMDB language code', 'saved in token', 'Usually configured once in the workspace and reused automatically.'],
                 [<Code key="overrides">query overrides</Code>, 'not required', 'off', 'Integrations should prefer token-only renderer URLs and avoid per-request config fields.'],
@@ -154,7 +156,7 @@ export default function DocsPage() {
                 [<Code key="type-poster">poster</Code>, 'Movie poster or series poster.', 'IMDb, TMDB, TVDB bridge, anime IDs', 'Main vertical artwork endpoint. Works for movies and series.'],
                 [<Code key="type-backdrop">backdrop</Code>, 'Movie backdrop or series backdrop.', 'IMDb, TMDB, TVDB bridge, anime IDs', 'Main horizontal hero/background artwork endpoint.'],
                 [<Code key="type-logo">logo</Code>, 'Title logo for movies or series.', 'IMDb, TMDB, anime IDs', 'Returns branded logo artwork when available.'],
-                [<Code key="type-thumbnail">thumbnail</Code>, 'Episode thumbnail / still frame.', 'Episode-style IDs only', 'Use episode IDs like tt0944947:1:1, tmdb:tv:1399:1:1, tvdb:121361:1:1, or realimdb:tt0944947:1:1.'],
+                [<Code key="type-thumbnail">thumbnail</Code>, 'Episode thumbnail / still frame.', 'Episode-style IDs only', 'Use episode IDs like series/tt0944947:1:1, series/tmdb:1399:1:1, series/tvdb:121361:1:1, or series/realimdb:tt0944947:1:1.'],
               ]}
             />
             <Table
@@ -162,10 +164,10 @@ export default function DocsPage() {
               rows={[
                 [<Code key="id1">tt0133093</Code>, 'IMDb title', 'Movie or series lookup.'],
                 [<Code key="id2">tt0944947:1:1</Code>, 'IMDb episode', 'Series IMDb ID plus season and episode.'],
-                [<Code key="id3">tmdb:603</Code>, 'TMDB inferred', 'Works, but tmdb:movie:603 or tmdb:tv:1399 is preferred.'],
-                [<Code key="id4">tmdb:tv:1399:1:1</Code>, 'TMDB episode', 'Explicit TV episode lookup.'],
-                [<Code key="id5">tvdb:121361:1:1</Code>, 'TVDB aired-order episode', 'Useful for bridged episode numbering.'],
-                [<Code key="id6">realimdb:tt0944947:1:1</Code>, 'IMDb TV bridge', 'Use this when the addon really sources series or episode metadata from IMDb IDs and you want ERDB to keep that IMDb-oriented TV resolution.'],
+                [<Code key="id3">tmdb:603</Code>, 'TMDB inferred', 'Works, but the kind segment (movie/tmdb:603, series/tmdb:1399) is preferred.'],
+                [<Code key="id4">series/tmdb:1399:1:1</Code>, 'TMDB episode', 'Explicit TV episode lookup.'],
+                [<Code key="id5">series/tvdb:121361:1:1</Code>, 'TVDB aired-order episode', 'Useful for bridged episode numbering.'],
+                [<Code key="id6">series/realimdb:tt0944947:1:1</Code>, 'IMDb TV bridge', 'Use this when the addon really sources series or episode metadata from IMDb IDs and you want ERDB to keep that IMDb-oriented TV resolution.'],
                 [<Code key="id7">kitsu:1</Code>, 'Kitsu anime', 'Anime-native mapping flow.'],
                 [<Code key="id8">anilist:16498 / mal:5114 / anidb:69</Code>, 'Anime-native IDs', 'Enable anime-only provider paths.'],
               ]}
@@ -173,20 +175,23 @@ export default function DocsPage() {
             <Table
               columns={['Pattern', 'Use when', 'Example']}
               rows={[
-                [<Code key="pattern1">/{'{token}'}/poster/{'{imdbId}'}.jpg</Code>, 'Movie or series posters from IMDb IDs.', <Code key="pattern1ex">/Tk-abc123/poster/tt0133093.jpg</Code>],
-                [<Code key="pattern2">/{'{token}'}/backdrop/{'{imdbId}'}.jpg</Code>, 'Movie or series backdrops from IMDb IDs.', <Code key="pattern2ex">/Tk-abc123/backdrop/tt0944947.jpg</Code>],
-                [<Code key="pattern3">/{'{token}'}/logo/{'{imdbId}'}.jpg</Code>, 'Movie or series logos from IMDb IDs.', <Code key="pattern3ex">/Tk-abc123/logo/tt0944947.jpg</Code>],
-                [<Code key="pattern4">/{'{token}'}/thumbnail/{'{seriesImdbId}'}:{'{season}'}:{'{episode}'}.jpg</Code>, 'Episode thumbnails using IMDb episode addressing.', <Code key="pattern4ex">/Tk-abc123/thumbnail/tt0944947:1:1.jpg</Code>],
-                [<Code key="pattern5">/{'{token}'}/thumbnail/realimdb:{'{seriesImdbId}'}:{'{season}'}:{'{episode}'}.jpg</Code>, 'Episode thumbnails when the addon uses real IMDb TV metadata.', <Code key="pattern5ex">/Tk-abc123/thumbnail/realimdb:tt0944947:1:1.jpg</Code>],
-                [<Code key="pattern6">/{'{token}'}/thumbnail/tvdb:{'{tvdbId}'}:{'{season}'}:{'{episode}'}.jpg</Code>, 'Episode thumbnails when the addon uses TVDB numbering.', <Code key="pattern6ex">/Tk-abc123/thumbnail/tvdb:121361:1:1.jpg</Code>],
-                [<Code key="pattern7">/{'{token}'}/poster/tmdb:movie:{'{tmdbId}'}.jpg</Code>, 'Movie posters when you only have a TMDB movie ID.', <Code key="pattern7ex">/Tk-abc123/poster/tmdb:movie:603.jpg</Code>],
-                [<Code key="pattern8">/{'{token}'}/backdrop/tmdb:tv:{'{tmdbId}'}.jpg</Code>, 'Series backdrops when you only have a TMDB TV ID.', <Code key="pattern8ex">/Tk-abc123/backdrop/tmdb:tv:1399.jpg</Code>],
+                [<Code key="pattern1">/{'{token}'}/poster/movie/{'{imdbId}'}.jpg</Code>, 'Movie posters from IMDb movie IDs.', <Code key="pattern1ex">/Tk-abc123/poster/movie/tt0133093.jpg</Code>],
+                [<Code key="pattern2">/{'{token}'}/poster/series/{'{imdbId}'}.jpg</Code>, 'Series posters from IMDb series IDs.', <Code key="pattern2ex">/Tk-abc123/poster/series/tt0944947.jpg</Code>],
+                [<Code key="pattern3">/{'{token}'}/backdrop/movie/{'{imdbId}'}.jpg</Code>, 'Movie backdrops from IMDb movie IDs.', <Code key="pattern3ex">/Tk-abc123/backdrop/movie/tt0133093.jpg</Code>],
+                [<Code key="pattern4">/{'{token}'}/backdrop/series/{'{imdbId}'}.jpg</Code>, 'Series backdrops from IMDb series IDs.', <Code key="pattern4ex">/Tk-abc123/backdrop/series/tt0944947.jpg</Code>],
+                [<Code key="pattern5">/{'{token}'}/logo/movie/{'{imdbId}'}.jpg</Code>, 'Movie logos from IMDb movie IDs.', <Code key="pattern5ex">/Tk-abc123/logo/movie/tt0133093.jpg</Code>],
+                [<Code key="pattern6">/{'{token}'}/logo/series/{'{imdbId}'}.jpg</Code>, 'Series logos from IMDb series IDs.', <Code key="pattern6ex">/Tk-abc123/logo/series/tt0944947.jpg</Code>],
+                [<Code key="pattern7">/{'{token}'}/thumbnail/series/{'{seriesImdbId}'}:{'{season}'}:{'{episode}'}.jpg</Code>, 'Episode thumbnails using IMDb episode addressing.', <Code key="pattern7ex">/Tk-abc123/thumbnail/series/tt0944947:1:1.jpg</Code>],
+                [<Code key="pattern8">/{'{token}'}/thumbnail/series/realimdb:{'{seriesImdbId}'}:{'{season}'}:{'{episode}'}.jpg</Code>, 'Episode thumbnails when the addon uses real IMDb TV metadata.', <Code key="pattern8ex">/Tk-abc123/thumbnail/series/realimdb:tt0944947:1:1.jpg</Code>],
+                [<Code key="pattern9">/{'{token}'}/thumbnail/series/tvdb:{'{tvdbId}'}:{'{season}'}:{'{episode}'}.jpg</Code>, 'Episode thumbnails when the addon uses TVDB numbering.', <Code key="pattern9ex">/Tk-abc123/thumbnail/series/tvdb:121361:1:1.jpg</Code>],
+                [<Code key="pattern10">/{'{token}'}/poster/movie/tmdb:{'{tmdbId}'}.jpg</Code>, 'Movie posters when you only have a TMDB movie ID.', <Code key="pattern10ex">/Tk-abc123/poster/movie/tmdb:603.jpg</Code>],
+                [<Code key="pattern11">/{'{token}'}/backdrop/series/tmdb:{'{tmdbId}'}.jpg</Code>, 'Series backdrops when you only have a TMDB TV ID.', <Code key="pattern11ex">/Tk-abc123/backdrop/series/tmdb:1399.jpg</Code>],
               ]}
             />
-            <pre className="overflow-x-auto rounded-3xl border border-white/10 bg-[#0a0f16]/90 p-5 text-[12px] leading-6 text-slate-200"><code>{`GET /Tk-abc123xyz/poster/tt0133093.jpg
-GET /Tk-abc123xyz/backdrop/tt0944947.jpg
-GET /Tk-abc123xyz/logo/tt0944947.jpg
-GET /Tk-abc123xyz/thumbnail/realimdb:tt0944947:1:1.jpg`}</code></pre>
+            <pre className="overflow-x-auto rounded-3xl border border-white/10 bg-[#0a0f16]/90 p-5 text-[12px] leading-6 text-slate-200"><code>{`GET /Tk-abc123xyz/poster/movie/tt0133093.jpg
+GET /Tk-abc123xyz/backdrop/series/tt0944947.jpg
+GET /Tk-abc123xyz/logo/series/tt0944947.jpg
+GET /Tk-abc123xyz/thumbnail/series/realimdb:tt0944947:1:1.jpg`}</code></pre>
           </Section>
 
           <Section
@@ -201,7 +206,7 @@ GET /Tk-abc123xyz/thumbnail/realimdb:tt0944947:1:1.jpg`}</code></pre>
                   ERDB renderer from a single <Code>ERDB Token</Code> field.
                 </p>
                 <p>
-                  It instructs the AI to default to <Code>{`https://easyratingsdb.com/{token}/{type}/{id}.jpg`}</Code> while keeping the ERDB base URL configurable.
+                  It instructs the AI to default to <Code>{`https://easyratingsdb.com/{token}/{type}/{kind}/{id}.jpg`}</Code> while keeping the ERDB base URL configurable.
                 </p>
               </div>
               <DocsCopyPromptButton prompt={ERDB_AI_INTEGRATION_PROMPT} />

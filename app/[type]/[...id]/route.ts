@@ -114,7 +114,7 @@ const buildSecretCacheSeed = (name: string, value?: string | null) => {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ type: string; id: string }> }
+  { params }: { params: Promise<{ type: string; id: string[] }> }
 ) {
   const requestStartedAt = performance.now();
   const phases: PhaseDurations = {
@@ -141,7 +141,17 @@ export async function GET(
   const imageType = type;
   const previewDiagnosticsEnabled = request.nextUrl.searchParams.get('previewDiagnostics') === 'on';
   const outputFormat = pickOutputFormat(imageType, request.headers.get('accept'));
-  const cleanId = id.replace('.jpg', '');
+  const rawId = (Array.isArray(id) ? id.join('/') : String(id)).replace('.jpg', '');
+  const [idKindSegment, ...idRemainderSegments] = rawId.split('/');
+  const pathKindSegment = (idKindSegment || '').toLowerCase();
+  const hasPathKindSegment =
+    idRemainderSegments.length > 0 &&
+    (pathKindSegment === 'movie' || pathKindSegment === 'series' || pathKindSegment === 'tv' || pathKindSegment === 'anime');
+  const queryKindSegment = (request.nextUrl.searchParams.get('type') || '').trim().toLowerCase();
+  const kindSegment = hasPathKindSegment ? pathKindSegment : queryKindSegment;
+  const pathMediaKind: 'movie' | 'tv' | null =
+    kindSegment === 'movie' ? 'movie' : kindSegment === 'series' || kindSegment === 'tv' ? 'tv' : null;
+  let cleanId = hasPathKindSegment ? idRemainderSegments.join('/') : rawId;
 
   // Extract configuration from token or query parameters
   const token = request.nextUrl.searchParams.get('token') || request.headers.get('x-erdb-token');
@@ -150,8 +160,11 @@ export async function GET(
   const tokenConfig = (tokenData?.config ? { ...tokenData.config } : {}) as any;
   const tokenUpdatedAt = tokenData?.updatedAt || 0;
   const backdropAsPosterRaw = tokenConfig.backdropAsPoster ?? request.nextUrl.searchParams.get('backdropAsPoster');
-  const isBackdropAsPoster = imageType === 'backdrop' && (
-    backdropAsPosterRaw === true || backdropAsPosterRaw === 'true' || backdropAsPosterRaw === 'on'
+  const panelBackdropAsPoster =
+    backdropAsPosterRaw === true || backdropAsPosterRaw === 'true' || backdropAsPosterRaw === 'on';
+  const shapeParam = (request.nextUrl.searchParams.get('shape') || '').trim().toLowerCase();
+  const isBackdropAsPoster = imageType === 'poster' && (
+    shapeParam === 'landscape' || (shapeParam !== 'poster' && panelBackdropAsPoster)
   );
   const usesPosterSettings = imageType === 'poster' || isBackdropAsPoster;
 
@@ -477,6 +490,7 @@ export async function GET(
         inputAnimeMappingExternalId = mediaId;
       }
     } else {
+      explicitTmdbMediaType = pathMediaKind;
       mediaId = parts[1];
       season = parts.length > 2 ? parts[2] : null;
       episode = parts.length > 3 ? parts[3] : null;
@@ -509,6 +523,10 @@ export async function GET(
   } else {
     season = parts.length > 1 ? parts[1] : null;
     episode = parts.length > 2 ? parts[2] : null;
+  }
+
+  if (isTmdb && explicitTmdbMediaType && mediaId) {
+    cleanId = `tmdb:${explicitTmdbMediaType}:${mediaId}${season ? `:${season}` : ''}${episode ? `:${episode}` : ''}`;
   }
 
   const activeImageLang =
@@ -2433,7 +2451,7 @@ export async function GET(
           })()
           : null;
 
-      if (type === 'poster') {
+      if (type === 'poster' && !isBackdropAsPoster) {
         outputWidth = 780;
         outputHeight = 1170;
       } else if (type === 'logo') {
@@ -2542,7 +2560,7 @@ export async function GET(
 
           // Native anime IDs (Kitsu, MAL, AniList, AniDB) usually refer to one cour/season: prefer TMDB
           // season posters over the unified show poster when we have a resolved season and no episode.
-          if (hasNativeAnimeInput && season && !episode && type === 'poster') {
+          if (hasNativeAnimeInput && season && !episode && type === 'poster' && !isBackdropAsPoster) {
             const seasonImagesQuery = input.seasonIncludeImageLanguage
               ? `&include_image_language=${input.seasonIncludeImageLanguage}`
               : '';
@@ -2615,6 +2633,22 @@ export async function GET(
           }
 
           if (type === 'poster') {
+            if (isBackdropAsPoster) {
+              const selectedBackdrop = pickBackdropByPreference(
+                backdropCollection,
+                effectiveBackdropTextPreference,
+                resolvedBackdropRequestedImageLang,
+                FALLBACK_IMAGE_LANGUAGE,
+                originalBackdropPath
+              );
+              return {
+                imgPath: selectedBackdrop?.file_path || '',
+                logoAspectRatio: null,
+                logoPath,
+                logoLanguageMatch,
+                posterIsTextless: false,
+              };
+            }
             const selectedPoster = pickPosterByPreference(
               posterCollection,
               effectivePosterTextPreference,
@@ -2802,10 +2836,11 @@ export async function GET(
         if (fanartKey && !useRawAnimeImageFallback && !imgUrl && imgPath && mediaType) {
           const needsPosterFallback =
             imageType === 'poster' &&
+            !isBackdropAsPoster &&
             effectivePosterTextPreference === 'clean' &&
             !selectedPosterIsTextless;
           const needsBackdropFallback =
-            imageType === 'backdrop' &&
+            (imageType === 'backdrop' || isBackdropAsPoster) &&
             effectiveBackdropTextPreference === 'clean';
 
           if (needsPosterFallback || needsBackdropFallback) {
@@ -2881,7 +2916,7 @@ export async function GET(
         }
       }
       if (!imgUrl) {
-        imgUrl = buildTmdbImageUrl(imageType, imgPath, outputWidth);
+        imgUrl = buildTmdbImageUrl(isBackdropAsPoster ? 'backdrop' : imageType, imgPath, outputWidth);
       }
       const shouldApplyPosterCleanOverlay =
         usesPosterSettings &&

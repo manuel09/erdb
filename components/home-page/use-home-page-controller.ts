@@ -239,7 +239,7 @@ export function useHomePageController({
   );
   const logoRatingPreferences = useMemo(() => rowsToEnabledOrdered(logoRatingRows), [logoRatingRows]);
   const shouldUsePosterAverageRatings =
-    (previewType === 'poster' || (previewType === 'backdrop' && backdropAsPoster)) &&
+    previewType === 'poster' &&
     (posterConfiguratorPreset === 'preset1' || posterAverageRatingsEnabled);
   const [posterStreamBadges, setPosterStreamBadges] = useState<StreamBadgesSetting>('on');
   const [backdropStreamBadges, setBackdropStreamBadges] = useState<StreamBadgesSetting>('off');
@@ -564,13 +564,13 @@ export function useHomePageController({
   const [copied, setCopied] = useState(false);
   const shouldShowPosterQualityBadgesSide = false;
   const shouldShowPosterQualityBadgesPosition = true;
-  const usesPosterSettings = previewType === 'poster' || (previewType === 'backdrop' && backdropAsPoster);
+  const usesPosterSettings = previewType === 'poster';
   const shouldShowQualityBadgesSide = usesPosterSettings && shouldShowPosterQualityBadgesSide;
   const shouldShowQualityBadgesPosition =
     usesPosterSettings && shouldShowPosterQualityBadgesPosition;
   const shouldShowVerticalBadgeContent =
     (usesPosterSettings && isVerticalPosterRatingLayout(posterRatingsLayout)) ||
-    (previewType === 'backdrop' && !backdropAsPoster && backdropRatingsLayout === 'right-vertical') ||
+    (previewType === 'backdrop' && backdropRatingsLayout === 'right-vertical') ||
     (previewType === 'thumbnail' && thumbnailRatingsLayout.endsWith('-vertical'));
   const qualityBadgeTypeLabel = usesPosterSettings ? 'Poster' : previewType === 'backdrop' || previewType === 'thumbnail' ? 'Backdrop' : 'Poster';
   const activeStreamBadges =
@@ -936,7 +936,7 @@ export function useHomePageController({
       query.set('ratingsColorMode', ratingsColorModeForType);
     }
     if (usesPosterSettings) {
-      if (previewType === 'backdrop') {
+      if (backdropAsPoster) {
         query.set('backdropAsPoster', 'on');
         if (backdropLang) {
           query.set('backdropLang', effectiveBackdropLang);
@@ -947,7 +947,7 @@ export function useHomePageController({
       } else if (posterLang) {
         query.set('posterLang', effectivePosterLang);
       }
-      if (previewType !== 'backdrop' && posterAnimeLang) {
+      if (!backdropAsPoster && posterAnimeLang) {
         query.set('posterAnimeLang', effectivePosterAnimeLang);
       }
       query.set('posterAnimeImageText', isPreset && !backdropAsPoster ? 'default' : posterAnimeImageText);
@@ -1836,6 +1836,7 @@ export function useHomePageController({
       imageType: 'thumbnail',
       configString,
       idPattern: buildEpisodeThumbnailIdPattern(aiometadataEpisodeProvider),
+      typeQuery: 'series',
       ranking,
       rankingCountry: effectiveRankingCountry,
       rankingNoBox,
@@ -1847,7 +1848,8 @@ export function useHomePageController({
         activeToken,
         imageType: 'poster',
         configString,
-        idPattern: 'tmdb:{type}:{tmdb_id}',
+        idPattern: 'tmdb:{tmdb_id}',
+        typeQuery: '{type}',
         ranking,
         rankingCountry: effectiveRankingCountry,
         rankingNoBox,
@@ -1857,7 +1859,8 @@ export function useHomePageController({
         activeToken,
         imageType: 'backdrop',
         configString,
-        idPattern: 'tmdb:{type}:{tmdb_id}',
+        idPattern: 'tmdb:{tmdb_id}',
+        typeQuery: '{type}',
         ranking,
         rankingCountry: effectiveRankingCountry,
         rankingNoBox,
@@ -1867,7 +1870,8 @@ export function useHomePageController({
         activeToken,
         imageType: 'logo',
         configString,
-        idPattern: 'tmdb:{type}:{tmdb_id}',
+        idPattern: 'tmdb:{tmdb_id}',
+        typeQuery: '{type}',
         ranking,
         rankingCountry: effectiveRankingCountry,
         rankingNoBox,

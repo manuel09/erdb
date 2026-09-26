@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.7.0](https://github.com/realbestia1/erdb/compare/v0.6.4...v0.7.0) - 2026-09-25
+
+- Support backdrop-as-poster via shape/type query ([ae1f460](https://github.com/realbestia1/erdb/commit/ae1f4603e452a15fc4a4e850dd030a837872a44f))
+  Add per-request 'shape' and 'type' query handling and unify ID patterns. route: read ?type and ?shape, derive kind from path or query, treat 'landscape' shape as backdrop-as-poster for poster requests, and adjust image selection/building accordingly. Frontend: propagate typeQuery/shape in sample patterns, update workspace controls and docs/help text, and normalize episode ID patterns (remove legacy 'series/' prefix). addonProxy: simplify style param mapping and remove poster-specific optional params. Bump package version to 0.7.0.
+
+## [0.6.4](https://github.com/realbestia1/erdb/compare/v0.6.3...v0.6.4) - 2026-09-25
+
+- Support optional 'kind' segment in image URLs ([7abe75b](https://github.com/realbestia1/erdb/commit/7abe75ba463d9a0a2dabff3bf8a3d49410c8e74e))
+  Add optional "kind" segment (movie/series, anime accepted) to token-based renderer URLs and rename route to capture multi-segment ids. Parse and normalize kind into cleanId (including explicit TMDB media type), preserving legacy URLs. Update docs, AI prompt, and UI: new Nuvio patterns, split movie/series ID patterns, workspace modal refactor, and Clapperboard icon. buildRendererUrl signature updated to accept kind; middleware comment updated. Bump package version to 0.6.4. Backward compatible with existing URLs.
+
 ## [0.6.3](https://github.com/realbestia1/erdb/compare/v0.6.2...v0.6.3) - 2026-09-24
 
 - Redesign workspace configurator UI and add catalog reordering ([cf75dc2](https://github.com/realbestia1/erdb/commit/cf75dc22b099ec28ebcc917e322296acbfcb98d9))

@@ -200,23 +200,23 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     setRankingPosition,
   } = actions;
 
-  const usesPosterSettings = previewType === 'poster' || (previewType === 'backdrop' && backdropAsPoster);
+  const usesPosterSettings = previewType === 'poster';
   const activePreset = POSTER_PRESET_OPTIONS.find((preset) => preset.id === posterConfiguratorPreset);
   const typeLabel =
-    previewType === 'backdrop' && backdropAsPoster
+    previewType === 'poster' && backdropAsPoster
       ? 'Backdrop as poster'
       : previewType.charAt(0).toUpperCase() + previewType.slice(1);
   const subtitle = usesPosterSettings ? `${typeLabel} · ${activePreset?.name ?? 'Preset'}` : typeLabel;
 
   const shouldShowVerticalBadgeContent =
     (previewType === 'poster' && isVerticalPosterRatingLayout(posterRatingsLayout)) ||
-    (previewType === 'backdrop' && (backdropAsPoster ? isVerticalPosterRatingLayout(posterRatingsLayout) : backdropRatingsLayout === 'right-vertical')) ||
+    (previewType === 'backdrop' && backdropRatingsLayout === 'right-vertical') ||
     (previewType === 'thumbnail' && thumbnailRatingsLayout.endsWith('-vertical'));
 
   const activeVerticalBadgeContent: string =
     previewType === 'thumbnail'
       ? thumbnailVerticalBadgeContent
-      : previewType === 'backdrop' && !backdropAsPoster
+      : previewType === 'backdrop'
         ? backdropVerticalBadgeContent
         : posterVerticalBadgeContent;
 
@@ -224,7 +224,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     const setter =
       previewType === 'thumbnail'
         ? setThumbnailVerticalBadgeContent
-        : previewType === 'backdrop' && !backdropAsPoster
+        : previewType === 'backdrop'
           ? setBackdropVerticalBadgeContent
           : setPosterVerticalBadgeContent;
     setter(value as 'standard' | 'stacked');
@@ -255,10 +255,12 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     options: readonly { readonly id: T; readonly label: string }[]
   ) => <Dropdown value={value} onChange={onChange} options={options} />;
 
-  const showImageText = previewType === 'backdrop' || (usesPosterSettings && posterConfiguratorPreset === 'custom');
+  const showImageText =
+    previewType === 'backdrop' ||
+    (usesPosterSettings && (posterConfiguratorPreset === 'custom' || backdropAsPoster));
   const showRatingStyle = !usesPosterSettings || posterConfiguratorPreset !== 'preset7';
   const showPosterQualityBadges = usesPosterSettings && posterConfiguratorPreset !== 'preset4';
-  const showBackdropQualityBadges = previewType === 'backdrop' && !backdropAsPoster;
+  const showBackdropQualityBadges = previewType === 'backdrop';
   const showArtworkSection = previewType !== 'thumbnail';
   const averageRatingNotice =
     usesPosterSettings && (posterConfiguratorPreset === 'preset1' || (posterConfiguratorPreset === 'custom' && posterAverageRatingsEnabled));
@@ -352,12 +354,12 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
           <section className="space-y-3">
             <SectionTitle icon={ImageIcon} title="Artwork" hint="Source image, artwork variant and per-type language." />
 
-            {previewType === 'backdrop' && (
+            {previewType === 'poster' && (
               <Toggle
                 checked={backdropAsPoster}
                 onChange={setBackdropAsPoster}
                 label="Use backdrop as poster"
-                hint="Landscape image with all poster layout, badge and rating settings."
+                hint="Uses the backdrop artwork instead of the poster, with all poster layout, badge and rating settings."
               />
             )}
 
@@ -368,12 +370,12 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                 </Notice>
               ) : (
                 <div className="space-y-3">
-                  {previewType === 'poster' ? (
+                  {previewType === 'poster' && !backdropAsPoster ? (
                     <>
                       <Field label="Poster language">{renderLanguage(posterLang, setPosterLang)}</Field>
                       <Field label="Poster language (anime)">{renderLanguage(posterAnimeLang, setPosterAnimeLang)}</Field>
                     </>
-                  ) : previewType === 'backdrop' ? (
+                  ) : previewType === 'poster' || previewType === 'backdrop' ? (
                     <>
                       <Field label="Backdrop language">{renderLanguage(backdropLang, setBackdropLang)}</Field>
                       <Field label="Backdrop language (anime)">{renderLanguage(backdropAnimeLang, setBackdropAnimeLang)}</Field>
@@ -528,7 +530,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
             </Card>
           )}
 
-          {previewType === 'backdrop' && !backdropAsPoster && (
+          {previewType === 'backdrop' && (
             <Card>
               <div className="space-y-3">
                 <Field label="Ratings position">

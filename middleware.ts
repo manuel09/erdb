@@ -10,7 +10,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const parts = pathname.split('/').filter(Boolean);
 
-  // Handle Token-based URLs: /Tk-[token]/[type]/[id].jpg
+  // Handle Token-based URLs: /Tk-[token]/[type]/[id].jpg and /Tk-[token]/[type]/[kind]/[id].jpg
   if (parts.length >= 3 && parts[0].startsWith('Tk-')) {
     const token = parts[0];
     const type = parts[1];
