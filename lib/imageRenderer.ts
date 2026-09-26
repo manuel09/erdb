@@ -31,7 +31,6 @@ import {
   type RatingBadge,
   type StreamBadgeKey,
 } from '@/lib/ratingBadgeLogic';
-import { RANKING_ICON_URL } from '@/lib/routeConfig';
 import { measurePhase } from '@/lib/routeShared';
 import { findFirstNonOverlappingRect, rectsOverlap, type OverlayRect } from '@/lib/overlayCollision';
 import type { FastRenderInput, PhaseDurations, QualityBadgesSide, RenderedImagePayload } from '@/lib/routeTypes';
@@ -2109,16 +2108,11 @@ export const renderWithSharp = async (
 
     if (usePosterLayout && input.rankingBadge) {
       const badge = input.rankingBadge;
-      const rankingIconDataUri = await getProviderIconDataUri(
-        RANKING_ICON_URL,
-        0,
-        { width: Math.round(96 * posterOutputScale), height: Math.round(96 * posterOutputScale) }
-      );
       const rankingScale = (input.posterConfiguratorPreset === 'advanced' ? 1.3 : 1.15) * posterOutputScale;
       const rankingSpec = buildRankingBadgeSvg(
         badge.value,
         badge.compact ? '' : badge.label,
-        badge.compact ? null : rankingIconDataUri,
+        null,
         badge.noBox ?? (input.posterConfiguratorPreset === 'simple'),
         rankingScale
       );

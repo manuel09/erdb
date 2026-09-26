@@ -1,6 +1,6 @@
 import { parseCacheTtlMs } from '@/lib/routeUtils';
 
-export const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v258-webp';
+export const FINAL_IMAGE_RENDERER_CACHE_VERSION = 'poster-backdrop-logo-thumbnail-v262-webp';
 export const TMDB_CACHE_TTL_MS = parseCacheTtlMs(
   process.env.ERDB_TMDB_CACHE_TTL_MS,
   3 * 24 * 60 * 60 * 1000,
@@ -84,7 +84,6 @@ export const TMDB_ANIMATION_GENRE_ID = 16;
 export const STAR_RATING_ICON = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path fill="#ffffff" d="M32 5.6 39.7 22l17.8 2.7-12.9 12.7 3 17.9L32 46.8 16.4 55.3l3-17.9L6.5 24.7 24.3 22 32 5.6Z"/></svg>'
 )}`;
-export const RANKING_ICON_URL = 'https://rank.uva.es/wp-content/uploads/2019/02/cropped-rank-logo-512x512.png';
 
 export type RankingInterval = 'DAILY' | 'WEEKLY' | 'MONTHLY';
 

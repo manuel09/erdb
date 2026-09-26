@@ -1183,6 +1183,14 @@ export async function GET(
               mediaId = String(episodeResult.show_id);
               season = Number.isFinite(Number(episodeResult.season_number)) ? String(episodeResult.season_number) : season;
               episode = Number.isFinite(Number(episodeResult.episode_number)) ? String(episodeResult.episode_number) : episode;
+              // The raw id is an episode: TMDB often has no IMDb id on the show,
+              // so fall back to the episode's parent series from the IMDb dataset for ratings.
+              const datasetEpisode = getImdbEpisodeFromDataset(rawImdbSeriesId);
+              if (datasetEpisode?.seriesImdbId && isImdbId(datasetEpisode.seriesImdbId)) {
+                mappedImdbId = datasetEpisode.seriesImdbId;
+              } else if (isImdbId(rawImdbSeriesId)) {
+                mappedImdbId = rawImdbSeriesId;
+              }
 
               const showResponse = await fetchJsonCached(
                 `tmdb:tv:${mediaId}`,
@@ -1292,8 +1300,7 @@ export async function GET(
         requestLanguage: lang,
         fallbackLanguage: FALLBACK_IMAGE_LANGUAGE,
       });
-      const effectivePosterFallbackImageLang =
-        normalizeTmdbLanguageCode(lang) || FALLBACK_IMAGE_LANGUAGE;
+      const effectivePosterFallbackImageLang = FALLBACK_IMAGE_LANGUAGE;
       const requestedImageLanguageFallbacks = getTmdbLanguageFallbackChain(
         requestedImageLang,
         FALLBACK_IMAGE_LANGUAGE
@@ -1621,6 +1628,25 @@ export async function GET(
               allowAnimeOnlyRatings = hasNativeAnimeInput || mediaLooksAnimated;
             }
 
+            // TMDB often has no imdb_id on brand-new shows: derive it from the first
+            // episode's IMDb id plus the local IMDb episode -> series mapping.
+            const resolveImdbIdFromFirstEpisode = async (): Promise<string | null> => {
+              if (imageType === 'thumbnail' || mediaType !== 'tv' || media?.id == null) return null;
+              const response = await fetchJsonCached(
+                `tmdb:tv:${media.id}:s1e1:external_ids`,
+                `https://api.themoviedb.org/3/tv/${media.id}/season/1/episode/1/external_ids?api_key=${tmdbKey}`,
+                TMDB_CACHE_TTL_MS,
+                phases,
+                'tmdb'
+              );
+              const episodeImdbId = typeof response.data?.imdb_id === 'string' ? response.data.imdb_id.trim() : '';
+              if (!isImdbId(episodeImdbId)) return null;
+              const datasetEpisode = getImdbEpisodeFromDataset(episodeImdbId);
+              return datasetEpisode?.seriesImdbId && isImdbId(datasetEpisode.seriesImdbId)
+                ? datasetEpisode.seriesImdbId
+                : episodeImdbId;
+            };
+
             if (episodeExternalIdsPromise) {
               const episodeExternalIds = await episodeExternalIdsPromise;
               if (typeof episodeExternalIds?.imdb_id === 'string' && isImdbId(episodeExternalIds.imdb_id)) {
@@ -1636,6 +1662,9 @@ export async function GET(
             }
             if (!imdbId && mappedImdbId) {
               imdbId = mappedImdbId;
+            }
+            if (!imdbId) {
+              imdbId = await resolveImdbIdFromFirstEpisode();
             }
             if (!imdbId && !kitsuId && !needsAnimeOnlyRatings && !anilistId && !malId) {
               return new Map<RatingPreference, string>();
@@ -1768,6 +1797,9 @@ export async function GET(
                 }
                 if (!imdbId && mappedImdbId) {
                   imdbId = mappedImdbId;
+                }
+                if (!imdbId) {
+                  imdbId = await resolveImdbIdFromFirstEpisode();
                 }
                 return imdbId;
               };

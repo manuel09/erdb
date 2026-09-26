@@ -17,7 +17,8 @@ export const pickByLanguageWithFallback = (
   items: any[] = [],
   preferredLang: string,
   fallbackLang: string,
-  preferredPath?: string | null
+  preferredPath?: string | null,
+  options?: { preferNonTextless?: boolean }
 ) => {
   if (!Array.isArray(items) || items.length === 0) return null;
 
@@ -57,6 +58,13 @@ export const pickByLanguageWithFallback = (
   if (fallback) {
     const fallbackItem = findItemByLanguage(fallback);
     if (fallbackItem) return fallbackItem;
+  }
+
+  if (options?.preferNonTextless) {
+    const firstNonTextless = items.find((item: any) => !isTextlessImage(item));
+    if (firstNonTextless) {
+      return firstNonTextless;
+    }
   }
 
   return items[0];
@@ -109,7 +117,7 @@ export const pickPosterByPreference = (
     : null;
   const fallbackOriginal = originalPoster || (canonicalOriginalPath ? { file_path: canonicalOriginalPath } : posters[0]);
   const defaultPoster =
-    pickByLanguageWithFallback(posters, preferredLang, fallbackLang) ||
+    pickByLanguageWithFallback(posters, preferredLang, fallbackLang, null, { preferNonTextless: true }) ||
     fallbackOriginal;
   const defaultPosterPath = defaultPoster?.file_path || canonicalOriginalPath;
   const cleanPoster =
