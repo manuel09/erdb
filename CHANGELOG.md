@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.7.6](https://github.com/realbestia1/erdb/compare/v0.7.5...v0.7.6) - 2026-10-14
+
+- Fix IMDb episode resolution fallback ([f791f08](https://github.com/realbestia1/erdb/commit/f791f0841e5e9dfc31d7aefc65e0b720b0c7fd78))
+  Prioritize TMDB's IMDb mapping, skip MDBList movie results for episode requests, and fall back to resolving episodes through their dataset IMDb IDs. Bump the package version to 0.7.6.
+
 ## [0.7.5](https://github.com/realbestia1/erdb/compare/v0.7.4...v0.7.5) - 2026-09-26
 
 - Fix TV IMDb fallback for new series ([0cf3203](https://github.com/realbestia1/erdb/commit/0cf32030db22e0c58a92eb9348f390df52d85ce5))

@@ -1141,33 +1141,7 @@ export async function GET(
             (typeof episode === 'string' && episode.length > 0) ||
             isImdbSeriesFromDataset(rawImdbSeriesId);
 
-          // 2. MDBList Resolution (Remote)
-          if (!media && mdblistKey) {
-            const mdbListRes = await fetchJsonCached(
-              `mdblist:resolve:${rawImdbSeriesId}`,
-              `https://mdblist.com/api/?apikey=${encodeURIComponent(mdblistKey)}&i=${encodeURIComponent(rawImdbSeriesId)}`,
-              TMDB_CACHE_TTL_MS,
-              phases,
-              'tmdb'
-            );
-            if (mdbListRes.ok && mdbListRes.data?.tmdbid) {
-              const mdbResolvedType: 'movie' | 'tv' = mdbListRes.data.type === 'movie' ? 'movie' : 'tv';
-              const mdbTmdbId = String(mdbListRes.data.tmdbid);
-              const mdbMediaRes = await fetchJsonCached(
-                `tmdb:${mdbResolvedType}:${mdbTmdbId}`,
-                `https://api.themoviedb.org/3/${mdbResolvedType}/${mdbTmdbId}?api_key=${tmdbKey}`,
-                TMDB_CACHE_TTL_MS,
-                phases,
-                'tmdb'
-              );
-              if (mdbMediaRes.ok) {
-                media = mdbMediaRes.data;
-                mediaType = mdbResolvedType;
-              }
-            }
-          }
-
-          // 3. TMDB Find (Fallback with smart heuristics)
+          // 2. TMDB Find (authoritative IMDb link with smart heuristics)
           if (!media) {
             const findResponse = await fetchJsonCached(
               `tmdb:find:${rawImdbSeriesId}`,
@@ -1230,6 +1204,75 @@ export async function GET(
                   ? 'tv'
                   : 'movie'
                 : null;
+            }
+          }
+
+          // 3. MDBList Resolution (remote fallback for titles TMDB doesn't link)
+          if (!media && mdblistKey) {
+            const mdbListRes = await fetchJsonCached(
+              `mdblist:resolve:${rawImdbSeriesId}`,
+              `https://mdblist.com/api/?apikey=${encodeURIComponent(mdblistKey)}&i=${encodeURIComponent(rawImdbSeriesId)}`,
+              TMDB_CACHE_TTL_MS,
+              phases,
+              'tmdb'
+            );
+            // ponytail: MDBList sometimes links a series IMDb id to a TMDB compilation movie (e.g. tt1409055);
+            // a movie result can never satisfy an episode/thumbnail request, so skip it.
+            const mdbMovieIgnoredForEpisodes =
+              prefersTvResult && mdbListRes.ok && mdbListRes.data?.tmdbid && mdbListRes.data.type === 'movie';
+            if (mdbListRes.ok && mdbListRes.data?.tmdbid && !mdbMovieIgnoredForEpisodes) {
+              const mdbResolvedType: 'movie' | 'tv' = mdbListRes.data.type === 'movie' ? 'movie' : 'tv';
+              const mdbTmdbId = String(mdbListRes.data.tmdbid);
+              const mdbMediaRes = await fetchJsonCached(
+                `tmdb:${mdbResolvedType}:${mdbTmdbId}`,
+                `https://api.themoviedb.org/3/${mdbResolvedType}/${mdbTmdbId}?api_key=${tmdbKey}`,
+                TMDB_CACHE_TTL_MS,
+                phases,
+                'tmdb'
+              );
+              if (mdbMediaRes.ok) {
+                media = mdbMediaRes.data;
+                mediaType = mdbResolvedType;
+              }
+            }
+          }
+
+          // 4. Episode-level fallback (local dataset): if series-level mapping failed
+          // (e.g. neither TMDB nor MDBList links the series),
+          // resolve via the episode's own IMDb id (e.g. tt1415019 for tt1409055:1:1).
+          if (!media && typeof season === 'string' && typeof episode === 'string') {
+            const seasonNumber = Number(season);
+            const episodeNumber = Number(episode);
+            const datasetEpisode =
+              Number.isFinite(seasonNumber) && Number.isFinite(episodeNumber)
+                ? findImdbEpisodeBySeriesSeasonEpisode(rawImdbSeriesId, seasonNumber, episodeNumber)
+                : null;
+            if (datasetEpisode && isImdbId(datasetEpisode.imdbId)) {
+              const episodeFindResponse = await fetchJsonCached(
+                `tmdb:find:${datasetEpisode.imdbId}`,
+                `https://api.themoviedb.org/3/find/${datasetEpisode.imdbId}?api_key=${tmdbKey}&external_source=imdb_id`,
+                TMDB_CACHE_TTL_MS,
+                phases,
+                'tmdb'
+              );
+              const episodeFindResult = episodeFindResponse.data?.tv_episode_results?.[0] || null;
+              if (episodeFindResult?.show_id) {
+                mediaId = String(episodeFindResult.show_id);
+                season = Number.isFinite(Number(episodeFindResult.season_number)) ? String(episodeFindResult.season_number) : season;
+                episode = Number.isFinite(Number(episodeFindResult.episode_number)) ? String(episodeFindResult.episode_number) : episode;
+                mappedImdbId = rawImdbSeriesId;
+                const episodeShowResponse = await fetchJsonCached(
+                  `tmdb:tv:${mediaId}`,
+                  `https://api.themoviedb.org/3/tv/${mediaId}?api_key=${tmdbKey}`,
+                  TMDB_CACHE_TTL_MS,
+                  phases,
+                  'tmdb'
+                );
+                if (episodeShowResponse.ok) {
+                  media = episodeShowResponse.data;
+                  mediaType = 'tv';
+                }
+              }
             }
           }
         }
