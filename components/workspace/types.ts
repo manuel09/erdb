@@ -80,6 +80,7 @@ export type HomePageViewState = {
   posterConfiguratorPreset: PosterConfiguratorPreset;
   posterAverageRatingsEnabled: boolean;
   posterVignetteEnabled: boolean;
+  posterRotateDailyEnabled: boolean;
   posterRatingsColorMode: 'colored' | 'transparent';
   backdropRatingsColorMode: 'colored' | 'transparent';
   thumbnailRatingsColorMode: 'colored' | 'transparent';
@@ -172,6 +173,7 @@ export type HomePageViewActions = {
   setPosterConfiguratorPreset: (value: PosterConfiguratorPreset) => void;
   setPosterAverageRatingsEnabled: Dispatch<SetStateAction<boolean>>;
   setPosterVignetteEnabled: Dispatch<SetStateAction<boolean>>;
+  setPosterRotateDailyEnabled: Dispatch<SetStateAction<boolean>>;
   setPosterGenrePosition: Dispatch<SetStateAction<PosterGenrePosition>>;
   setPosterSimpleRatingSource: Dispatch<SetStateAction<'average' | RatingPreference>>;
   setAiometadataEpisodeProvider: Dispatch<SetStateAction<AiometadataEpisodeProvider>>;

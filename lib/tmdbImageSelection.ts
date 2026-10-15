@@ -1,6 +1,18 @@
 import { getTmdbLanguageBase, normalizeTmdbLanguageCode } from '@/lib/tmdbLanguage';
 
 export type PosterTextPreference = 'default' | 'clean' | 'alternative';
+
+export const IMAGE_ROTATION_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+export const getImageRotationWindow = (nowMs: number = Date.now()) =>
+  Math.floor(nowMs / IMAGE_ROTATION_WINDOW_MS);
+
+export const getImageRotationRemainingMs = (nowMs: number = Date.now()) =>
+  IMAGE_ROTATION_WINDOW_MS - (nowMs % IMAGE_ROTATION_WINDOW_MS);
+
+const sortByFilePath = (items: any[]) =>
+  [...items].sort((a, b) => String(a?.file_path || '').localeCompare(String(b?.file_path || '')));
+
 export const getImageLanguageTag = (item: any) => {
   if (!item?.iso_639_1) return null;
   if (typeof item?.iso_3166_1 === 'string' && item.iso_3166_1.trim()) {
@@ -96,12 +108,56 @@ export const isTextlessPosterSelection = (posters: any[] = [], selectedPoster?: 
   );
 };
 
+const filterByLanguagePreference = (items: any[], preferredLang: string, fallbackLang: string) => {
+  for (const language of [preferredLang, fallbackLang]) {
+    const normalized = normalizeTmdbLanguageCode(language);
+    if (!normalized) continue;
+    const matches = items.filter((item: any) => matchesImageLanguage(item, normalized));
+    if (matches.length > 0) return matches;
+  }
+  return items;
+};
+
+// Rotation pool mirrors the non-rotating preference rules: Clean rotates over
+// textless artwork, Default/Alternative stay language-matched when possible.
+const buildImageRotationPool = (input: {
+  items: any[];
+  preference: PosterTextPreference;
+  preferredLang: string;
+  fallbackLang: string;
+  excludedPaths?: Array<string | null | undefined>;
+}) => {
+  const { items, preference, preferredLang, fallbackLang, excludedPaths = [] } = input;
+  const eligible = items.filter((item: any) => {
+    if (!item?.file_path) return false;
+    if (excludedPaths.some((path) => path && item.file_path === path)) return false;
+    if (preference === 'clean') return isTextlessImage(item);
+    return !isTextlessImage(item);
+  });
+
+  if (eligible.length === 0) return [];
+
+  const languageMatched =
+    preference === 'clean' ? eligible : filterByLanguagePreference(eligible, preferredLang, fallbackLang);
+  return sortByFilePath(languageMatched);
+};
+
+const pickRotated = (pool: any[], rotationWindow: number | null | undefined) => {
+  if (typeof rotationWindow !== 'number' || !Number.isFinite(rotationWindow) || pool.length === 0) {
+    return null;
+  }
+  const index = ((Math.floor(rotationWindow) % pool.length) + pool.length) % pool.length;
+  return pool[index];
+};
+
+
 export const pickPosterByPreference = (
   posters: any[] = [],
   preference: PosterTextPreference,
   preferredLang: string,
   fallbackLang: string,
-  originalPosterPath?: string | null
+  originalPosterPath?: string | null,
+  rotationWindow?: number | null
 ) => {
   if (!Array.isArray(posters) || posters.length === 0) {
     return originalPosterPath ? { file_path: originalPosterPath } : null;
@@ -135,6 +191,20 @@ export const pickPosterByPreference = (
     (poster: any) => poster.file_path !== defaultPosterPath && poster.file_path !== cleanPosterPath
   );
 
+  const rotatedPoster = pickRotated(
+    buildImageRotationPool({
+      items: posters,
+      preference,
+      preferredLang,
+      fallbackLang,
+      excludedPaths: preference === 'alternative' ? [defaultPosterPath, cleanPosterPath] : [],
+    }),
+    rotationWindow
+  );
+  if (rotatedPoster) {
+    return rotatedPoster;
+  }
+
   if (preference === 'clean') {
     return cleanPoster;
   }
@@ -158,7 +228,8 @@ export const pickBackdropByPreference = (
   preference: PosterTextPreference,
   preferredLang: string,
   fallbackLang: string,
-  originalBackdropPath?: string | null
+  originalBackdropPath?: string | null,
+  rotationWindow?: number | null
 ) => {
   if (!Array.isArray(backdrops) || backdrops.length === 0) {
     return originalBackdropPath ? { file_path: originalBackdropPath } : null;
@@ -192,6 +263,20 @@ export const pickBackdropByPreference = (
   const distinctBackdropFallback = backdrops.find(
     (backdrop: any) => backdrop.file_path !== defaultBackdropPath && backdrop.file_path !== cleanBackdropPath
   );
+
+  const rotatedBackdrop = pickRotated(
+    buildImageRotationPool({
+      items: backdrops,
+      preference,
+      preferredLang,
+      fallbackLang,
+      excludedPaths: preference === 'alternative' ? [defaultBackdropPath, cleanBackdropPath] : [],
+    }),
+    rotationWindow
+  );
+  if (rotatedBackdrop) {
+    return rotatedBackdrop;
+  }
 
   if (preference === 'clean') {
     return cleanBackdrop;

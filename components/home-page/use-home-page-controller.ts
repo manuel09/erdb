@@ -197,6 +197,7 @@ export function useHomePageController({
   const [posterConfiguratorPreset, setPosterConfiguratorPresetState] = useState<PosterConfiguratorPreset>('preset1');
   const [posterAverageRatingsEnabled, setPosterAverageRatingsEnabled] = useState(true);
   const [posterVignetteEnabled, setPosterVignetteEnabled] = useState(true);
+  const [posterRotateDailyEnabled, setPosterRotateDailyEnabled] = useState(false);
   const [posterGenrePosition, setPosterGenrePosition] = useState<PosterGenrePosition>('top');
   const [posterSimpleRatingSource, setPosterSimpleRatingSource] = useState<'average' | RatingPreference>('average');
   const [backdropImageText, setBackdropImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
@@ -1097,6 +1098,9 @@ export function useHomePageController({
     if (usesPosterSettings && !posterVignetteEnabled) {
       query.set('posterVignette', 'off');
     }
+    if (usesPosterSettings && posterRotateDailyEnabled) {
+      query.set('posterRotateDaily', 'on');
+    }
 
     if (!baseUrl) {
       return '';
@@ -1177,6 +1181,7 @@ export function useHomePageController({
     posterStreamBadges,
     posterAverageRatingsEnabled,
     posterVignetteEnabled,
+    posterRotateDailyEnabled,
     posterGenrePosition,
     ranking,
     effectiveRankingCountry,
@@ -1401,6 +1406,9 @@ export function useHomePageController({
     if (!posterVignetteEnabled) {
       config.posterVignette = 'off';
     }
+    if (posterRotateDailyEnabled) {
+      config.posterRotateDaily = 'on';
+    }
 
     return encodeBase64Url(JSON.stringify(config));
   }, [
@@ -1475,6 +1483,7 @@ export function useHomePageController({
     rankingCompact,
     rankingPosition,
     posterVignetteEnabled,
+    posterRotateDailyEnabled,
   ]);
 
   const proxyUrl = useMemo(() => {
@@ -1737,6 +1746,9 @@ export function useHomePageController({
     } else if (!isCinemetaManifest && proxySeriesMetadataProvider === 'imdb') {
       config.seriesMetadataProvider = proxySeriesMetadataProvider;
     }
+    if (posterRotateDailyEnabled) {
+      config.posterRotateDaily = 'on';
+    }
 
     config.erdbBase = baseUrl;
     const encoded = encodeBase64Url(JSON.stringify(config));
@@ -1822,6 +1834,7 @@ export function useHomePageController({
     rankingNoBox,
     rankingCompact,
     rankingPosition,
+    posterRotateDailyEnabled,
   ]);
 
   const stremioInstallUrl = useMemo(() => {
@@ -2016,6 +2029,7 @@ export function useHomePageController({
       posterQualityBadgesPosition,
       posterGenrePosition,
       posterVignetteEnabled,
+      posterRotateDailyEnabled,
       posterQualityBadgesStyle,
       backdropQualityBadgesStyle,
       posterRatingStyle,
@@ -2070,9 +2084,13 @@ export function useHomePageController({
 
   const applyImportedConfig = useCallback((
     payload: Record<string, unknown>,
-    options: { includeProxy?: boolean; resetMissingBackdropAsPoster?: boolean } = {}
+    options: { includeProxy?: boolean; resetMissingBackdropAsPoster?: boolean; resetMissingPosterRotateDaily?: boolean } = {}
   ) => {
-    const { includeProxy = true, resetMissingBackdropAsPoster = false } = options;
+    const {
+      includeProxy = true,
+      resetMissingBackdropAsPoster = false,
+      resetMissingPosterRotateDaily = false,
+    } = options;
     if (typeof payload.tmdbKey === 'string') {
       setTmdbKey(payload.tmdbKey);
     }
@@ -2237,6 +2255,18 @@ export function useHomePageController({
       setPosterVignetteEnabled(false);
     } else if (payload.posterVignette === 'on') {
       setPosterVignetteEnabled(true);
+    }
+    if (typeof payload.posterRotateDailyEnabled === 'boolean') {
+      setPosterRotateDailyEnabled(payload.posterRotateDailyEnabled);
+    } else if (payload.posterRotateDaily === 'on' || payload.posterRotateDaily === true || payload.posterRotateDaily === 'true') {
+      setPosterRotateDailyEnabled(true);
+    } else if (
+      payload.posterRotateDaily === 'off' ||
+      payload.posterRotateDaily === false ||
+      payload.posterRotateDaily === 'false' ||
+      resetMissingPosterRotateDaily
+    ) {
+      setPosterRotateDailyEnabled(false);
     }
     if (typeof payload.ranking === 'string') {
       setRanking(payload.ranking);
@@ -2479,7 +2509,11 @@ export function useHomePageController({
       return;
     }
     const frameId = window.requestAnimationFrame(() => {
-      applyImportedConfig(initialConfig, { includeProxy: false, resetMissingBackdropAsPoster: true });
+      applyImportedConfig(initialConfig, {
+        includeProxy: false,
+        resetMissingBackdropAsPoster: true,
+        resetMissingPosterRotateDaily: true,
+      });
     });
     return () => window.cancelAnimationFrame(frameId);
   }, [applyImportedConfig, initialConfig]);
@@ -2503,6 +2537,7 @@ export function useHomePageController({
       posterAverageRatingsEnabled,
       posterGenrePosition,
       posterVignette: posterVignetteEnabled ? 'on' : 'off',
+      posterRotateDaily: posterRotateDailyEnabled ? 'on' : 'off',
       posterSimpleRatingSource,
       backdropAnimeImageText,
       backdropImageText,
@@ -2579,6 +2614,7 @@ export function useHomePageController({
     posterAverageRatingsEnabled,
     posterGenrePosition,
     posterVignetteEnabled,
+    posterRotateDailyEnabled,
     posterStreamBadges,
     backdropStreamBadges,
     qualityBadgesSide,
@@ -2682,6 +2718,7 @@ export function useHomePageController({
       posterAverageRatingsEnabled,
       posterGenrePosition,
       posterVignetteEnabled,
+      posterRotateDailyEnabled,
       posterConfiguratorPreset,
       posterSimpleRatingSource,
       posterQualityBadgesStyle,
@@ -2746,6 +2783,7 @@ export function useHomePageController({
       posterAverageRatingsEnabled,
       posterGenrePosition,
       posterVignetteEnabled,
+      posterRotateDailyEnabled,
       posterConfiguratorPreset,
       posterSimpleRatingSource,
       posterQualityBadgesStyle,
@@ -2809,6 +2847,7 @@ export function useHomePageController({
       posterAverageRatingsEnabled,
       posterGenrePosition,
       posterVignette: posterVignetteEnabled ? 'on' : 'off',
+      posterRotateDaily: posterRotateDailyEnabled ? 'on' : 'off',
       posterSimpleRatingSource,
       backdropAnimeImageText,
       backdropImageText,
@@ -2878,6 +2917,7 @@ export function useHomePageController({
       posterAverageRatingsEnabled,
       posterGenrePosition,
       posterVignetteEnabled,
+      posterRotateDailyEnabled,
       backdropAnimeImageText,
       backdropImageText,
       backdropAsPoster,
@@ -3147,6 +3187,7 @@ export function useHomePageController({
       posterConfiguratorPreset,
       posterAverageRatingsEnabled,
       posterVignetteEnabled,
+      posterRotateDailyEnabled,
       posterGenrePosition,
       posterRatingsColorMode,
       backdropRatingsColorMode,
@@ -3240,6 +3281,7 @@ export function useHomePageController({
       setPosterConfiguratorPreset,
       setPosterAverageRatingsEnabled,
       setPosterVignetteEnabled,
+      setPosterRotateDailyEnabled,
       setPosterGenrePosition,
       setPosterSimpleRatingSource,
       setAiometadataEpisodeProvider,

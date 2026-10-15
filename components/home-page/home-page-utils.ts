@@ -662,6 +662,9 @@ export const buildAiometadataPatternBlock = (options: {
     if (config.backdropAsPoster === 'on' || config.backdropAsPoster === true) {
       params.push(['backdropAsPoster', 'on']);
     }
+    if (config.posterRotateDaily === 'on' || config.posterRotateDaily === true) {
+      params.push(['posterRotateDaily', 'on']);
+    }
   } else if (options.imageType === 'backdrop' || options.imageType === 'thumbnail') {
     if (options.imageType === 'backdrop') {
       pushIfString('backdropLang');

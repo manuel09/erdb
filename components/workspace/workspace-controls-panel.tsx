@@ -129,6 +129,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     posterConfiguratorPreset,
     posterAverageRatingsEnabled,
     posterVignetteEnabled,
+    posterRotateDailyEnabled,
     posterGenrePosition,
     posterQualityBadgesPosition,
     ranking,
@@ -178,6 +179,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     setPosterConfiguratorPreset,
     setPosterAverageRatingsEnabled,
     setPosterVignetteEnabled,
+    setPosterRotateDailyEnabled,
     setPosterGenrePosition,
     setLogoMode,
     setLogoFontVariant,
@@ -360,6 +362,15 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                 onChange={setBackdropAsPoster}
                 label="Use backdrop as poster"
                 hint="Uses the backdrop artwork instead of the poster, with all poster layout, badge and rating settings."
+              />
+            )}
+
+            {previewType === 'poster' && (
+              <Toggle
+                checked={posterRotateDailyEnabled}
+                onChange={setPosterRotateDailyEnabled}
+                label="Rotate poster every 24h"
+                hint="Picks a different poster once a day (UTC). Clean rotates textless artwork; Default and Alternative stay language-matched."
               />
             )}
 

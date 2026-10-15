@@ -85,7 +85,7 @@ import { FINAL_IMAGE_RENDERER_CACHE_VERSION, TMDB_CACHE_TTL_MS, MDBLIST_CACHE_TT
 import { HttpError, type PhaseDurations, type RenderImageType, type RenderedImagePayload } from '@/lib/routeTypes';
 import { FALLBACK_IMAGE_LANGUAGE, getDeterministicTtlMs, getTmdbLanguageFallbackChain, isImdbId, isOriginalLanguageSetting, resolveOriginalAwareImageLanguage, resolveRequestedImageLanguage } from '@/lib/routeUtils';
 import { normalizeRatingValue } from '@/lib/ratingProviderParsing';
-import { isTextlessPosterSelection, matchesImageLanguage, pickBackdropByPreference, pickByLanguageWithFallback, pickPosterByPreference, type PosterTextPreference } from '@/lib/tmdbImageSelection';
+import { getImageRotationRemainingMs, getImageRotationWindow, isTextlessPosterSelection, matchesImageLanguage, pickBackdropByPreference, pickByLanguageWithFallback, pickPosterByPreference, type PosterTextPreference } from '@/lib/tmdbImageSelection';
 import { ANIME_ONLY_RATING_PROVIDER_SET, LOGO_BASE_HEIGHT, RATING_PROVIDER_META, formatDisplayRatingValue, formatRatingNumber, normalizePosterGenrePosition, normalizePosterQualityBadgesPosition, normalizeQualityBadgesSide, normalizeQualityBadgesStyle, normalizeQualityBadgesColorMode, normalizeRankingPosition, normalizeStreamBadgesSetting, outputFormatToExtension, parseDisplayRatingValue, pickOutputFormat, resolvePosterQualityBadgePlacement, shouldRenderRatingValue, type BadgeKey, type RankingBadge, type RatingBadge } from '@/lib/ratingBadgeLogic';
 import { buildTransparentLogoDataUrl } from '@/lib/imageSvgText';
 
@@ -226,6 +226,12 @@ export async function GET(
     tokenConfig.posterRatingsMode || request.nextUrl.searchParams.get('posterRatingsMode') || (posterAverageRatingsEnabled ? 'average' : null);
   const posterVignetteEnabledRaw = tokenConfig.posterVignette ?? request.nextUrl.searchParams.get('posterVignette');
   const posterVignetteEnabled = posterVignetteEnabledRaw === false || posterVignetteEnabledRaw === 'false' || posterVignetteEnabledRaw === 'off' ? false : true;
+  const posterRotateDailyRaw = tokenConfig.posterRotateDaily ?? request.nextUrl.searchParams.get('posterRotateDaily');
+  const posterRotateDaily =
+    posterRotateDailyRaw === true || posterRotateDailyRaw === 'true' || posterRotateDailyRaw === 'on';
+  const posterRotationWindow = posterRotateDaily && imageType === 'poster' ? getImageRotationWindow() : null;
+  const posterRotationCacheControl =
+    posterRotationWindow === null ? null : buildPublicImageCacheControl(getImageRotationRemainingMs());
   const posterGenrePosition = normalizePosterGenrePosition(tokenConfig.posterGenrePosition || request.nextUrl.searchParams.get('posterGenrePosition'));
   // Removed duplicate posterConfiguratorPreset declaration
   const backdropRatings = getRatings('backdropRatingPreferences', 'backdropRatings') ?? globalRatings;
@@ -1514,6 +1520,7 @@ export async function GET(
         rankingCompact ? 'compact' : 'full',
         rankingPosition,
         posterVignetteEnabled ? 'vignette' : 'no-vignette',
+        posterRotationWindow === null ? 'static-artwork' : `artwork-rotation:${posterRotationWindow}`,
         fanartKey ? 'fanart' : 'no-fanart',
         'v1',
       ]);
@@ -2714,7 +2721,8 @@ export async function GET(
                 effectiveBackdropTextPreference,
                 resolvedBackdropRequestedImageLang,
                 FALLBACK_IMAGE_LANGUAGE,
-                originalBackdropPath
+                originalBackdropPath,
+                posterRotationWindow
               );
               return {
                 imgPath: selectedBackdrop?.file_path || '',
@@ -2729,7 +2737,8 @@ export async function GET(
               effectivePosterTextPreference,
               resolvedPosterRequestedImageLang,
               effectivePosterFallbackImageLang,
-              originalPosterPath
+              originalPosterPath,
+              posterRotationWindow
             );
             const selectedPosterIsTextless = isTextlessPosterSelection(posterCollection, selectedPoster);
             return {
@@ -3056,7 +3065,7 @@ export async function GET(
         return {
           body: payload.body,
           contentType: payload.contentType,
-          cacheControl: payload.cacheControl,
+          cacheControl: posterRotationCacheControl ?? payload.cacheControl,
         };
       }
       if (providerRatingsPromise) {
@@ -3204,7 +3213,7 @@ export async function GET(
         return {
           body: payload.body,
           contentType: payload.contentType,
-          cacheControl: payload.cacheControl,
+          cacheControl: posterRotationCacheControl ?? payload.cacheControl,
         };
       }
       const usePosterBadgeLayout = usesPosterSettings;
@@ -3796,7 +3805,11 @@ export async function GET(
         renderedRatingCacheTtlCandidates.length > 0
           ? Math.min(...renderedRatingCacheTtlCandidates)
           : 7 * 24 * 60 * 60 * 1000;
-      const storageCacheControl = buildPublicImageCacheControl(finalImageCacheTtlMs);
+      const effectiveFinalImageCacheTtlMs =
+        posterRotationWindow === null
+          ? finalImageCacheTtlMs
+          : Math.min(finalImageCacheTtlMs, getImageRotationRemainingMs());
+      const storageCacheControl = buildPublicImageCacheControl(effectiveFinalImageCacheTtlMs);
       const renderedPayload = await renderWithSharp(
         {
           imageType,

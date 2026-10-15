@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.7.8](https://github.com/realbestia1/erdb/compare/v0.7.7...v0.7.8) - 2026-10-15
+
+- Reset missing daily poster rotation setting ([f721000](https://github.com/realbestia1/erdb/commit/f7210000369b9be12faf35cbe33b2281af6d2223))
+  Disable daily poster rotation when it is absent from the initial imported config. Bump the package version to 0.7.8.
+
+## [0.7.7](https://github.com/realbestia1/erdb/compare/v0.7.6...v0.7.7) - 2026-10-15
+
+- Bump version to 0.7.7 ([2e0e683](https://github.com/realbestia1/erdb/commit/2e0e6836dd5b4d3062e043c751eaa698350ce59a))
+  Update the package version from 0.7.6 to 0.7.7.
+- Add daily artwork rotation ([dfb3dd5](https://github.com/realbestia1/erdb/commit/dfb3dd55c39c7ae02705da56f3129ffe12d2ac9f))
+  Add an opt-in setting to rotate poster and backdrop artwork every 24 hours, preserving text and language preferences. Propagate the setting through proxy configuration and UI, align cache expiry with rotation boundaries, and add selection tests.
+
 ## [0.7.6](https://github.com/realbestia1/erdb/compare/v0.7.5...v0.7.6) - 2026-10-14
 
 - Fix IMDb episode resolution fallback ([f791f08](https://github.com/realbestia1/erdb/commit/f791f0841e5e9dfc31d7aefc65e0b720b0c7fd78))
