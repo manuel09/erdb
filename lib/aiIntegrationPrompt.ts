@@ -25,9 +25,9 @@ Path parameter | Values
 erdbBaseUrl | Defaults to https://easyratingsdb.com but should be user-configurable
 erdbToken | Tk-...
 type | poster, backdrop, logo, thumbnail
-kind | movie or series (optional as a path segment or ?type= query param; anime is accepted and ignored; legacy URLs without kind still work)
-shape | poster or landscape (optional; poster-only, landscape forces the backdrop-as-poster rendering; square is not supported)
-id | IMDb (tt...), TMDB (tmdb:id), TVDB episode IDs, Kitsu, AniList, MAL
+id | Any id the addon already has: IMDb (tt...), TMDB (tmdb:id), TVDB (tvdb:...), Kitsu, AniList, MAL. No provider prefix is required for IMDb/TMDB ids.
+type (query) | movie or series, passed as ?type=... (anime is accepted and ignored; legacy URLs without it still work)
+shape (query) | poster or landscape (optional; poster-only, landscape forces the backdrop-as-poster rendering; square is not supported)
 
 All visual settings, provider choices, API keys, language defaults, layouts, and badge options are resolved from the token on the server.
 
@@ -36,17 +36,11 @@ Use these patterns directly if you are not generating the integration from the E
 
 Pattern | Use case
 --- | ---
-{erdbBaseUrl}/{erdbToken}/poster/movie/{imdbId}.jpg | Movie poster
-{erdbBaseUrl}/{erdbToken}/poster/series/{imdbId}.jpg | Series poster
-{erdbBaseUrl}/{erdbToken}/backdrop/movie/{imdbId}.jpg | Movie backdrop
-{erdbBaseUrl}/{erdbToken}/backdrop/series/{imdbId}.jpg | Series backdrop
-{erdbBaseUrl}/{erdbToken}/logo/movie/{imdbId}.jpg | Movie logo
-{erdbBaseUrl}/{erdbToken}/logo/series/{imdbId}.jpg | Series logo
-{erdbBaseUrl}/{erdbToken}/thumbnail/series/{seriesImdbId}:{season}:{episode}.jpg | Episode thumbnail with IMDb episode addressing
-{erdbBaseUrl}/{erdbToken}/thumbnail/series/realimdb:{seriesImdbId}:{season}:{episode}.jpg | Episode thumbnail when the addon uses real IMDb TV metadata
-{erdbBaseUrl}/{erdbToken}/thumbnail/series/tvdb:{tvdbId}:{season}:{episode}.jpg | Episode thumbnail when the addon uses TVDB numbering
-{erdbBaseUrl}/{erdbToken}/poster/movie/tmdb:{tmdbId}.jpg | Movie poster when only TMDB movie ID is available
-{erdbBaseUrl}/{erdbToken}/backdrop/series/tmdb:{tmdbId}.jpg | Series backdrop when only TMDB TV ID is available
+{erdbBaseUrl}/{erdbToken}/poster/{id}.jpg?type={type} | Movie or series poster
+{erdbBaseUrl}/{erdbToken}/poster/{id}.jpg?type={type}&shape={shape} | Poster with a forced shape (poster / landscape)
+{erdbBaseUrl}/{erdbToken}/backdrop/{id}.jpg?type={type} | Movie or series backdrop
+{erdbBaseUrl}/{erdbToken}/logo/{id}.jpg?type={type} | Movie or series logo
+{erdbBaseUrl}/{erdbToken}/thumbnail/{id}:{season}:{episode}.jpg?type={type} | Episode thumbnail
 
 ### --- INTEGRATION REQUIREMENTS ---
 1. Minimal UI: Use \`erdbToken\` and optionally \`erdbBaseUrl\` with default \`https://easyratingsdb.com\`.
@@ -57,37 +51,35 @@ Pattern | Use case
 5. Preserve Existing IDs: Do not rewrite IDs unless your addon already has a normalization layer.
 
 ### --- URL BUILD LOGIC ---
-function buildErdbUrl({ erdbToken, erdbBaseUrl = 'https://easyratingsdb.com', type, kind, id }) {
+function buildErdbUrl({ erdbToken, erdbBaseUrl = 'https://easyratingsdb.com', type, id, mediaType, season, episode }) {
   if (!erdbToken || !type || !id || !erdbBaseUrl) {
     return null;
   }
 
   const baseUrl = erdbBaseUrl.replace(/\/+$/, '');
-  const kindSegment = kind === 'movie' || kind === 'series' ? \`/\${kind}\` : '';
-  return \`\${baseUrl}/\${erdbToken}/\${type}\${kindSegment}/\${id}.jpg\`;
+  // Episode thumbnails address the episode directly on the id.
+  const idPart = season != null && episode != null ? \`\${id}:\${season}:\${episode}\` : id;
+  const query = mediaType === 'movie' || mediaType === 'series' ? \`?type=\${mediaType}\` : '';
+  return \`\${baseUrl}/\${erdbToken}/\${type}/\${idPart}.jpg\${query}\`;
 }
 
 ### --- EXAMPLES ---
 Movie poster:
 \`\`\`
-https://easyratingsdb.com/Tk-abc123/poster/movie/tt0133093.jpg
+https://easyratingsdb.com/Tk-abc123/poster/tt0133093.jpg?type=movie
 \`\`\`
 
 Series backdrop:
 \`\`\`
-https://easyratingsdb.com/Tk-abc123/backdrop/series/tt0944947.jpg
+https://easyratingsdb.com/Tk-abc123/backdrop/tt0944947.jpg?type=series
 \`\`\`
 
 Episode thumbnail:
 \`\`\`
-https://easyratingsdb.com/Tk-abc123/thumbnail/series/tt0944947:1:1.jpg
+https://easyratingsdb.com/Tk-abc123/thumbnail/tt0944947:1:1.jpg?type=series
 \`\`\`
 
-If the addon uses real IMDb TV metadata for episodes and thumbnails, use the \`realimdb:\` prefix for the episode id.
-Example:
-\`\`\`
-https://easyratingsdb.com/Tk-abc123/thumbnail/series/realimdb:tt0944947:1:1.jpg
-\`\`\`
+The \`{id}\` is whatever the addon already has. Pass TMDB, TVDB or episode-numbering ids with their prefix (for example \`tmdb:1399\`, \`tvdb:121361:1:1\`) only when the plain IMDb id is not available.
 
 ### --- PROXY NOTE ---
 If you also integrate the ERDB proxy manifest, keep that as a separate feature.

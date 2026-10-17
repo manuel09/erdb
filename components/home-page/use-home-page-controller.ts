@@ -1863,8 +1863,8 @@ export function useHomePageController({
       activeToken,
       imageType: 'thumbnail',
       configString,
-      idPattern: buildEpisodeThumbnailIdPattern(aiometadataEpisodeProvider),
-      typeQuery: 'series',
+      idPattern: '{id}:{season}:{episode}',
+      typeQuery: '{type}',
       ranking,
       rankingCountry: effectiveRankingCountry,
       rankingNoBox,
@@ -1876,7 +1876,7 @@ export function useHomePageController({
         activeToken,
         imageType: 'poster',
         configString,
-        idPattern: 'tmdb:{tmdb_id}',
+        idPattern: '{id}',
         typeQuery: '{type}',
         ranking,
         rankingCountry: effectiveRankingCountry,
@@ -1887,7 +1887,7 @@ export function useHomePageController({
         activeToken,
         imageType: 'backdrop',
         configString,
-        idPattern: 'tmdb:{tmdb_id}',
+        idPattern: '{id}',
         typeQuery: '{type}',
         ranking,
         rankingCountry: effectiveRankingCountry,
@@ -1898,7 +1898,7 @@ export function useHomePageController({
         activeToken,
         imageType: 'logo',
         configString,
-        idPattern: 'tmdb:{tmdb_id}',
+        idPattern: '{id}',
         typeQuery: '{type}',
         ranking,
         rankingCountry: effectiveRankingCountry,
@@ -2514,6 +2514,8 @@ export function useHomePageController({
     const frameId = window.requestAnimationFrame(() => {
       try {
         const parsed = JSON.parse(storedPreviewConfig) as Record<string, unknown>;
+        // The genre style is a token-level setting: never take it from the browser copy.
+        delete parsed.posterGenreStyle;
         applyImportedConfig(parsed);
       } catch {
         safeLocalStorageRemove(PREVIEW_CONFIG_STORAGE_KEY);
@@ -2555,7 +2557,6 @@ export function useHomePageController({
       posterConfiguratorPreset,
       posterAverageRatingsEnabled,
       posterGenrePosition,
-    posterGenreStyle,
       posterVignette: posterVignetteEnabled ? 'on' : 'off',
       posterRotateDaily: posterRotateDailyEnabled ? 'on' : 'off',
       posterSimpleRatingSource,
@@ -2633,7 +2634,6 @@ export function useHomePageController({
     posterConfiguratorPreset,
     posterAverageRatingsEnabled,
     posterGenrePosition,
-    posterGenreStyle,
     posterVignetteEnabled,
     posterRotateDailyEnabled,
     posterStreamBadges,

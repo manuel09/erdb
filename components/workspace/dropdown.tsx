@@ -54,7 +54,7 @@ export function Dropdown<T extends string>({ value, onChange, options, className
       <div className="max-h-[50vh] overflow-y-auto">
         {options.map(opt => (
           <button key={opt.id} type="button" onClick={() => { onChange(opt.id); setOpen(false); }}
-            className={`w-full px-3 py-2 text-left text-sm transition-colors duration-150 truncate ${value === opt.id ? 'bg-orange-500/15 text-orange-300' : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'}`}>
+            className={`w-full px-2.5 py-1.5 text-left text-sm transition-colors duration-150 truncate ${value === opt.id ? 'bg-orange-500/15 text-orange-300' : 'text-slate-100 hover:bg-white/[0.06] hover:text-white'}`}>
             {opt.label}
           </button>
         ))}
@@ -65,10 +65,10 @@ export function Dropdown<T extends string>({ value, onChange, options, className
   return (
     <div ref={ref} className="relative" style={width ? { width, minWidth: width } : undefined}>
       <button ref={btnRef} type="button" onClick={toggle} style={width ? { width, minWidth: width } : undefined}
-        className={`flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition-all duration-200 hover:border-orange-400/40 hover:bg-white/[0.07] hover:shadow-[0_0_12px_-4px_rgba(249,115,22,0.2)] ${className ?? 'w-full h-9'}`}>
+        className={`flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-sm font-medium text-white  outline-none transition-all duration-200 hover:border-orange-400/40 hover:bg-white/[0.07] hover:shadow-[0_0_12px_-4px_rgba(249,115,22,0.2)] ${className ?? 'w-full h-9'}`}>
         <span className="truncate">{options.find(o => o.id === value)?.label || value}</span>
         <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
-          <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+          <ChevronDown className="h-3.5 w-3.5 text-slate-100" />
         </motion.div>
       </button>
       {typeof window !== 'undefined' && open && createPortal(menu, document.body)}

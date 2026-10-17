@@ -149,29 +149,29 @@ export const PRESET_CONTROLS_NOTE =
   'Presets lock ratings position, badge placement, ranking position and vignette. Choose Custom to unlock them.';
 
 export const INPUT_CLASS =
-  'w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition duration-200 placeholder:text-slate-600 focus:border-orange-400/50 focus:bg-white/[0.07] focus:shadow-[0_0_0_1px_rgba(249,115,22,0.16)]';
+  'w-full rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-white  outline-none transition duration-200 placeholder:text-slate-600 focus:border-orange-400/50 focus:bg-white/[0.03] focus:shadow-[0_0_0_1px_rgba(249,115,22,0.16)]';
 export const INPUT_COMPACT_CLASS =
-  'rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition duration-200 placeholder:text-slate-600 focus:border-orange-400/50 focus:bg-white/[0.07]';
+  'rounded-lg border border-white/10 px-2 py-1 text-xs text-white  outline-none transition duration-200 placeholder:text-slate-600 focus:border-orange-400/50 focus:bg-white/[0.03]';
 
 export const PANEL_CLASS =
-  'relative flex min-h-0 flex-col overflow-hidden rounded-[26px] border border-white/10 bg-white/[0.03] shadow-[0_34px_100px_-60px_rgba(0,0,0,1),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-3xl';
-export const PANEL_HEADER_CLASS = 'shrink-0 border-b border-white/5 px-4 py-3.5';
+  'relative flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.02] shadow-[0_34px_100px_-60px_rgba(0,0,0,1)]';
+export const PANEL_HEADER_CLASS = 'shrink-0 border-b border-white/5 bg-white/[0.01] px-3 py-2.5';
 export const CARD_CLASS =
-  'rounded-2xl border border-white/5 bg-black/30 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]';
+  'rounded-xl border border-white/[0.07] p-3 ';
 
 export const BTN_BASE_CLASS =
-  'inline-flex items-center justify-center gap-2 rounded-xl text-xs font-semibold transition-all shadow-sm disabled:cursor-not-allowed disabled:opacity-40';
+  'inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg text-[11px] font-semibold transition-all  disabled:cursor-not-allowed disabled:opacity-40';
 export const BTN_ACCENT_CLASS =
   'bg-orange-500 text-black hover:bg-orange-400 shadow-[0_0_18px_-6px_rgba(249,115,22,0.6)]';
 export const BTN_GHOST_CLASS =
   'border border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08] hover:text-white';
 export const BTN_ACTIVE_CLASS = 'border border-orange-500/30 bg-orange-500/15 text-white';
 export const BTN_INACTIVE_CLASS =
-  'border border-white/5 bg-[#0a0a0a] text-slate-400 hover:bg-[#121212] hover:text-slate-200';
+  'border border-white/5 text-slate-400 hover:bg-[#121212] hover:text-slate-200';
 
 export const CHIP_ACTIVE_CLASS = 'border border-orange-500/30 bg-orange-500/15 text-white';
 export const CHIP_INACTIVE_CLASS =
-  'border border-white/5 bg-[#0a0a0a] text-slate-400 hover:bg-[#121212] hover:text-slate-200';
+  'border border-white/5 text-slate-400 hover:bg-[#121212] hover:text-slate-200';
 
 export const isCinemetaManifestUrl = (value: string) => {
   try {

@@ -40,18 +40,18 @@ function Step({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-3">
+    <section className="space-y-2">
       <div className="flex items-start gap-3">
         <span
           className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold ${
-            done ? 'border-emerald-400/30 bg-emerald-500/15 text-emerald-300' : 'border-white/10 bg-white/[0.04] text-slate-400'
+            done ? 'border-emerald-400/30 bg-emerald-500/15 text-emerald-300' : 'border-white/10 bg-white/[0.04] text-slate-100'
           }`}
         >
           {done ? <Check className="h-3 w-3" /> : index}
         </span>
         <div className="min-w-0">
-          <h3 className="text-xs font-semibold text-slate-200">{title}</h3>
-          <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">{description}</p>
+          <h3 className="text-xs font-semibold text-white">{title}</h3>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-slate-200">{description}</p>
         </div>
       </div>
       <div className="pl-9">{children}</div>
@@ -165,7 +165,7 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
                 </div>
 
                 {proxyCatalogsStatus === 'loading' && (
-                  <p className="text-[11px] text-slate-500">Loading catalogs from the manifest…</p>
+                  <p className="text-[11px] text-slate-200">Loading catalogs from the manifest…</p>
                 )}
                 {proxyCatalogsStatus === 'ready' && proxyCatalogs.length > 0 && totalCatalogFlags === 0 && (
                   <p className="text-[11px] text-emerald-400/80">
@@ -185,12 +185,12 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
           done={!canConfigureCatalogs || isAiometadataProxyManifest || isCinemetaProxyManifest}
         >
           {!canConfigureCatalogs ? (
-            <p className="text-[11px] text-slate-500">Add a manifest URL to unlock ID settings.</p>
+            <p className="text-[11px] text-slate-200">Add a manifest URL to unlock ID settings.</p>
           ) : isAiometadataProxyManifest ? (
             <Card>
-              <p className="text-[11px] leading-relaxed text-slate-400">
-                AiOMetadata IDs require alignment. Pick <strong className="font-semibold text-slate-200">IMDb</strong> if
-                the addon outputs real IMDb IDs, or <strong className="font-semibold text-slate-200">TVDB</strong> if it
+              <p className="text-[11px] leading-relaxed text-slate-100">
+                AiOMetadata IDs require alignment. Pick <strong className="font-semibold text-white">IMDb</strong> if
+                the addon outputs real IMDb IDs, or <strong className="font-semibold text-white">TVDB</strong> if it
                 bridges IMDb logic with TVDB numbering.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
@@ -199,7 +199,7 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
                     key={`proxy-provider-${option.id}`}
                     type="button"
                     onClick={() => setProxyAiometadataProvider(option.id)}
-                    className={`${BTN_BASE_CLASS} cursor-pointer px-3 py-2 ${proxyAiometadataProvider === option.id ? CHIP_ACTIVE_CLASS : CHIP_INACTIVE_CLASS}`}
+                    className={`${BTN_BASE_CLASS} cursor-pointer px-2.5 py-1.5 ${proxyAiometadataProvider === option.id ? CHIP_ACTIVE_CLASS : CHIP_INACTIVE_CLASS}`}
                   >
                     {option.label}
                   </button>
@@ -207,7 +207,7 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
               </div>
             </Card>
           ) : isCinemetaProxyManifest ? (
-            <p className="text-[11px] text-slate-500">Cinemeta manifests use standard IMDb IDs and need no extra settings.</p>
+            <p className="text-[11px] text-slate-200">Cinemeta manifests use standard IMDb IDs and need no extra settings.</p>
           ) : (
             <Card>
               <div className="flex flex-wrap gap-2">
@@ -216,13 +216,13 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
                     key={`proxy-series-provider-${option.id}`}
                     type="button"
                     onClick={() => setProxySeriesMetadataProvider(option.id)}
-                    className={`${BTN_BASE_CLASS} cursor-pointer px-3 py-2 ${proxySeriesMetadataProvider === option.id ? CHIP_ACTIVE_CLASS : CHIP_INACTIVE_CLASS}`}
+                    className={`${BTN_BASE_CLASS} cursor-pointer px-2.5 py-1.5 ${proxySeriesMetadataProvider === option.id ? CHIP_ACTIVE_CLASS : CHIP_INACTIVE_CLASS}`}
                   >
                     {option.label}
                   </button>
                 ))}
               </div>
-              <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+              <p className="mt-2 text-[10px] leading-relaxed text-slate-200">
                 Metadata provider used to resolve series and episode entries.
               </p>
             </Card>
@@ -235,7 +235,7 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
           description="Choose the artwork types the proxy should override, then copy the generated manifest."
           done={enabledTypeCount > 0}
         >
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex flex-wrap gap-1.5">
               {PROXY_TYPES.map((type) => (
                 <button
@@ -243,7 +243,7 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
                   type="button"
                   onClick={() => toggleProxyEnabledType(type)}
                   aria-pressed={proxyEnabledTypes[type]}
-                  className={`${BTN_BASE_CLASS} cursor-pointer px-3 py-2 ${
+                  className={`${BTN_BASE_CLASS} cursor-pointer px-2.5 py-1.5 ${
                     proxyEnabledTypes[type] ? CHIP_ACTIVE_CLASS : CHIP_INACTIVE_CLASS
                   }`}
                 >
@@ -256,11 +256,11 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
               type="button"
               onClick={toggleProxyTranslateMeta}
               aria-pressed={proxyTranslateMeta}
-              className={`${BTN_BASE_CLASS} cursor-pointer px-3 py-2 ${proxyTranslateMeta ? CHIP_ACTIVE_CLASS : CHIP_INACTIVE_CLASS}`}
+              className={`${BTN_BASE_CLASS} cursor-pointer px-2.5 py-1.5 ${proxyTranslateMeta ? CHIP_ACTIVE_CLASS : CHIP_INACTIVE_CLASS}`}
             >
               Translate addon metadata
             </button>
-            <p className="text-[10px] leading-relaxed text-slate-500">
+            <p className="text-[10px] leading-relaxed text-slate-200">
               Injects the selected language into plots, titles and episodes directly into the stream metadata.
             </p>
           </div>
@@ -287,7 +287,7 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
 
             <div className="mt-3 overflow-hidden rounded-xl border border-white/5 bg-black/40 p-3">
               <div
-                className={`w-full max-w-full break-all font-mono text-[11px] leading-relaxed text-slate-300 ${
+                className={`w-full max-w-full break-all font-mono text-[11px] leading-relaxed text-slate-100 ${
                   !isProxyUrlVisible ? 'select-none blur-sm opacity-50' : ''
                 }`}
               >
@@ -304,7 +304,7 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
                     ? proxyCopied
                       ? 'bg-emerald-500 text-black'
                       : BTN_ACCENT_CLASS
-                    : 'bg-white/5 text-slate-500'
+                    : 'bg-white/5 text-slate-200'
                 }`}
               >
                 {proxyCopied ? <Check className="h-3.5 w-3.5" /> : <Clipboard className="h-3.5 w-3.5" />}
@@ -315,7 +315,7 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
                 target="_blank"
                 rel="noreferrer"
                 className={`${BTN_BASE_CLASS} flex-1 px-4 py-2.5 ${
-                  canGenerateProxy ? BTN_GHOST_CLASS : 'pointer-events-none border border-white/5 text-slate-600'
+                  canGenerateProxy ? BTN_GHOST_CLASS : 'pointer-events-none border border-white/5 text-slate-300'
                 }`}
               >
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -325,7 +325,7 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
           </Card>
         </Step>
 
-        <div className="flex items-center gap-2 border-t border-white/5 pt-4 text-[10px] text-slate-600">
+        <div className="flex items-center gap-2 border-t border-white/5 pt-4 text-[10px] text-slate-300">
           <Share2 className="h-3 w-3" />
           <span>
             {enabledTypeCount} artwork type{enabledTypeCount === 1 ? '' : 's'} replaced ·{' '}
@@ -334,13 +334,13 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
         </div>
       </div>
 
-      <div className="shrink-0 space-y-3 border-t border-white/5 bg-black/20 p-3">
+      <div className="shrink-0 space-y-2 border-t border-white/5 bg-black/20 p-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <Terminal className="h-4 w-4 shrink-0 text-teal-400" />
             <div className="min-w-0">
-              <div className="text-xs font-semibold text-slate-200">URL patterns</div>
-              <p className="truncate text-[10px] text-slate-500">Renderer URLs and AiOMetadata patterns.</p>
+              <div className="text-xs font-semibold text-white">URL patterns</div>
+              <p className="truncate text-[10px] text-slate-200">Renderer URLs and AiOMetadata patterns.</p>
             </div>
           </div>
           <button
@@ -355,7 +355,7 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
         <div className="border-t border-white/5 pt-3">
           <div className="flex items-center gap-2">
             <Download className="h-3.5 w-3.5 shrink-0 text-orange-400" />
-            <span className="text-xs font-semibold text-slate-200">Import &amp; export</span>
+            <span className="text-xs font-semibold text-white">Import &amp; export</span>
           </div>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <button

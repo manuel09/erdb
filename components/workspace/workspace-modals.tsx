@@ -125,7 +125,7 @@ function SortableCatalogCard({
         {...listeners}
         aria-label={`Drag to reorder ${label}`}
         title="Drag to reorder"
-        className="mt-4 shrink-0 cursor-grab touch-none rounded-lg border border-white/10 bg-[#121212] p-1.5 text-slate-500 transition-colors hover:border-orange-400/40 hover:text-orange-300 active:cursor-grabbing [-webkit-tap-highlight-color:transparent]"
+        className="mt-4 shrink-0 cursor-grab touch-none rounded-lg border border-white/10 bg-[#121212] p-1.5 text-slate-200 transition-colors hover:border-orange-400/40 hover:text-orange-300 active:cursor-grabbing [-webkit-tap-highlight-color:transparent]"
         style={{ touchAction: 'none' }}
       >
         <GripVertical className="h-4 w-4" />
@@ -141,7 +141,7 @@ function CatalogDragPreview({ name, type }: { name: string; type: string }) {
       <GripVertical className="h-4 w-4 shrink-0 text-orange-400/80" />
       <div className="min-w-0">
         <div className="truncate text-xs font-semibold text-white">{name}</div>
-        {type && <div className="truncate text-[10px] text-slate-400">{type}</div>}
+        {type && <div className="truncate text-[10px] text-slate-100">{type}</div>}
       </div>
     </div>
   );
@@ -327,7 +327,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/70 "
             onClick={() => setIsCatalogModalOpen(false)}
           />
           <motion.div
@@ -335,15 +335,15 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="relative w-full max-w-3xl overflow-hidden rounded-[28px] border border-white/10 bg-[#0a0a0a] shadow-[0_40px_120px_-60px_rgba(0,0,0,0.9)] flex flex-col max-h-full"
+            className="relative w-full max-w-3xl overflow-hidden rounded-[28px] border border-white/10 bg-[#0b0f16] shadow-[0_40px_120px_-60px_rgba(0,0,0,0.9)] flex flex-col max-h-full"
           >
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 px-5 py-4 shrink-0">
               <div>
                 <h4 className="text-lg font-[var(--font-display)] text-white">Configure Catalogs</h4>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-slate-100">
                   Customize the catalog names exposed by the generated proxy manifest.
                 </p>
-                <p className="mt-2 text-[11px] text-slate-500">
+                <p className="mt-2 text-[11px] text-slate-200">
                   Discover-only is supported by adding a required `discover` extra. Keep in mind that Stremio expects no more than one required extra per catalog.
                 </p>
               </div>
@@ -352,7 +352,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                   <button
                     type="button"
                     onClick={() => setProxyCatalogOrder([])}
-                    className="rounded-lg border border-white/10 bg-[#121212] px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition-colors hover:bg-[#181818]"
+                    className="rounded-lg border border-white/10 bg-[#121212] px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-[#181818]"
                   >
                     Reset order
                   </button>
@@ -361,14 +361,14 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                   type="button"
                   onClick={resetProxyCatalogCustomizations}
                   disabled={!hasCatalogCustomizations}
-                  className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors ${hasCatalogCustomizations ? 'border border-white/10 bg-[#121212] text-slate-200 hover:bg-[#181818]' : 'border border-white/5 bg-[#080808] text-slate-600 cursor-not-allowed'}`}
+                  className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors ${hasCatalogCustomizations ? 'border border-white/10 bg-[#121212] text-white hover:bg-[#181818]' : 'border border-white/5 bg-[#080808] text-slate-300 cursor-not-allowed'}`}
                 >
                   Reset All
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsCatalogModalOpen(false)}
-                  className="rounded-lg border border-white/10 bg-[#121212] px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition-colors hover:bg-[#181818]"
+                  className="rounded-lg border border-white/10 bg-[#121212] px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-[#181818]"
                 >
                   Close
                 </button>
@@ -376,7 +376,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
             </div>
             <div className="overflow-y-auto overscroll-contain px-5 py-4 premium-scrollbar">
               {proxyCatalogsStatus === 'loading' && (
-                <div className="rounded-2xl border border-white/10 bg-[#080808] p-4 text-sm text-slate-400">
+                <div className="rounded-2xl border border-white/10 bg-[#080808] p-4 text-sm text-slate-100">
                   Loading catalogs from the manifest...
                 </div>
               )}
@@ -386,13 +386,13 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                 </div>
               )}
               {proxyCatalogsStatus === 'ready' && proxyCatalogs.length === 0 && (
-                <div className="rounded-2xl border border-white/10 bg-[#080808] p-4 text-sm text-slate-400">
+                <div className="rounded-2xl border border-white/10 bg-[#080808] p-4 text-sm text-slate-100">
                   This manifest does not include configurable catalogs.
                 </div>
               )}
               {proxyCatalogs.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-[11px] text-slate-500">
+                <div className="space-y-2">
+                  <p className="text-[11px] text-slate-200">
                     Drag the grip on the left to change the order of the catalogs in the generated manifest.
                   </p>
                   <DndContext
@@ -403,7 +403,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                     onDragCancel={() => setDraggedCatalogId(null)}
                   >
                     <SortableContext items={catalogIds} strategy={verticalListSortingStrategy}>
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {orderedCatalogs.map((catalog) => {
                           const overrideValue = proxyCatalogNames[catalog.key] || '';
                           const isHidden = proxyHiddenCatalogs.includes(catalog.key);
@@ -419,16 +419,16 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                                 <div className="flex flex-wrap items-start justify-between gap-3">
                                   <div>
                                     <div className="text-sm font-semibold text-white">{catalog.name}</div>
-                                    <div className="mt-1 text-[11px] text-slate-500">
+                                    <div className="mt-1 text-[11px] text-slate-200">
                                       {[catalog.type || 'catalog', catalog.id].filter(Boolean).join(' / ')}
                                     </div>
                                     {catalog.extraKeys.length > 0 && (
-                                      <div className="mt-1 text-[10px] text-slate-600">
+                                      <div className="mt-1 text-[10px] text-slate-300">
                                         Extras: {catalog.extraKeys.join(', ')}
                                       </div>
                                     )}
                                     {catalog.supportsSearch && (
-                                      <div className="mt-1 text-[10px] text-slate-600">
+                                      <div className="mt-1 text-[10px] text-slate-300">
                                         Search: {catalog.searchRequired ? 'search only' : 'search + catalog'}
                                       </div>
                                     )}
@@ -437,7 +437,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                                     <button
                                       type="button"
                                       onClick={() => updateProxyCatalogName(catalog.key, '')}
-                                      className="rounded-lg border border-white/10 bg-[#121212] px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-[#181818]"
+                                      className="rounded-lg border border-white/10 bg-[#121212] px-2.5 py-1 text-[10px] font-semibold text-slate-100 transition-colors hover:bg-[#181818]"
                                     >
                                       Reset
                                     </button>
@@ -447,7 +447,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                                   <button
                                     type="button"
                                     onClick={() => toggleProxyCatalogHidden(catalog.key)}
-                                    className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${isHidden ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-[#121212] text-slate-300 hover:bg-[#181818]'}`}
+                                    className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${isHidden ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-[#121212] text-slate-100 hover:bg-[#181818]'}`}
                                   >
                                     {isHidden ? 'Hidden' : 'Visible'}
                                   </button>
@@ -455,7 +455,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                                     <button
                                       type="button"
                                       onClick={() => toggleProxyCatalogSearchDisabled(catalog.key)}
-                                      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${isSearchDisabled ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-[#121212] text-slate-300 hover:bg-[#181818]'}`}
+                                      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${isSearchDisabled ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-[#121212] text-slate-100 hover:bg-[#181818]'}`}
                                     >
                                       {isSearchDisabled ? 'Search Off' : 'Search On'}
                                     </button>
@@ -464,13 +464,13 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                                     type="button"
                                     disabled={!canSetDiscoverOnly}
                                     onClick={() => setProxyCatalogDiscoverOnly(catalog.key, !isDiscoverOnly)}
-                                    className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${!canSetDiscoverOnly ? 'border border-white/5 bg-[#080808] text-slate-600 cursor-not-allowed' : isDiscoverOnly ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-[#121212] text-slate-300 hover:bg-[#181818]'}`}
+                                    className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${!canSetDiscoverOnly ? 'border border-white/5 bg-[#080808] text-slate-300 cursor-not-allowed' : isDiscoverOnly ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-[#121212] text-slate-100 hover:bg-[#181818]'}`}
                                   >
                                     {isDiscoverOnly ? 'Discover Only' : 'Home + Discover'}
                                   </button>
                                 </div>
                                 <div className="mt-3">
-                                  <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                                  <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-200">
                                     Custom Name
                                   </label>
                                   <input
@@ -478,34 +478,34 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                                     value={overrideValue}
                                     onChange={(event) => updateProxyCatalogName(catalog.key, event.target.value)}
                                     placeholder={catalog.name}
-                                    className="w-full rounded-lg border border-white/10 bg-[#0a0a0a] px-2.5 py-2 text-xs text-white outline-none focus:border-orange-500/50"
+                                    className="w-full rounded-lg border border-white/10 px-2.5 py-2 text-xs text-white outline-none focus:border-orange-500/50"
                                   />
-                                  <p className="mt-2 text-[10px] text-slate-500">
+                                  <p className="mt-2 text-[10px] text-slate-200">
                                     {overrideValue
                                       ? `Proxy manifest name: ${overrideValue}`
                                       : 'Leave empty to keep the original catalog name.'}
                                   </p>
                                   {isHidden && (
-                                    <p className="mt-1 text-[10px] text-slate-600">
+                                    <p className="mt-1 text-[10px] text-slate-300">
                                       {catalog.supportsSearch && !isSearchDisabled
                                         ? 'This catalog will stay searchable, but it will be converted to search-only so it no longer appears in home/discover.'
                                         : 'This catalog will be removed from the generated manifest.'}
                                     </p>
                                   )}
                                   {catalog.supportsSearch && isSearchDisabled && (
-                                    <p className="mt-1 text-[10px] text-slate-600">
+                                    <p className="mt-1 text-[10px] text-slate-300">
                                       {catalog.searchRequired
                                         ? 'This is a search-only catalog, so disabling search removes it from the generated manifest.'
                                         : 'Search support will be removed, but the catalog itself will stay available.'}
                                     </p>
                                   )}
                                   {!canSetDiscoverOnly && (
-                                    <p className="mt-1 text-[10px] text-slate-600">
+                                    <p className="mt-1 text-[10px] text-slate-300">
                                       Discover-only is unavailable while this catalog still has another required extra: {blockingRequiredExtraKeys.join(', ')}.
                                     </p>
                                   )}
                                   {canSetDiscoverOnly && isDiscoverOnly && (
-                                    <p className="mt-1 text-[10px] text-slate-600">
+                                    <p className="mt-1 text-[10px] text-slate-300">
                                       This catalog will stay available in Discover without appearing on the home rows.
                                     </p>
                                   )}
@@ -541,7 +541,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/70 "
             onClick={() => setIsAiometadataModalOpen(false)}
           />
           <motion.div
@@ -549,7 +549,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="relative w-full max-w-5xl overflow-hidden rounded-[28px] border border-white/10 bg-[#0a0a0a] shadow-[0_40px_120px_-60px_rgba(0,0,0,0.9)] flex flex-col max-h-full"
+            className="relative w-full max-w-5xl overflow-hidden rounded-[28px] border border-white/10 bg-[#0b0f16] shadow-[0_40px_120px_-60px_rgba(0,0,0,0.9)] flex flex-col max-h-full"
           >
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 px-5 py-4 shrink-0">
               <div>
@@ -557,14 +557,14 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                   <Terminal className="h-5 w-5 text-orange-500" />
                   <span>URL Patterns</span>
                 </h4>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-slate-100">
                   Copy every supported renderer URL combination, including the AiOMetadata-specific patterns.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsAiometadataModalOpen(false)}
-                className="rounded-lg border border-white/10 bg-[#121212] px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition-colors hover:bg-[#181818]"
+                className="rounded-lg border border-white/10 bg-[#121212] px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-[#181818]"
               >
                 Close
               </button>
@@ -576,7 +576,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                     <Clapperboard className="h-4 w-4 text-violet-400" />
                     Nuvio Patterns
                   </h5>
-                  <p className="mt-1 max-w-3xl text-xs text-slate-500">
+                  <p className="mt-1 max-w-3xl text-xs text-slate-200">
                     Ready-to-paste patterns for Nuvio custom artwork fields.{' '}
                     {'{id}'} is the full meta ID (tt..., tmdb:1396, kitsu:7442, ...), {'{type}'} resolves to movie/series, and{' '}
                     {'{season}'}/{'{episode}'} are used by episode thumbnails. On the poster pattern,{' '}
@@ -591,7 +591,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                     return (
                       <div key={key} className="rounded-2xl border border-white/10 bg-[#080808]/90 p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="text-[11px] font-semibold text-slate-400">{label}</div>
+                          <div className="text-[11px] font-semibold text-slate-100">{label}</div>
                           <button
                             type="button"
                             onClick={() => handleCopyPattern(patternKey, value)}
@@ -611,7 +611,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                           </button>
                         </div>
                         <div className="mt-2 rounded-xl border border-white/10 bg-[#0a0a0a]/80 p-3">
-                          <div className="whitespace-pre-wrap break-all font-mono text-xs text-slate-300">{value}</div>
+                          <div className="whitespace-pre-wrap break-all font-mono text-xs text-slate-100">{value}</div>
                         </div>
                       </div>
                     );
@@ -623,11 +623,11 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                 <div className="flex flex-wrap items-end justify-between gap-2">
                   <div>
                     <h5 id="url-patterns-heading" className="text-sm font-semibold text-white">Renderer URL combinations</h5>
-                    <p className="mt-1 max-w-3xl text-xs text-slate-500">
+                    <p className="mt-1 max-w-3xl text-xs text-slate-200">
                       Every image type paired with supported IMDb, TMDB, TVDB, bridge, and anime ID formats, split by movie/series.
                     </p>
                   </div>
-                  <span className="rounded-full border border-white/10 bg-[#121212] px-2.5 py-1 text-[10px] font-mono text-slate-500">
+                  <span className="rounded-full border border-white/10 bg-[#121212] px-2.5 py-1 text-[10px] font-mono text-slate-200">
                     {rendererBaseUrl}/{rendererToken}
                   </span>
                 </div>
@@ -635,14 +635,14 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                   {URL_PATTERN_GROUPS.map((group) => (
                     <div key={group.type} className="rounded-2xl border border-white/10 bg-[#080808]/90 p-3">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="text-[11px] font-semibold text-slate-300">{group.label}</div>
-                        <span className="text-[10px] text-slate-600">
+                        <div className="text-[11px] font-semibold text-slate-100">{group.label}</div>
+                        <span className="text-[10px] text-slate-300">
                           {group.kinds.reduce((total, entry) => total + entry.patterns.length, 0)} formats
                         </span>
                       </div>
                       {group.kinds.map(({ kind, patterns }) => (
                         <div key={kind} className="mt-3 first:mt-2">
-                          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-300">
                             {kind}
                           </div>
                           <div className="mt-2 space-y-2">
@@ -651,10 +651,10 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                               const value = buildRendererUrl(group.type, kind, id);
                               const isCopied = copiedPatternKey === key;
                               return (
-                                <div key={id} className="flex items-center gap-2 rounded-xl border border-white/5 bg-[#0a0a0a] p-2">
+                                <div key={id} className="flex items-center gap-2 rounded-xl border border-white/5 p-2">
                                   <div className="min-w-0 flex-1">
-                                    <div className="text-[10px] text-slate-600">{label}</div>
-                                    <code className="mt-0.5 block break-all font-mono text-[11px] leading-5 text-slate-300">{value}</code>
+                                    <div className="text-[10px] text-slate-300">{label}</div>
+                                    <code className="mt-0.5 block break-all font-mono text-[11px] leading-5 text-slate-100">{value}</code>
                                   </div>
                                   <button
                                     type="button"
@@ -682,27 +682,9 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                     <Terminal className="h-4 w-4 text-teal-400" />
                     AiOMetadata Patterns
                   </h5>
-                  <p className="mt-1 max-w-3xl text-xs text-slate-500">
+                  <p className="mt-1 max-w-3xl text-xs text-slate-200">
                     Exact token/config patterns for AiOMetadata. Series and anime should use the same episode provider.
                   </p>
-                </div>
-                <div className="mt-4 rounded-2xl border border-white/10 bg-[#080808]/90 p-3">
-                  <div className="text-[11px] font-semibold text-slate-400">AiOMetadata Series/Anime Provider</div>
-                  <p className="mt-1 text-[10px] text-slate-600">
-                    TVDB can be incorrect when AiOMetadata sends a Kitsu ID in the season slot.
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {AIOMETADATA_EPISODE_PROVIDER_OPTIONS.map((option) => (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() => setAiometadataEpisodeProvider(option.id)}
-                        className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-colors ${aiometadataEpisodeProvider === option.id ? 'border-orange-500/60 bg-[#121212] text-white' : 'border-white/10 bg-[#0a0a0a] text-slate-400 hover:text-white'}`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
                 </div>
                 <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
                   {([
@@ -717,12 +699,12 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                     return (
                       <div key={type} className="rounded-2xl border border-white/10 bg-[#080808]/90 p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="text-[11px] font-semibold text-slate-400">{label}</div>
+                          <div className="text-[11px] font-semibold text-slate-100">{label}</div>
                           <button
                             type="button"
                             onClick={() => handleCopyAiometadataPattern(type)}
                             disabled={!isAvailable}
-                            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-all ${isAvailable ? (isCopied ? 'cursor-pointer bg-green-500 text-white' : 'cursor-pointer bg-orange-500 text-black hover:bg-orange-400') : 'cursor-not-allowed bg-[#121212] text-slate-500'}`}
+                            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-all ${isAvailable ? (isCopied ? 'cursor-pointer bg-green-500 text-white' : 'cursor-pointer bg-orange-500 text-black hover:bg-orange-400') : 'cursor-not-allowed bg-[#121212] text-slate-200'}`}
                           >
                             {isCopied ? (
                               <>
@@ -738,7 +720,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                           </button>
                         </div>
                         <div className="mt-2 min-h-[7rem] rounded-xl border border-white/10 bg-[#0a0a0a]/80 p-3">
-                          <div className="whitespace-pre-wrap break-all font-mono text-xs text-slate-300">
+                          <div className="whitespace-pre-wrap break-all font-mono text-xs text-slate-100">
                             {value || 'Not available.'}
                           </div>
                         </div>
@@ -759,7 +741,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/70 "
             onClick={handleCloseRotateModal}
           />
           <motion.div
@@ -776,7 +758,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                 </div>
                 <div>
                   <div className="text-sm font-semibold text-white">Rotate Token</div>
-                  <p className="mt-0.5 text-[11px] text-slate-400">
+                  <p className="mt-0.5 text-[11px] text-slate-100">
                     Generate a new token and migrate the current configuration automatically.
                   </p>
                 </div>
@@ -796,7 +778,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                     </div>
 
                     <div>
-                      <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-200">
                         Current token password
                       </label>
                       <div className="relative">
@@ -812,7 +794,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                         <button
                           type="button"
                           onClick={() => setRotateShowPassword((v) => !v)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-200 hover:text-white transition-colors"
                         >
                           {rotateShowPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -828,7 +810,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                     <div className="flex gap-3">
                       <button
                         onClick={handleCloseRotateModal}
-                        className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/[0.08]"
+                        className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/[0.08]"
                       >
                         Cancel
                       </button>
@@ -857,7 +839,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                     </div>
 
                     <div>
-                      <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-200">
                         New Token
                       </div>
                       <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#080808] px-4 py-3">
@@ -866,10 +848,10 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                           onClick={handleCopyRotatedToken}
                           className="shrink-0 rounded-lg bg-white/[0.06] p-2 transition hover:bg-white/[0.12]"
                         >
-                          {rotateCopied ? <Check className="h-4 w-4 text-emerald-300" /> : <Clipboard className="h-4 w-4 text-slate-300" />}
+                          {rotateCopied ? <Check className="h-4 w-4 text-emerald-300" /> : <Clipboard className="h-4 w-4 text-slate-100" />}
                         </button>
                       </div>
-                      <p className="mt-2 text-[11px] text-slate-500">
+                      <p className="mt-2 text-[11px] text-slate-200">
                         Save this token. Use it with the same password on your next login.
                       </p>
                     </div>

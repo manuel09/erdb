@@ -255,9 +255,9 @@ export function WorkspaceAuthPage({
 
             {/* Key benefit highlight */}
             <div className="mt-6 rounded-2xl border border-orange-400/20 bg-orange-500/[0.07] p-4">
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-2.5">
                 <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-orange-500/20">
-                  <Sparkles className="h-4 w-4 text-orange-300" />
+                  <Sparkles className="h-4 w-4 text-orange-400" />
                 </div>
                 <div>
                   <div className="text-sm font-semibold text-orange-100">Zero reinstalls, instant updates</div>
@@ -270,7 +270,7 @@ export function WorkspaceAuthPage({
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-                <KeyRound className="h-5 w-5 text-orange-300" />
+                <KeyRound className="h-5 w-5 text-orange-400" />
                 <div className="mt-3 text-sm font-semibold text-white">Token Login</div>
                 <p className="mt-1 text-xs leading-6 text-slate-400">
                   Sign in with your existing <code className="text-slate-300">Tk-...</code> token and password to restore your saved workspace and all your settings.
@@ -398,7 +398,7 @@ export function WorkspaceAuthPage({
               {mode === 'register' && (
                 <>
                   <div className="rounded-2xl border border-sky-400/20 bg-sky-400/10 p-4">
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center justify-between gap-2.5">
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-200">
                           Step 1
@@ -466,7 +466,7 @@ export function WorkspaceAuthPage({
                     <p className="mt-1 text-sm leading-6 text-slate-300">
                       Save these login details before continuing. After this step you will need both the token and the password.
                     </p>
-                    <div className="mt-4 flex flex-wrap gap-3">
+                    <div className="mt-4 flex flex-wrap gap-2.5">
                       <button
                         type="button"
                         onClick={handleCopyCredentials}

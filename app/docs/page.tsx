@@ -28,7 +28,7 @@ const logoFonts = LOGO_FONT_VARIANT_OPTIONS.map((option) => option.id).join(', '
 const logoModes = LOGO_MODE_OPTIONS.map((option) => option.id).join(', ');
 
 function Code({ children }: { children: ReactNode }) {
-  return <code className="font-mono text-[12px] text-orange-300">{children}</code>;
+  return <code className="font-mono text-[12px] text-orange-400">{children}</code>;
 }
 
 function Table({ columns, rows }: { columns: string[]; rows: ReactNode[][] }) {
@@ -103,7 +103,7 @@ export default function DocsPage() {
         <div className="space-y-10">
           <section className="space-y-4">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[10px] uppercase tracking-[0.34em] text-slate-300">
-              <Workflow className="h-3.5 w-3.5 text-orange-300" />
+              <Workflow className="h-3.5 w-3.5 text-orange-400" />
               <span>Dedicated API Docs</span>
             </div>
             <h1 className="max-w-5xl text-4xl leading-tight text-white sm:text-5xl">
@@ -120,7 +120,7 @@ export default function DocsPage() {
             </p>
           </section>
 
-          <Section icon={<Code2 className="h-3.5 w-3.5 text-orange-300" />} title="Public Endpoints" description="Main public surface exposed by the app.">
+          <Section icon={<Code2 className="h-3.5 w-3.5 text-orange-400" />} title="Public Endpoints" description="Main public surface exposed by the app.">
             <Table
               columns={['Method', 'Path', 'Purpose', 'Notes']}
               rows={[
@@ -134,7 +134,7 @@ export default function DocsPage() {
             />
           </Section>
 
-          <Section icon={<ImageIcon className="h-3.5 w-3.5 text-orange-300" />} title="Image Renderer" description="Canonical route: GET /{token}/{type}/{kind}/{id}.jpg">
+          <Section icon={<ImageIcon className="h-3.5 w-3.5 text-orange-400" />} title="Image Renderer" description="Canonical route: GET /{token}/{type}/{kind}/{id}.jpg">
             <div className="rounded-3xl border border-white/10 bg-[#0a0f16]/90 p-5 text-sm leading-7 text-slate-400 mb-4">
               <p>The image renderer no longer relies on query strings. All settings, including API keys, layouts, badges, and providers, are stored in the server database and resolved using the provided token.</p>
             </div>
@@ -175,27 +175,23 @@ export default function DocsPage() {
             <Table
               columns={['Pattern', 'Use when', 'Example']}
               rows={[
-                [<Code key="pattern1">/{'{token}'}/poster/movie/{'{imdbId}'}.jpg</Code>, 'Movie posters from IMDb movie IDs.', <Code key="pattern1ex">/Tk-abc123/poster/movie/tt0133093.jpg</Code>],
-                [<Code key="pattern2">/{'{token}'}/poster/series/{'{imdbId}'}.jpg</Code>, 'Series posters from IMDb series IDs.', <Code key="pattern2ex">/Tk-abc123/poster/series/tt0944947.jpg</Code>],
-                [<Code key="pattern3">/{'{token}'}/backdrop/movie/{'{imdbId}'}.jpg</Code>, 'Movie backdrops from IMDb movie IDs.', <Code key="pattern3ex">/Tk-abc123/backdrop/movie/tt0133093.jpg</Code>],
-                [<Code key="pattern4">/{'{token}'}/backdrop/series/{'{imdbId}'}.jpg</Code>, 'Series backdrops from IMDb series IDs.', <Code key="pattern4ex">/Tk-abc123/backdrop/series/tt0944947.jpg</Code>],
-                [<Code key="pattern5">/{'{token}'}/logo/movie/{'{imdbId}'}.jpg</Code>, 'Movie logos from IMDb movie IDs.', <Code key="pattern5ex">/Tk-abc123/logo/movie/tt0133093.jpg</Code>],
-                [<Code key="pattern6">/{'{token}'}/logo/series/{'{imdbId}'}.jpg</Code>, 'Series logos from IMDb series IDs.', <Code key="pattern6ex">/Tk-abc123/logo/series/tt0944947.jpg</Code>],
-                [<Code key="pattern7">/{'{token}'}/thumbnail/series/{'{seriesImdbId}'}:{'{season}'}:{'{episode}'}.jpg</Code>, 'Episode thumbnails using IMDb episode addressing.', <Code key="pattern7ex">/Tk-abc123/thumbnail/series/tt0944947:1:1.jpg</Code>],
-                [<Code key="pattern8">/{'{token}'}/thumbnail/series/realimdb:{'{seriesImdbId}'}:{'{season}'}:{'{episode}'}.jpg</Code>, 'Episode thumbnails when the addon uses real IMDb TV metadata.', <Code key="pattern8ex">/Tk-abc123/thumbnail/series/realimdb:tt0944947:1:1.jpg</Code>],
-                [<Code key="pattern9">/{'{token}'}/thumbnail/series/tvdb:{'{tvdbId}'}:{'{season}'}:{'{episode}'}.jpg</Code>, 'Episode thumbnails when the addon uses TVDB numbering.', <Code key="pattern9ex">/Tk-abc123/thumbnail/series/tvdb:121361:1:1.jpg</Code>],
-                [<Code key="pattern10">/{'{token}'}/poster/movie/tmdb:{'{tmdbId}'}.jpg</Code>, 'Movie posters when you only have a TMDB movie ID.', <Code key="pattern10ex">/Tk-abc123/poster/movie/tmdb:603.jpg</Code>],
-                [<Code key="pattern11">/{'{token}'}/backdrop/series/tmdb:{'{tmdbId}'}.jpg</Code>, 'Series backdrops when you only have a TMDB TV ID.', <Code key="pattern11ex">/Tk-abc123/backdrop/series/tmdb:1399.jpg</Code>],
+                [<Code key="pattern1">/{'{token}'}/poster/{'{id}'}.jpg?type={'{type}'}</Code>, 'Movie or series poster. Pass any id you already have.', <Code key="pattern1ex">/Tk-abc123/poster/tt0133093.jpg?type=movie</Code>],
+                [<Code key="pattern2">/{'{token}'}/poster/{'{id}'}.jpg?type={'{type}'}&shape={'{shape}'}</Code>, 'Poster with a forced shape (poster / landscape).', <Code key="pattern2ex">/Tk-abc123/poster/tt0133093.jpg?type=movie&shape=landscape</Code>],
+                [<Code key="pattern3">/{'{token}'}/backdrop/{'{id}'}.jpg?type={'{type}'}</Code>, 'Movie or series backdrop.', <Code key="pattern3ex">/Tk-abc123/backdrop/tt0944947.jpg?type=series</Code>],
+                [<Code key="pattern4">/{'{token}'}/logo/{'{id}'}.jpg?type={'{type}'}</Code>, 'Movie or series logo.', <Code key="pattern4ex">/Tk-abc123/logo/tt0944947.jpg?type=series</Code>],
+                [<Code key="pattern5">/{'{token}'}/thumbnail/{'{id}'}:{'{season}'}:{'{episode}'}.jpg?type={'{type}'}</Code>, 'Episode thumbnail.', <Code key="pattern5ex">/Tk-abc123/thumbnail/tt0944947:1:1.jpg?type=series</Code>],
+                [<Code key="pattern6">/{'{token}'}/thumbnail/tvdb:{'{tvdbId}'}:{'{season}'}:{'{episode}'}.jpg?type={'{type}'}</Code>, 'Episode thumbnail when the addon only has TVDB numbering.', <Code key="pattern6ex">/Tk-abc123/thumbnail/tvdb:121361:1:1.jpg?type=series</Code>],
+                [<Code key="pattern7">/{'{token}'}/poster/tmdb:{'{tmdbId}'}.jpg?type={'{type}'}</Code>, 'Poster when only a TMDB id is available.', <Code key="pattern7ex">/Tk-abc123/poster/tmdb:603.jpg?type=movie</Code>],
               ]}
             />
-            <pre className="overflow-x-auto rounded-3xl border border-white/10 bg-[#0a0f16]/90 p-5 text-[12px] leading-6 text-slate-200"><code>{`GET /Tk-abc123xyz/poster/movie/tt0133093.jpg
-GET /Tk-abc123xyz/backdrop/series/tt0944947.jpg
-GET /Tk-abc123xyz/logo/series/tt0944947.jpg
-GET /Tk-abc123xyz/thumbnail/series/realimdb:tt0944947:1:1.jpg`}</code></pre>
+            <pre className="overflow-x-auto rounded-3xl border border-white/10 bg-[#0a0f16]/90 p-5 text-[12px] leading-6 text-slate-200"><code>{`GET /Tk-abc123xyz/poster/tt0133093.jpg?type=movie
+GET /Tk-abc123xyz/backdrop/tt0944947.jpg?type=series
+GET /Tk-abc123xyz/logo/tt0944947.jpg?type=series
+GET /Tk-abc123xyz/thumbnail/tt0944947:1:1.jpg?type=series`}</code></pre>
           </Section>
 
           <Section
-            icon={<Bot className="h-3.5 w-3.5 text-orange-300" />}
+            icon={<Bot className="h-3.5 w-3.5 text-orange-400" />}
             title="AI Integration Prompt"
             description="A ready-to-use prompt for wiring ERDB into another addon or media app using the documented config fields and routes."
           >
@@ -214,7 +210,7 @@ GET /Tk-abc123xyz/thumbnail/series/realimdb:tt0944947:1:1.jpg`}</code></pre>
             <pre className="overflow-x-auto rounded-3xl border border-white/10 bg-[#0a0f16]/90 p-5 text-[12px] leading-6 text-slate-200"><code>{ERDB_AI_INTEGRATION_PROMPT}</code></pre>
           </Section>
 
-          <Section icon={<FileJson className="h-3.5 w-3.5 text-orange-300" />} title="Helpers And Headers" description="Useful integration details that are easy to miss when wiring ERDB behind another proxy or CDN.">
+          <Section icon={<FileJson className="h-3.5 w-3.5 text-orange-400" />} title="Helpers And Headers" description="Useful integration details that are easy to miss when wiring ERDB behind another proxy or CDN.">
             <Table
               columns={['Topic', 'Behavior']}
               rows={[

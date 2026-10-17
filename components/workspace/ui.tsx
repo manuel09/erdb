@@ -1,7 +1,9 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Info, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { Info, AlertTriangle, CheckCircle2, XCircle, ChevronDown, type LucideIcon } from 'lucide-react';
 import { CARD_CLASS } from './constants';
 
 const ACCENTS = {
@@ -33,10 +35,67 @@ export function PanelHeader({
       </div>
       <div className="min-w-0 flex-1">
         <h2 className="truncate text-sm font-semibold text-white">{title}</h2>
-        {subtitle && <p className="mt-0.5 truncate text-[11px] text-slate-500">{subtitle}</p>}
+        {subtitle && <p className="mt-0.5 truncate text-[11px] text-slate-200">{subtitle}</p>}
       </div>
       {actions}
     </div>
+  );
+}
+
+export function Section({
+  icon: Icon,
+  title,
+  hint,
+  defaultOpen = false,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  hint?: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const panelId = `section-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  return (
+    <section className="overflow-hidden rounded-3xl border border-white/[0.06]">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-controls={panelId}
+        className="flex w-full cursor-pointer items-center gap-2.5 px-2.5 py-1.5 text-left transition-colors duration-200 hover:bg-white/[0.04] focus-visible:ring-2 focus-visible:ring-orange-400/60 focus-visible:outline-none"
+      >
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 text-slate-100">
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="mono-label block text-white">{title}</span>
+          {hint && <span className="mt-0.5 block text-[10.5px] leading-snug text-slate-400">{hint}</span>}
+        </span>
+        <motion.span
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          className="shrink-0 text-slate-200"
+        >
+          <ChevronDown className="h-4 w-4" />
+        </motion.span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            id={panelId}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-2 px-3 pb-3">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
   );
 }
 
@@ -54,12 +113,12 @@ export function Card({
   className?: string;
 }) {
   return (
-    <div className={`${CARD_CLASS} ${className ?? ''}`}>
+    <div data-card className={`${CARD_CLASS} [&_[data-row]]:rounded-none [&_[data-row]]:border-0 [&_[data-row]]:px-0 [&_[data-row]]:py-0.5 ${className ?? ''}`}>
       {(title || actions) && (
-        <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="mb-2 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            {title && <div className="text-xs font-semibold text-slate-200">{title}</div>}
-            {description && <p className="mt-1 text-[11px] leading-relaxed text-slate-500">{description}</p>}
+            {title && <div className="mono-label text-slate-100">{title}</div>}
+            {description && <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{description}</p>}
           </div>
           {actions}
         </div>
@@ -81,10 +140,10 @@ export function Field({
   className?: string;
 }) {
   return (
-    <label className={`flex flex-col gap-1.5 ${className ?? ''}`}>
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</span>
+    <label className={`flex flex-col gap-1 ${className ?? ''}`}>
+      <span className="mono-label">{label}</span>
       {children}
-      {hint && <span className="text-[10px] leading-relaxed text-slate-500">{hint}</span>}
+      {hint && <span className="text-[10px] leading-relaxed text-slate-200">{hint}</span>}
     </label>
   );
 }
@@ -103,10 +162,10 @@ export function Toggle({
   className?: string;
 }) {
   return (
-    <div className={`flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-black/30 px-3.5 py-3 ${className ?? ''}`}>
+    <div data-row className={`flex items-center justify-between gap-2.5 rounded-xl border border-white/[0.07] px-3 py-2 ${className ?? ''}`}>
       <span className="flex min-w-0 flex-col gap-0.5">
-        <span className="text-xs font-medium text-slate-200">{label}</span>
-        {hint && <span className="text-[10px] leading-relaxed text-slate-500">{hint}</span>}
+        <span className="text-[12px] font-medium text-white">{label}</span>
+        {hint && <span className="text-[10.5px] leading-snug text-slate-400">{hint}</span>}
       </span>
       <button
         type="button"
@@ -114,9 +173,13 @@ export function Toggle({
         aria-checked={checked}
         aria-label={label}
         onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full p-1 transition-colors ${checked ? 'bg-orange-500/80' : 'bg-white/10'}`}
+        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full p-[3px] transition-colors focus-visible:ring-2 focus-visible:ring-orange-400/50 focus-visible:outline-none ${checked ? 'bg-orange-500/80' : 'bg-white/10'}`}
       >
-        <span className={`block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
+        <motion.span
+          animate={{ x: checked ? 16 : 0 }}
+          transition={{ type: 'spring', stiffness: 520, damping: 26, mass: 0.6 }}
+          className="block h-3.5 w-3.5 rounded-full bg-white"
+        />
       </button>
     </div>
   );
@@ -176,12 +239,12 @@ export function NumberStepper({
         value={value ?? ''}
         onChange={(event) => onChange(event.target.value === '' ? null : parseInt(event.target.value, 10))}
         placeholder={placeholder}
-        className="w-24 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white outline-none transition focus:border-orange-400/50"
+        className="w-24 rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-white outline-none transition focus:border-orange-400/50"
       />
       <button
         type="button"
         onClick={onReset}
-        className="cursor-pointer rounded-xl border border-white/5 bg-[#0a0a0a] px-3 py-2 text-xs font-semibold text-slate-400 transition-colors hover:bg-[#121212] hover:text-slate-200"
+        className="cursor-pointer rounded-xl border border-white/5 px-2.5 py-1.5 text-xs font-semibold text-slate-100 transition-colors hover:bg-[#121212] hover:text-white"
       >
         Auto
       </button>

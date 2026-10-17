@@ -1,6 +1,6 @@
 import type {Metadata} from 'next';
 import {connection} from 'next/server';
-import {Space_Grotesk, Unbounded} from 'next/font/google';
+import {Instrument_Serif, JetBrains_Mono, Plus_Jakarta_Sans} from 'next/font/google';
 import { scheduleImdbDatasetSync } from '@/lib/imdbDatasetSync';
 import './globals.css'; // Global styles
 
@@ -9,14 +9,24 @@ export const metadata: Metadata = {
   description: 'Easy Ratings Database (ERDB) for dynamic poster, backdrop, and logo ratings.',
 };
 
-const bodyFont = Space_Grotesk({
+// Same type stack as realbestia.com: Jakarta for UI text, JetBrains Mono for labels/values,
+// Instrument Serif italic for the accent word.
+const bodyFont = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-body',
   display: 'swap',
 });
 
-const displayFont = Unbounded({
+const monoFont = JetBrains_Mono({
   subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+});
+
+const displayFont = Instrument_Serif({
+  subsets: ['latin'],
+  weight: '400',
+  style: ['normal', 'italic'],
   variable: '--font-display',
   display: 'swap',
 });
@@ -27,7 +37,10 @@ export default async function RootLayout({children}: {children: React.ReactNode}
 
   return (
     <html lang="en">
-      <body className={`${bodyFont.variable} ${displayFont.variable} antialiased`} suppressHydrationWarning>
+      <body
+        className={`${bodyFont.variable} ${monoFont.variable} ${displayFont.variable} antialiased`}
+        suppressHydrationWarning
+      >
         {children}
       </body>
     </html>

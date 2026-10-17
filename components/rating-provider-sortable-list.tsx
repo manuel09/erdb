@@ -91,7 +91,7 @@ function SortableRow({
         {...attributes}
         {...listeners}
         aria-label={`Drag to reorder ${meta?.label ?? row.id}`}
-        className="shrink-0 cursor-grab touch-none rounded p-0.5 text-slate-500 hover:text-orange-300/90 active:cursor-grabbing [-webkit-tap-highlight-color:transparent]"
+        className="shrink-0 cursor-grab touch-none rounded p-0.5 text-slate-500 hover:text-orange-400/90 active:cursor-grabbing [-webkit-tap-highlight-color:transparent]"
         style={{ touchAction: 'none' }}
       >
         <GripVertical className="h-4 w-4" />

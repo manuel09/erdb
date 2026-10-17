@@ -159,7 +159,7 @@ function MediaIdSearch({
   return (
     <div ref={containerRef} className="relative w-full sm:w-auto">
       <div className="relative flex items-center">
-        <Search className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-slate-500" />
+        <Search className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-slate-200" />
         <input
           ref={inputRef}
           type="text"
@@ -173,7 +173,7 @@ function MediaIdSearch({
         {inputValue && (
           <button
             onClick={handleClear}
-            className="absolute right-7 flex h-5 w-5 cursor-pointer items-center justify-center rounded-md text-slate-500 transition hover:text-slate-300"
+            className="absolute right-7 flex h-5 w-5 cursor-pointer items-center justify-center rounded-md text-slate-200 transition hover:text-slate-100"
             tabIndex={-1}
             title="Clear"
           >
@@ -183,7 +183,7 @@ function MediaIdSearch({
         <button
           onClick={handleSearchIconClick}
           disabled={!tmdbKey}
-          className={`absolute right-1.5 flex h-5 w-5 items-center justify-center rounded-md transition ${tmdbKey ? 'cursor-pointer text-slate-400 hover:text-orange-300' : 'cursor-not-allowed text-slate-600'}`}
+          className={`absolute right-1.5 flex h-5 w-5 items-center justify-center rounded-md transition ${tmdbKey ? 'cursor-pointer text-slate-100 hover:text-orange-300' : 'cursor-not-allowed text-slate-300'}`}
           tabIndex={-1}
           title={tmdbKey ? 'Search by title' : 'Add a TMDB key to enable title search'}
         >
@@ -192,8 +192,8 @@ function MediaIdSearch({
       </div>
 
       {isOpen && results.length > 0 && (
-        <div className="absolute left-0 top-full z-[200] mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#0d0f14] shadow-[0_24px_60px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl">
-          <div className="px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.28em] text-slate-500">
+        <div className="absolute left-0 top-full z-[200] mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#0d0f14] shadow-[0_24px_60px_-15px_rgba(0,0,0,0.9)] ">
+          <div className="px-2.5 py-1.5 text-[9px] font-semibold uppercase tracking-[0.28em] text-slate-200">
             Select a result
           </div>
           <div className="max-h-72 overflow-y-auto premium-scrollbar">
@@ -203,12 +203,12 @@ function MediaIdSearch({
                 onClick={() => handleSelect(r)}
                 className="flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-white/[0.06]"
               >
-                <div className="relative h-12 w-8 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/[0.03]">
+                <div className="relative h-12 w-8 shrink-0 overflow-hidden rounded-lg border border-white/10">
                   {r.poster ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={r.poster} alt="" className="h-full w-full object-cover" />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-slate-600">
+                    <div className="flex h-full w-full items-center justify-center text-slate-300">
                       {r.type === 'movie' ? <Film className="h-3 w-3" /> : <Tv className="h-3 w-3" />}
                     </div>
                   )}
@@ -216,7 +216,7 @@ function MediaIdSearch({
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-xs font-semibold text-white">{r.title}</div>
                   <div className="mt-0.5 flex items-center gap-1.5">
-                    {r.year && <span className="text-[10px] text-slate-500">{r.year}</span>}
+                    {r.year && <span className="text-[10px] text-slate-200">{r.year}</span>}
                     <span
                       className={`rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
                         r.type === 'movie' ? 'bg-orange-500/15 text-orange-300' : 'bg-sky-500/15 text-sky-300'
@@ -336,7 +336,7 @@ function AccountMenu({
           <MoreHorizontal className="h-4 w-4" />
         </button>
         {open && (
-          <div className="absolute right-0 top-full z-[200] mt-2 w-52 overflow-hidden rounded-2xl border border-white/10 bg-[#0d0f14] p-1.5 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl">
+          <div className="absolute right-0 top-full z-[200] mt-2 w-52 overflow-hidden rounded-2xl border border-white/10 bg-[#0d0f14] p-1.5 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.9)] ">
             <button
               type="button"
               onClick={() => {
@@ -344,7 +344,7 @@ function AccountMenu({
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}
-              className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-slate-300 transition-colors hover:bg-white/[0.06] hover:text-white"
+              className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left text-xs font-medium text-slate-100 transition-colors hover:bg-white/[0.06] hover:text-white"
             >
               {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Clipboard className="h-3.5 w-3.5" />}
               <span>{copied ? 'Token copied' : 'Copy token'}</span>
@@ -355,7 +355,7 @@ function AccountMenu({
                 setOpen(false);
                 onRotate();
               }}
-              className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-slate-300 transition-colors hover:bg-white/[0.06] hover:text-white"
+              className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left text-xs font-medium text-slate-100 transition-colors hover:bg-white/[0.06] hover:text-white"
             >
               <RefreshCcw className="h-3.5 w-3.5" />
               <span>Rotate token</span>
@@ -366,7 +366,7 @@ function AccountMenu({
                 setOpen(false);
                 onLogout();
               }}
-              className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-rose-300 transition-colors hover:bg-rose-500/10 hover:text-rose-200"
+              className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left text-xs font-medium text-rose-300 transition-colors hover:bg-rose-500/10 hover:text-rose-200"
             >
               <LogOut className="h-3.5 w-3.5" />
               <span>Logout</span>
@@ -387,17 +387,37 @@ export function WorkspaceNav({ refs, state, actions, onOpenRotateModal }: Worksp
     label: `${l.flag} ${l.label}`,
   }));
 
+  // Publish the real navbar height so floating overlays sit below it (never behind it).
+  useEffect(() => {
+    const element = navRef.current;
+    if (!element) return;
+    const apply = () => {
+      document.documentElement.style.setProperty(
+        '--erdb-nav-height',
+        `${Math.round(element.getBoundingClientRect().height)}px`
+      );
+    };
+    apply();
+    const observer = new ResizeObserver(apply);
+    observer.observe(element);
+    window.addEventListener('resize', apply);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', apply);
+    };
+  }, [navRef]);
+
   return (
     <nav
       ref={navRef}
-      className="sticky top-0 z-50 shrink-0 rounded-[22px] border border-white/10 bg-[#06070b]/85 px-2.5 py-2 shadow-[0_24px_70px_-45px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl xl:static"
+      className="sticky top-0 z-50 shrink-0 rounded-[22px] border border-white/10 bg-[#030508]/85 px-2.5 py-2 shadow-[0_24px_70px_-45px_rgba(0,0,0,0.9)]  "
     >
       <div className="flex flex-wrap items-center gap-2 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <Link
             href="/"
             aria-label="Back to home"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-slate-400 transition-colors hover:bg-white/[0.08] hover:text-white"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 text-slate-100 transition-colors hover:bg-white/[0.08] hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
@@ -410,7 +430,7 @@ export function WorkspaceNav({ refs, state, actions, onOpenRotateModal }: Worksp
           {tmdbKey ? (
             <LanguagePicker lang={lang} options={langOptions} onChange={setLang} className="w-32 max-w-[38vw]" />
           ) : (
-            <div className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-[#080808] px-2.5 text-[10px] text-slate-500">
+            <div className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-[#080808] px-2.5 text-[10px] text-slate-200">
               <Globe2 className="h-3 w-3 shrink-0" />
               <span>No key</span>
             </div>
@@ -436,7 +456,7 @@ export function WorkspaceNav({ refs, state, actions, onOpenRotateModal }: Worksp
         </div>
 
         <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center lg:gap-2">
-          <div className="flex w-full gap-1 overflow-x-auto rounded-xl border border-white/10 bg-white/[0.03] p-1 lg:w-auto">
+          <div className="flex w-full gap-1 overflow-x-auto rounded-xl border border-white/10 p-1 lg:w-auto">
             {PREVIEW_TYPES.map((type) => {
               const Icon = type.icon;
               const isActive = previewType === type.id;
@@ -448,7 +468,7 @@ export function WorkspaceNav({ refs, state, actions, onOpenRotateModal }: Worksp
                   className={`flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-semibold transition-all ${
                     isActive
                       ? 'border border-orange-400/20 bg-orange-500/10 text-white shadow-sm'
-                      : 'border border-transparent text-slate-400 hover:text-white'
+                      : 'border border-transparent text-slate-100 hover:text-white'
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5" />
@@ -463,7 +483,7 @@ export function WorkspaceNav({ refs, state, actions, onOpenRotateModal }: Worksp
             {tmdbKey ? (
               <LanguagePicker lang={lang} options={langOptions} onChange={setLang} className="hidden lg:block" />
             ) : (
-              <div className="hidden h-9 shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-[#080808] px-2.5 text-[10px] text-slate-500 lg:flex">
+              <div className="hidden h-9 shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-[#080808] px-2.5 text-[10px] text-slate-200 lg:flex">
                 <Globe2 className="h-3 w-3 shrink-0" />
                 <span>No TMDB key</span>
               </div>

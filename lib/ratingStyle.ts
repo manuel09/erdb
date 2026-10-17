@@ -1,9 +1,9 @@
 export type RatingStyle = 'glass' | 'square' | 'plain' | 'solid-light';
 
-export const DEFAULT_RATING_STYLE: RatingStyle = 'glass';
+// 'glass' (the glossy pill) is no longer offered in the UI; it stays accepted for saved configs.
+export const DEFAULT_RATING_STYLE: RatingStyle = 'square';
 
 export const RATING_STYLE_OPTIONS: Array<{ id: RatingStyle; label: string }> = [
-  { id: 'glass', label: 'Pill Glass' },
   { id: 'square', label: 'Square Dark' },
   { id: 'plain', label: 'No Background' },
 ];
