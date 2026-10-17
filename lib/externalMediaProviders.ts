@@ -2,6 +2,31 @@ import { fetchJsonCached, fetchTextCached } from '@/lib/cachedFetch';
 import { TMDB_CACHE_TTL_MS } from '@/lib/routeConfig';
 import { measurePhase } from '@/lib/routeShared';
 import type { PhaseDurations } from '@/lib/routeTypes';
+const TVDB_MONTH_NAMES = [
+  'january',
+  'february',
+  'march',
+  'april',
+  'may',
+  'june',
+  'july',
+  'august',
+  'september',
+  'october',
+  'november',
+  'december',
+];
+
+// TVDB aired-order rows render dates as "May 9, 2025"; return an ISO date without
+// relying on Date parsing (timezone-proof, string comparison against TMDB air_date).
+const parseTvdbAirDate = (value: string): string | null => {
+  const match = value.trim().match(/^([A-Z][a-z]+)\s+(\d{1,2}),\s*(\d{4})$/);
+  if (!match) return null;
+  const monthIndex = TVDB_MONTH_NAMES.indexOf(match[1].toLowerCase());
+  if (monthIndex < 0) return null;
+  return `${match[3]}-${String(monthIndex + 1).padStart(2, '0')}-${String(Number(match[2])).padStart(2, '0')}`;
+};
+
 export const extractTvdbEpisodeIdFromAiredOrderHtml = (
   html: string,
   seriesPageUrl: string,
@@ -20,7 +45,16 @@ export const extractTvdbEpisodeIdFromAiredOrderHtml = (
     `${episodeCode}[\\s\\S]{0,1200}?href="${escapedSeriesSlug}/episodes/(\\d+)"`,
     'i'
   );
-  return html.match(matcher)?.[1] || null;
+  const row = html.match(matcher);
+  if (!row?.[1]) return null;
+
+  const afterRow = html.slice((row.index ?? 0) + row[0].length, (row.index ?? 0) + row[0].length + 400);
+  const airedDateMatch = afterRow.match(/<li>\s*([A-Z][a-z]+ \d{1,2}, \d{4})\s*<\/li>/);
+
+  return {
+    episodeId: row[1],
+    airDate: airedDateMatch ? parseTvdbAirDate(airedDateMatch[1]) : null,
+  };
 };
 
 export const resolveTvdbEpisodeToTmdb = async (
@@ -47,17 +81,17 @@ export const resolveTvdbEpisodeToTmdb = async (
   );
   if (!airedOrderResponse.ok || !airedOrderResponse.data) return null;
 
-  const tvdbEpisodeId = extractTvdbEpisodeIdFromAiredOrderHtml(
+  const airedOrderRow = extractTvdbEpisodeIdFromAiredOrderHtml(
     airedOrderResponse.data,
     seriesPageUrl,
     season,
     episode
   );
-  if (!tvdbEpisodeId) return null;
+  if (!airedOrderRow) return null;
 
   const findResponse = await fetchJsonCached(
-    `tmdb:find:tvdb-episode:${tvdbEpisodeId}`,
-    `https://api.themoviedb.org/3/find/${tvdbEpisodeId}?api_key=${tmdbKey}&external_source=tvdb_id`,
+    `tmdb:find:tvdb-episode:${airedOrderRow.episodeId}`,
+    `https://api.themoviedb.org/3/find/${airedOrderRow.episodeId}?api_key=${tmdbKey}&external_source=tvdb_id`,
     TMDB_CACHE_TTL_MS,
     phases,
     'tmdb'
@@ -68,12 +102,44 @@ export const resolveTvdbEpisodeToTmdb = async (
   const showId = Number(episodeResult?.show_id);
   const seasonNumber = Number(episodeResult?.season_number);
   const episodeNumber = Number(episodeResult?.episode_number);
-  if (!Number.isFinite(showId)) return null;
+  if (Number.isFinite(showId)) {
+    return {
+      showId: String(showId),
+      season: Number.isFinite(seasonNumber) ? String(seasonNumber) : null,
+      episode: Number.isFinite(episodeNumber) ? String(episodeNumber) : null,
+    };
+  }
+
+  // TMDB is often missing per-episode TVDB links (niche series, later seasons).
+  // Fall back to the series mapping plus the requested season/episode, but only
+  // when the TVDB air date matches the TMDB episode: a differing numbering must
+  // never resolve to a wrong still.
+  if (!airedOrderRow.airDate) return null;
+
+  const seriesFindResponse = await fetchJsonCached(
+    `tmdb:find:tvdb-series:${seriesId}`,
+    `https://api.themoviedb.org/3/find/${encodeURIComponent(seriesId)}?api_key=${tmdbKey}&external_source=tvdb_id`,
+    TMDB_CACHE_TTL_MS,
+    phases,
+    'tmdb'
+  );
+  const tvShowId = Number(seriesFindResponse.data?.tv_results?.[0]?.id);
+  if (!Number.isFinite(tvShowId)) return null;
+
+  const episodeResponse = await fetchJsonCached(
+    `tmdb:tv:${tvShowId}:season:${season}:episode:${episode}`,
+    `https://api.themoviedb.org/3/tv/${tvShowId}/season/${season}/episode/${episode}?api_key=${tmdbKey}`,
+    TMDB_CACHE_TTL_MS,
+    phases,
+    'tmdb'
+  );
+  const tmdbAirDate = typeof episodeResponse.data?.air_date === 'string' ? episodeResponse.data.air_date : '';
+  if (!episodeResponse.ok || tmdbAirDate !== airedOrderRow.airDate) return null;
 
   return {
-    showId: String(showId),
-    season: Number.isFinite(seasonNumber) ? String(seasonNumber) : null,
-    episode: Number.isFinite(episodeNumber) ? String(episodeNumber) : null,
+    showId: String(tvShowId),
+    season,
+    episode,
   };
 };
 

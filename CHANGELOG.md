@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.7.9](https://github.com/realbestia1/erdb/compare/v0.7.8...v0.7.9) - 2026-10-17
+
+- Fix episode ratings and TVDB mapping ([c36f6b1](https://github.com/realbestia1/erdb/commit/c36f6b10140a500eb1cce1d76556e488b861eab2))
+  Preserve requested season and episode numbers to look up episode IMDb ratings when TMDB lacks an episode IMDb ID. Resolve missing TVDB episode mappings through the series only when the aired dates match, and bump the package version to 0.7.9.
+
 ## [0.7.8](https://github.com/realbestia1/erdb/compare/v0.7.7...v0.7.8) - 2026-10-15
 
 - Reset missing daily poster rotation setting ([f721000](https://github.com/realbestia1/erdb/commit/f7210000369b9be12faf35cbe33b2281af6d2223))

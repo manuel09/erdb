@@ -531,6 +531,12 @@ export async function GET(
     episode = parts.length > 2 ? parts[2] : null;
   }
 
+  // Keep the caller-requested numbering: IMDb dataset rows follow the requested
+  // (e.g. TVDB) season/episode order, while `season`/`episode` can be remapped to
+  // TMDB numbering during resolution.
+  const requestedSeason = season;
+  const requestedEpisode = episode;
+
   if (isTmdb && explicitTmdbMediaType && mediaId) {
     cleanId = `tmdb:${explicitTmdbMediaType}:${mediaId}${season ? `:${season}` : ''}${episode ? `:${episode}` : ''}`;
   }
@@ -1701,6 +1707,40 @@ export async function GET(
               const episodeExternalIds = await episodeExternalIdsPromise;
               if (typeof episodeExternalIds?.imdb_id === 'string' && isImdbId(episodeExternalIds.imdb_id)) {
                 episodeImdbId = episodeExternalIds.imdb_id;
+              }
+            }
+            // TMDB episodes often lack an imdb_id (niche/international series, later
+            // seasons). Resolve the episode via the IMDb dataset with the requested
+            // season/episode so the badge shows the episode rating instead of the
+            // series rating.
+            if (
+              !episodeImdbId &&
+              imageType === 'thumbnail' &&
+              mediaType === 'tv' &&
+              requestedSeason &&
+              requestedEpisode
+            ) {
+              const datasetSeason = Number(requestedSeason);
+              const datasetEpisode = Number(requestedEpisode);
+              if (Number.isFinite(datasetSeason) && Number.isFinite(datasetEpisode)) {
+                let seriesImdbId = mappedImdbId;
+                if (!seriesImdbId && detailsBundlePromise) {
+                  const bundle = await detailsBundlePromise;
+                  const bundledImdbId = bundle?.bundledExternalIds?.imdb_id;
+                  if (typeof bundledImdbId === 'string' && isImdbId(bundledImdbId)) {
+                    seriesImdbId = bundledImdbId;
+                  }
+                }
+                if (seriesImdbId) {
+                  const datasetEpisodeRow = findImdbEpisodeBySeriesSeasonEpisode(
+                    seriesImdbId,
+                    datasetSeason,
+                    datasetEpisode
+                  );
+                  if (datasetEpisodeRow?.imdbId) {
+                    episodeImdbId = datasetEpisodeRow.imdbId;
+                  }
+                }
               }
             }
             imdbId = episodeImdbId || media?.imdb_id || mappedImdbId;
