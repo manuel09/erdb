@@ -17,6 +17,7 @@ import {
   measureBadgeColumnHeight,
   measureBadgeRowWidth,
   normalizeVerticalBadgeContent,
+  RANKING_TEXT_FONT_FAMILY,
   splitBackdropVerticalBadgesIntoColumns,
   splitPosterBadgesByLayout,
   type BackdropBadgePlacement,
@@ -34,6 +35,7 @@ import {
 } from '@/lib/ratingBadgeLogic';
 import { measurePhase } from '@/lib/routeShared';
 import { findFirstNonOverlappingRect, rectsOverlap, type OverlayRect } from '@/lib/overlayCollision';
+import { measureSvgTextWidth } from '@/lib/textMeasurement';
 import type { FastRenderInput, PhaseDurations, QualityBadgesSide, RenderedImagePayload } from '@/lib/routeTypes';
 export const renderWithSharp = async (
   input: FastRenderInput,
@@ -154,17 +156,15 @@ export const renderWithSharp = async (
       ? Math.min(input.outputWidth, input.outputHeight)
       : input.outputWidth;
     const posterOutputScale = usePosterLayout ? Math.max(1, posterReferenceSize / 500) : 1;
-    // Two constraints from live feedback: the chip (plate) must not look much smaller
-    // than the ranking box (~64px), while the logo inside must not outsize the other
-    // glyphs (~30px). => plate 0.72x the rating badge, artwork inset 16% inside it.
+    // Quality chips track the rating badge height, slightly smaller so the rating row keeps
+    // the visual lead (1.0x felt too heavy).
     const posterQualityMaxHeight = usePosterLayout
-      ? Math.round(Math.max(40, (input.posterReferenceBadgeHeight ?? badgeHeight) * 0.72))
+      ? Math.round(Math.max(40, (input.posterReferenceBadgeHeight ?? badgeHeight) * 0.85))
       : Math.round(40 * posterOutputScale);
     const posterQualityMinHeight = Math.round(28 * posterOutputScale);
-    // Ranking badge keeps its own proportion of the rating badges (used to be an
-    // implicit side effect of the quality cap, which is now taller).
+    // Ranking badge targets the same height (its SVG bleed is compensated where it is sized).
     const posterRankingTargetHeight = Math.round(
-      (input.posterReferenceBadgeHeight ?? badgeHeight) * 0.9
+      (input.posterReferenceBadgeHeight ?? badgeHeight) * 0.85
     );
     const compactPosterRowText =
       usePosterLayout &&
@@ -2115,20 +2115,33 @@ export const renderWithSharp = async (
     if (usePosterLayout && input.rankingBadge) {
       const badge = input.rankingBadge;
       const rankingScale = (input.posterConfiguratorPreset === 'advanced' ? 1.3 : 1.15) * posterOutputScale;
+      // Award/fallback labels are localized, so measure the real text width instead of trusting
+      // the Latin width estimate (keeps Arabic/CJK/Thai labels centred and their plate tight).
+      const rankingIsTextBadge = badge.value.length > 3 && !badge.value.startsWith('#');
+      const measuredRankingTextWidth = rankingIsTextBadge
+        ? await measureSvgTextWidth(
+          badge.value,
+          Math.round(28 * rankingScale),
+          800,
+          RANKING_TEXT_FONT_FAMILY
+        )
+        : null;
       const rankingSpec = buildRankingBadgeSvg(
         badge.value,
         badge.compact ? '' : badge.label,
         null,
         badge.noBox ?? (input.posterConfiguratorPreset === 'simple'),
-        rankingScale
+        rankingScale,
+        measuredRankingTextWidth
       );
+      // The ranking SVG carries a 4px bleed around its plate, so its canvas is scaled a touch
+      // larger than the plate height we want to see on the poster.
+      const rankingPlateRatio = (rankingSpec.height - 1.5) / (rankingSpec.height + 8);
       const maxWidth = Math.max(1, input.outputWidth - 24);
       const scale = rankingSpec.width > maxWidth ? maxWidth / rankingSpec.width : 1;
       let renderedWidth = Math.round(rankingSpec.width * scale);
       let renderedHeight = Math.round(rankingSpec.height * scale);
-      // Fixed proportion of the rating badges (0.9x): the ranking must not grow just
-      // because the quality chips got taller.
-      const targetRankingHeight = posterRankingTargetHeight;
+      const targetRankingHeight = Math.round(posterRankingTargetHeight / rankingPlateRatio);
       if (renderedHeight > targetRankingHeight) {
         const heightScale = targetRankingHeight / renderedHeight;
         renderedWidth = Math.round(renderedWidth * heightScale);
@@ -2356,8 +2369,10 @@ export const renderWithSharp = async (
         let useWidth = renderedWidth;
         let useHeight = renderedHeight;
         if (sameRowResult.scaled) {
+          // Sharing the quality row: the ranking canvas is sized so its visible plate matches
+          // the chip plate height (see rankingPlateRatio above).
           const qualityHeight = lastPosterQualityBottomY - lastPosterQualityTopY;
-          const targetHeight = Math.max(qualityHeight, Math.round(qualityHeight * 1.6));
+          const targetHeight = Math.round(qualityHeight / rankingPlateRatio);
           const heightScale = Math.min(1, targetHeight / renderedHeight);
           useWidth = Math.round(renderedWidth * heightScale);
           useHeight = Math.round(renderedHeight * heightScale);

@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.7.12](https://github.com/realbestia1/erdb/compare/v0.7.11...v0.7.12) - 2026-10-17
+
+- Center localized ranking badge text ([9e42291](https://github.com/realbestia1/erdb/commit/9e42291bbdd6d97fd40d90b90a513445a270abdd))
+  Measure ranking-label width using the rendered font stack and center it within the badge plate, improving RTL and non-Latin labels. Bump the renderer cache and package versions.
+- Refine poster badge sizing ([eb46375](https://github.com/realbestia1/erdb/commit/eb463757c86c4399cad6972a543b5f44a273be10))
+  Adjust quality chips and ranking badges to better balance their size with the rating badge, compensating for the ranking SVG's bleed. Bump the final image renderer cache version.
+- Improve quality badge logo rendering ([8ce5705](https://github.com/realbestia1/erdb/commit/8ce57054c984adeb851ab9201347d0155a086362))
+  Use consistent insets for quality badge logos and show a styled label when an icon fails to load. Switch badge assets to raw GitHub URLs and bump the image renderer cache version.
+- Align ranking plate with quality chips ([a69f1f2](https://github.com/realbestia1/erdb/commit/a69f1f2bf6f4df8f81d6b5870581ce7778520721))
+  Scale the ranking plate to match the visible chip height, accounting for SVG bleed. Bump the renderer cache version.
+- Fit ranking badge text within plate ([8eedbfd](https://github.com/realbestia1/erdb/commit/8eedbfd865814906c716363c42de7db4e4ed87c6))
+  Increase text badge glyph size while keeping plate dimensions unchanged, condensing text as needed to fit. Bump the renderer cache version so updated badges are regenerated.
+
 ## [0.7.11](https://github.com/realbestia1/erdb/compare/v0.7.10...v0.7.11) - 2026-10-17
 
 - Refine square badge styling and logo sizing ([28c88fd](https://github.com/realbestia1/erdb/commit/28c88fd85710d425d52b6c7c77fa35814104fd00))
