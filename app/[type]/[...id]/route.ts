@@ -51,6 +51,7 @@ import {
 import {
   DEFAULT_RATING_STYLE,
   normalizeRatingStyle,
+  normalizePosterGenreStyle,
   normalizeRatingsColorMode,
   type RatingStyle,
 } from '@/lib/ratingStyle';
@@ -233,6 +234,9 @@ export async function GET(
   const posterRotationCacheControl =
     posterRotationWindow === null ? null : buildPublicImageCacheControl(getImageRotationRemainingMs());
   const posterGenrePosition = normalizePosterGenrePosition(tokenConfig.posterGenrePosition || request.nextUrl.searchParams.get('posterGenrePosition'));
+  const posterGenreStyle = normalizePosterGenreStyle(
+    tokenConfig.posterGenreStyle || request.nextUrl.searchParams.get('posterGenreStyle')
+  );
   // Removed duplicate posterConfiguratorPreset declaration
   const backdropRatings = getRatings('backdropRatingPreferences', 'backdropRatings') ?? globalRatings;
   const thumbnailRatings =
@@ -645,6 +649,7 @@ export async function GET(
       usesPosterSettings ? posterRatingsLayout : '-',
       usesPosterSettings ? String(posterRatingsMode || '-') : '-',
       usesPosterSettings ? posterGenrePosition : '-',
+      usesPosterSettings ? posterGenreStyle : '-',
       usesPosterSettings ? String(posterConfiguratorPreset || '-') : '-',
       usesPosterSettings ? String(posterRatingsMaxPerSide ?? 'auto') : '-',
       usesPosterSettings ? String(posterLang || '-') : '-',
@@ -3908,6 +3913,7 @@ export async function GET(
           backdropColumns,
           backdropRows,
           posterGenreBadge,
+          posterGenreStyle,
           posterGenrePosition,
           rankingBadge,
           rankingPosition,

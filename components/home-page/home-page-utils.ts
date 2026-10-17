@@ -21,6 +21,7 @@ import {
   type PosterRatingLayout,
 } from '@/lib/posterRatingLayout';
 import {
+  DEFAULT_POSTER_GENRE_STYLE,
   RATING_STYLE_OPTIONS,
   type RatingStyle,
 } from '@/lib/ratingStyle';
@@ -308,6 +309,7 @@ export const buildAiometadataPattern = (options: {
   qualityBadgesSide: QualityBadgesSide;
   posterQualityBadgesPosition: PosterQualityBadgesPosition;
   posterGenrePosition: PosterGenrePosition;
+  posterGenreStyle: RatingStyle;
   posterQualityBadgesStyle: RatingStyle;
   backdropQualityBadgesStyle: RatingStyle;
   posterQualityBadgesColorMode: 'colored' | 'white';
@@ -372,6 +374,7 @@ export const buildAiometadataPattern = (options: {
     qualityBadgesSide,
     posterQualityBadgesPosition,
     posterGenrePosition,
+    posterGenreStyle,
     posterQualityBadgesStyle,
     backdropQualityBadgesStyle,
     posterQualityBadgesColorMode,
@@ -460,6 +463,9 @@ export const buildAiometadataPattern = (options: {
     }
     if (posterGenrePosition !== 'off') {
       params.push(['posterGenrePosition', posterGenrePosition]);
+    }
+    if (posterGenreStyle !== DEFAULT_POSTER_GENRE_STYLE) {
+      params.push(['posterGenreStyle', posterGenreStyle]);
     }
     if (posterQualityBadgesStyle !== DEFAULT_QUALITY_BADGES_STYLE) {
       params.push(['posterQualityBadgesStyle', posterQualityBadgesStyle]);
@@ -652,6 +658,7 @@ export const buildAiometadataPatternBlock = (options: {
     }
     pushIfString('posterRatingsLayout');
     pushIfString('posterGenrePosition');
+    pushIfString('posterGenreStyle');
     if (
       typeof config.posterRatingsMaxPerSide === 'string' ||
       typeof config.posterRatingsMaxPerSide === 'number'

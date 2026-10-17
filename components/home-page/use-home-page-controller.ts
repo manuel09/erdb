@@ -80,6 +80,8 @@ import {
   normalizeHexColor,
 } from '@/lib/logoCustomColors';
 import {
+  DEFAULT_POSTER_GENRE_STYLE,
+  normalizePosterGenreStyle,
   RATING_STYLE_OPTIONS,
   type RatingStyle,
 } from '@/lib/ratingStyle';
@@ -199,6 +201,7 @@ export function useHomePageController({
   const [posterVignetteEnabled, setPosterVignetteEnabled] = useState(true);
   const [posterRotateDailyEnabled, setPosterRotateDailyEnabled] = useState(false);
   const [posterGenrePosition, setPosterGenrePosition] = useState<PosterGenrePosition>('top');
+  const [posterGenreStyle, setPosterGenreStyle] = useState<RatingStyle>(DEFAULT_POSTER_GENRE_STYLE);
   const [posterSimpleRatingSource, setPosterSimpleRatingSource] = useState<'average' | RatingPreference>('average');
   const [backdropImageText, setBackdropImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
   const [backdropAsPoster, setBackdropAsPoster] = useState(false);
@@ -960,6 +963,9 @@ export function useHomePageController({
       if (effectiveGenrePos !== 'off') {
         query.set('posterGenrePosition', effectiveGenrePos);
       }
+      if (posterGenreStyle !== DEFAULT_POSTER_GENRE_STYLE) {
+        query.set('posterGenreStyle', posterGenreStyle);
+      }
       query.set('posterConfiguratorPreset', posterConfiguratorPreset);
     } else if (previewType === 'backdrop') {
       if (backdropLang) {
@@ -1183,6 +1189,7 @@ export function useHomePageController({
     posterVignetteEnabled,
     posterRotateDailyEnabled,
     posterGenrePosition,
+    posterGenreStyle,
     ranking,
     effectiveRankingCountry,
     rankingNoBox,
@@ -1340,6 +1347,9 @@ export function useHomePageController({
       if (effectiveGenrePos !== 'off') {
         config.posterGenrePosition = effectiveGenrePos;
       }
+      if (posterGenreStyle !== DEFAULT_POSTER_GENRE_STYLE) {
+        config.posterGenreStyle = posterGenreStyle;
+      }
     }
     if (isVerticalPosterRatingLayout(effectivePosterRatingsLayout) && posterRatingsMaxPerSide !== null) {
       config.posterRatingsMaxPerSide = posterRatingsMaxPerSide;
@@ -1425,6 +1435,7 @@ export function useHomePageController({
     posterConfiguratorPreset,
     posterAverageRatingsEnabled,
     posterGenrePosition,
+    posterGenreStyle,
     posterSimpleRatingSource,
     posterStreamBadges,
     backdropStreamBadges,
@@ -1645,6 +1656,9 @@ export function useHomePageController({
       if (effectiveGenrePos !== 'off') {
         config.posterGenrePosition = effectiveGenrePos;
       }
+      if (posterGenreStyle !== DEFAULT_POSTER_GENRE_STYLE) {
+        config.posterGenreStyle = posterGenreStyle;
+      }
     }
     if (isVerticalPosterRatingLayout(effectivePosterRatingsLayout) && posterRatingsMaxPerSide !== null) {
       config.posterRatingsMaxPerSide = posterRatingsMaxPerSide;
@@ -1828,6 +1842,7 @@ export function useHomePageController({
     posterConfiguratorPreset,
     posterAverageRatingsEnabled,
     posterGenrePosition,
+    posterGenreStyle,
     posterSimpleRatingSource,
     ranking,
     effectiveRankingCountry,
@@ -2028,6 +2043,7 @@ export function useHomePageController({
       qualityBadgesSide,
       posterQualityBadgesPosition,
       posterGenrePosition,
+    posterGenreStyle,
       posterVignetteEnabled,
       posterRotateDailyEnabled,
       posterQualityBadgesStyle,
@@ -2248,6 +2264,9 @@ export function useHomePageController({
     }
     if (typeof payload.posterGenrePosition === 'string' && isPosterGenrePosition(payload.posterGenrePosition)) {
       setPosterGenrePosition(payload.posterGenrePosition);
+    }
+    if (typeof payload.posterGenreStyle === 'string') {
+      setPosterGenreStyle(normalizePosterGenreStyle(payload.posterGenreStyle));
     }
     if (typeof payload.posterVignetteEnabled === 'boolean') {
       setPosterVignetteEnabled(payload.posterVignetteEnabled);
@@ -2536,6 +2555,7 @@ export function useHomePageController({
       posterConfiguratorPreset,
       posterAverageRatingsEnabled,
       posterGenrePosition,
+    posterGenreStyle,
       posterVignette: posterVignetteEnabled ? 'on' : 'off',
       posterRotateDaily: posterRotateDailyEnabled ? 'on' : 'off',
       posterSimpleRatingSource,
@@ -2613,6 +2633,7 @@ export function useHomePageController({
     posterConfiguratorPreset,
     posterAverageRatingsEnabled,
     posterGenrePosition,
+    posterGenreStyle,
     posterVignetteEnabled,
     posterRotateDailyEnabled,
     posterStreamBadges,
@@ -2717,6 +2738,7 @@ export function useHomePageController({
       posterQualityBadgesPosition,
       posterAverageRatingsEnabled,
       posterGenrePosition,
+    posterGenreStyle,
       posterVignetteEnabled,
       posterRotateDailyEnabled,
       posterConfiguratorPreset,
@@ -2782,6 +2804,7 @@ export function useHomePageController({
       posterQualityBadgesPosition,
       posterAverageRatingsEnabled,
       posterGenrePosition,
+    posterGenreStyle,
       posterVignetteEnabled,
       posterRotateDailyEnabled,
       posterConfiguratorPreset,
@@ -2846,6 +2869,7 @@ export function useHomePageController({
       posterConfiguratorPreset,
       posterAverageRatingsEnabled,
       posterGenrePosition,
+    posterGenreStyle,
       posterVignette: posterVignetteEnabled ? 'on' : 'off',
       posterRotateDaily: posterRotateDailyEnabled ? 'on' : 'off',
       posterSimpleRatingSource,
@@ -2916,6 +2940,7 @@ export function useHomePageController({
       posterConfiguratorPreset,
       posterAverageRatingsEnabled,
       posterGenrePosition,
+    posterGenreStyle,
       posterVignetteEnabled,
       posterRotateDailyEnabled,
       backdropAnimeImageText,
@@ -3189,6 +3214,7 @@ export function useHomePageController({
       posterVignetteEnabled,
       posterRotateDailyEnabled,
       posterGenrePosition,
+    posterGenreStyle,
       posterRatingsColorMode,
       backdropRatingsColorMode,
       thumbnailRatingsColorMode,
@@ -3283,6 +3309,7 @@ export function useHomePageController({
       setPosterVignetteEnabled,
       setPosterRotateDailyEnabled,
       setPosterGenrePosition,
+      setPosterGenreStyle,
       setPosterSimpleRatingSource,
       setAiometadataEpisodeProvider,
       setProxySeriesMetadataProvider,

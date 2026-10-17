@@ -86,6 +86,7 @@ export type HomePageViewState = {
   thumbnailRatingsColorMode: 'colored' | 'transparent';
   logoRatingsColorMode: 'colored' | 'transparent';
   posterGenrePosition: PosterGenrePosition;
+  posterGenreStyle: RatingStyle;
   posterSimpleRatingSource: 'average' | RatingPreference;
   qualityBadgesSide: QualityBadgesSide;
   posterQualityBadgesPosition: PosterQualityBadgesPosition;
@@ -175,6 +176,7 @@ export type HomePageViewActions = {
   setPosterVignetteEnabled: Dispatch<SetStateAction<boolean>>;
   setPosterRotateDailyEnabled: Dispatch<SetStateAction<boolean>>;
   setPosterGenrePosition: Dispatch<SetStateAction<PosterGenrePosition>>;
+  setPosterGenreStyle: Dispatch<SetStateAction<RatingStyle>>;
   setPosterSimpleRatingSource: Dispatch<SetStateAction<'average' | RatingPreference>>;
   setAiometadataEpisodeProvider: Dispatch<SetStateAction<AiometadataEpisodeProvider>>;
   setProxySeriesMetadataProvider: Dispatch<SetStateAction<ProxySeriesMetadataProvider>>;

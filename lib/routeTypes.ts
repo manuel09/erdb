@@ -120,6 +120,7 @@ export type FastRenderInput = {
   backdropColumns?: RatingBadge[][];
   backdropRows?: RatingBadge[][];
   posterGenreBadge?: RatingBadge | null;
+  posterGenreStyle: RatingStyle;
   posterGenrePosition: PosterGenrePosition;
   rankingBadge?: RankingBadge | null;
   rankingPosition: RankingPosition;

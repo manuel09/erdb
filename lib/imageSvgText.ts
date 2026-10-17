@@ -45,9 +45,20 @@ export const splitTitleForGeneratedLogo = (title: string) => {
   return lines;
 };
 
+// CJK, RTL and South Asian scripts do not have Latin glyph advances: estimating them with the
+// Latin factors clips CJK titles and leaves Arabic/Hebrew logos looking undersized.
+const CJK_CHAR = /[\u2e80-\u303f\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uac00-\ud7af\uff00-\uffef]/u;
+const RTL_CHAR = /[\u0590-\u05ff\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff\ufb1d-\ufdff\ufe70-\ufeff]/u;
+const SOUTH_ASIAN_CHAR = /[\u0900-\u0d7f\u0e00-\u0e7f\u0f00-\u0fff]/u;
+
+export const containsRtlText = (value: string) => RTL_CHAR.test(value);
+
 export const estimateGeneratedLogoLineWidth = (line: string, fontSize: number) =>
   [...line].reduce((acc, ch) => {
     if (ch === ' ') return acc + fontSize * 0.30;
+    if (CJK_CHAR.test(ch)) return acc + fontSize * 1.0;
+    if (RTL_CHAR.test(ch)) return acc + fontSize * 0.42;
+    if (SOUTH_ASIAN_CHAR.test(ch)) return acc + fontSize * 0.52;
     if (/[WMwm]/.test(ch)) return acc + fontSize * 0.92;
     if (/[A-Z]/.test(ch)) return acc + fontSize * 0.74;
     if (/[0-9]/.test(ch)) return acc + fontSize * 0.66;
@@ -57,12 +68,15 @@ export const estimateGeneratedLogoLineWidth = (line: string, fontSize: number) =
 
 export const buildGeneratedLogoDataUrl = (title: string) => {
   const lines = splitTitleForGeneratedLogo(title);
-  const maxLineLength = Math.max(...lines.map((line) => line.length), 1);
-  const width = Math.max(760, Math.round(maxLineLength * 68 + 280));
+  const lineEmWidth = (line: string) => estimateGeneratedLogoLineWidth(line, 1);
+  // 113px per em keeps the previous canvas size for Latin text while giving CJK (1 em/char)
+  // and RTL (0.42 em/char) the room they actually need.
+  const longestEmWidth = Math.max(...lines.map(lineEmWidth), 0.1);
+  const width = Math.max(760, Math.round(longestEmWidth * 113 + 280));
   const height = LOGO_BASE_HEIGHT;
   const aspectRatio = width / height;
   const baseFontSize = lines.length === 1 ? 172 : lines.length === 2 ? 136 : lines.length === 3 ? 108 : 86;
-  const compressedFontSize = Math.max(58, Math.floor((width - 160) / Math.max(maxLineLength, 1) * 1.72));
+  const compressedFontSize = Math.max(58, Math.floor((width - 160) / longestEmWidth));
   const preliminaryFontSize = Math.min(baseFontSize, compressedFontSize);
   const availableLineWidth = Math.max(420, width - 150);
   const longestEstimatedLineWidth = Math.max(
@@ -75,7 +89,8 @@ export const buildGeneratedLogoDataUrl = (title: string) => {
   const totalTextHeight = lineHeight * (lines.length - 1);
   const startY = Math.round(height / 2 - totalTextHeight / 2 + fontSize * 0.34);
   const strokeWidth = Math.max(4, Math.round(fontSize * 0.07));
-  const letterSpacing = Math.max(1, Math.round(fontSize * 0.015));
+  // letter-spacing scrambles the word order of RTL runs (librsvg), so skip it there.
+  const letterSpacing = containsRtlText(title) ? 0 : Math.max(1, Math.round(fontSize * 0.015));
   const tspans = lines
     .map((line, index) => {
       const y = startY + index * lineHeight;

@@ -11,7 +11,7 @@ import { Card, Field, Notice, NumberStepper, PanelHeader, Toggle } from './ui';
 import type { HomePageViewProps } from '@/components/workspace/types';
 import { RatingProviderSortableList } from '@/components/rating-provider-sortable-list';
 import { isVerticalPosterRatingLayout, type PosterRatingLayout } from '@/lib/posterRatingLayout';
-import { RATING_STYLE_OPTIONS, type RatingStyle } from '@/lib/ratingStyle';
+import { POSTER_GENRE_STYLE_OPTIONS, RATING_STYLE_OPTIONS, type RatingStyle } from '@/lib/ratingStyle';
 import { BACKDROP_RATING_LAYOUT_OPTIONS, type BackdropRatingLayout } from '@/lib/backdropRatingLayout';
 import { BACKDROP_RATINGS_SIZE_OPTIONS, type BackdropRatingsSize } from '@/lib/backdropRatingsSize';
 import { THUMBNAIL_RATING_LAYOUT_OPTIONS, type ThumbnailRatingLayout } from '@/lib/thumbnailRatingLayout';
@@ -131,6 +131,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     posterVignetteEnabled,
     posterRotateDailyEnabled,
     posterGenrePosition,
+    posterGenreStyle,
     posterQualityBadgesPosition,
     ranking,
     rankingCountry,
@@ -181,6 +182,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     setPosterVignetteEnabled,
     setPosterRotateDailyEnabled,
     setPosterGenrePosition,
+    setPosterGenreStyle,
     setLogoMode,
     setLogoFontVariant,
     setLogoCustomPrimary,
@@ -525,6 +527,9 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                     )}
                     <Field label="Genre position">
                       {renderDropdown(posterGenrePosition, setPosterGenrePosition, POSTER_GENRE_POSITION_OPTIONS)}
+                    </Field>
+                    <Field label="Genre style" hint="Style of the genre chip when average ratings are off.">
+                      {renderDropdown(posterGenreStyle, setPosterGenreStyle, POSTER_GENRE_STYLE_OPTIONS)}
                     </Field>
                     <Field label="Quality badges position">
                       {renderDropdown(posterQualityBadgesPosition, setPosterQualityBadgesPosition, POSTER_QUALITY_BADGE_POSITION_OPTIONS)}

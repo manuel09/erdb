@@ -1958,7 +1958,8 @@ export const renderWithSharp = async (
           accentColor: badge.accentColor || '#4b5563',
           monogram: '',
           value: badge.value,
-          ratingStyle: 'plain',
+          ratingStyle: input.posterGenreStyle,
+          ratingsColorMode: input.ratingsColorMode,
           compactText: false,
         });
         const renderedSvg = badgeSvg
@@ -1976,11 +1977,9 @@ export const renderWithSharp = async (
       }
 
       const rowInset = usePosterLayout ? input.posterRowHorizontalInset : 12;
-      const sharesPositionWithQuality = !!lastPosterQualityPlacement && position === lastPosterQualityPlacement;
-      const sharesPositionWithRanking = !!lastRankingPlacement && position === lastRankingPlacement && !rankingPlacedSameRowAsQuality;
-      let left = (sharesPositionWithQuality || sharesPositionWithRanking)
-        ? rowInset
-        : Math.round((input.outputWidth - genreWidth) / 2);
+      // Sharing a row with the ranking/quality chips is handled above; here the genre sits on
+      // its own row, so it is centred like the other rows instead of hugging the left inset.
+      let left = Math.round((input.outputWidth - genreWidth) / 2);
 
       const overlapGap = Math.max(12, Math.round(input.badgeGap * 1.1));
       const getGenreRect = (y: number) => ({ left, top: y, width: genreWidth, height: genreHeight });
@@ -2093,7 +2092,8 @@ export const renderWithSharp = async (
         accentColor: badge.accentColor || '#4b5563',
         monogram: '',
         value: badge.value,
-        ratingStyle: 'plain',
+        ratingStyle: input.posterGenreStyle,
+        ratingsColorMode: input.ratingsColorMode,
         compactText: false,
       });
 
