@@ -87,7 +87,7 @@ export const estimateBadgeTextWidth = (
     if (ch === '.' || ch === ',' || ch === ':') return fontSize * (compactText ? 0.22 : 0.28);
     if (ch === ' ') return fontSize * (compactText ? 0.24 : 0.30);
     if (ch === ' ' || ch === ' ') return fontSize * (compactText ? 0.14 : 0.18); // thin / narrow no-break space
-    if (ch === '★') return fontSize * 0.88;
+    if (ch === '★') return fontSize * (compactText ? 0.94 : 1.0);
     if (ch === '•') return fontSize * (compactText ? 0.34 : 0.40);
     if (/[mwMW]/.test(ch)) return fontSize * (compactText ? 0.76 : 0.82);
     if (/[A-Z]/.test(ch)) return fontSize * (compactText ? 0.62 : 0.68);
@@ -95,11 +95,15 @@ export const estimateBadgeTextWidth = (
     return fontSize * (compactText ? 0.54 : 0.58);
   };
   const measuredTextWidth = [...normalized].reduce((acc, ch) => acc + measureChar(ch), 0);
+  // The star glyph comes from a fallback font, so treat it like '%'/'/' and keep a
+  // generous right-hand safety margin: the estimate is a floor for the plate width.
+  const needsGenerousSafety =
+    normalized.endsWith('%') || normalized.includes('/') || normalized.includes('★');
   const safetyRightPadding = Math.max(
     compactText ? 1 : 2,
     Math.round(
       fontSize *
-      (normalized.endsWith('%') || normalized.includes('/')
+      (needsGenerousSafety
         ? compactText ? 0.20 : 0.28
         : compactText ? 0.04 : 0.06)
     )
@@ -130,7 +134,9 @@ export const estimateBadgeWidth = (
   const isStackedStarPromotion = isStacked && value.includes('★');
   const displayValue = isStackedStarPromotion ? value.replace('★ ', '').replace('★', '').trim() : value;
   const textWidth = estimateBadgeTextWidth(displayValue, fontSize, compactText, isStacked);
-  const outerPadding = Math.max(6, Math.round(paddingX * 0.7));
+  // Content must keep a real inset from the plate edge: the earlier 0.7x chrome left
+  // ~4px next to the border while the vertical padding was ~17px.
+  const outerPadding = Math.max(6, Math.round(paddingX));
   const innerGap = outerPadding;
   if (contentLayout === 'stacked') {
     return Math.max(
@@ -170,7 +176,7 @@ export const getMinimumCompressedBadgeWidth = (
   compactText = false,
   contentLayout: 'standard' | 'stacked' = 'standard'
 ) => {
-  const outerPadding = Math.max(6, Math.round(paddingX * 0.7));
+  const outerPadding = Math.max(6, Math.round(paddingX));
   if (contentLayout === 'stacked') {
     return Math.max(outerPadding * 2 + iconSize, outerPadding * 2 + Math.round(fontSize * (compactText ? 0.82 : 0.92)));
   }
@@ -191,20 +197,23 @@ export const measureBadgeRowWidth = (
 ) => {
   if (rowBadges.length === 0) return 0;
   return (
-    rowBadges.reduce(
-      (acc, badge) =>
+    rowBadges.reduce((acc, badge) => {
+      // The average badge is rendered without an icon (see imageRenderer), so do not
+      // charge it an icon + gap when measuring the row.
+      const iconless = badge.key === 'average';
+      return (
         acc +
         estimateBadgeWidth(
           badge.value,
           metrics.fontSize,
           metrics.paddingX,
-          metrics.iconSize,
-          metrics.gap,
+          iconless ? 0 : metrics.iconSize,
+          iconless ? 0 : metrics.gap,
           compactText,
           contentLayout
-        ),
-      0
-    ) +
+        )
+      );
+    }, 0) +
     Math.max(0, rowBadges.length - 1) * metrics.gap
   );
 };
@@ -543,6 +552,135 @@ export const getBadgeOuterRadius = (height: number, ratingStyle: RatingStyle) =>
 export const getBadgeIconRadius = (iconSize: number, ratingStyle: RatingStyle) =>
   ratingStyle === 'square' ? Math.max(6, Math.round(iconSize * 0.22)) : Math.round(iconSize / 2);
 
+// Quality badge labels drawn as text (the icon variants use their own artwork).
+const QUALITY_BADGE_TEXT = {
+  '4k': { big: '4K', small: 'ULTRA HD' },
+  hdr: { big: 'HDR', small: 'TRUE COLOR' },
+  dolbyvision: { top: 'DOLBY', bottom: 'VISION' },
+  remux: { big: 'REMUX' },
+} as const;
+
+const qualityTextSize = (height: number, key: '4k' | 'hdr' | 'dolbyvision' | 'remux', line: 'big' | 'small' | 'top' | 'bottom') => {
+  if (key === '4k') return line === 'big' ? Math.round(height * 0.56) : Math.round(height * 0.2);
+  if (key === 'hdr') return line === 'big' ? Math.round(height * 0.5) : Math.round(height * 0.2);
+  if (key === 'dolbyvision') return line === 'top' ? Math.round(height * 0.22) : Math.round(height * 0.42);
+  return Math.round(height * 0.42);
+};
+
+const qualityMetaTextSize = (height: number, label: string) =>
+  Math.max(12, Math.round(height * (label.length > 6 ? 0.32 : 0.42)));
+
+// librsvg ignores textLength, so the label is never stretched to fill the plate:
+// measure it and keep it inside the plate minus a real inset.
+export const getQualityBadgeTextWidth = (key: StreamBadgeKey, height: number) => {
+  const h = Math.max(32, height);
+  if (key === '4k' || key === 'hdr') {
+    const lines = QUALITY_BADGE_TEXT[key];
+    return Math.max(
+      estimateBadgeTextWidth(lines.big, qualityTextSize(h, key, 'big')),
+      estimateBadgeTextWidth(lines.small, qualityTextSize(h, key, 'small'))
+    );
+  }
+  if (key === 'dolbyvision') {
+    return Math.max(
+      estimateBadgeTextWidth(QUALITY_BADGE_TEXT.dolbyvision.top, qualityTextSize(h, key, 'top')),
+      estimateBadgeTextWidth(QUALITY_BADGE_TEXT.dolbyvision.bottom, qualityTextSize(h, key, 'bottom'))
+    );
+  }
+  if (key === 'remux') {
+    return estimateBadgeTextWidth(QUALITY_BADGE_TEXT.remux.big, qualityTextSize(h, key, 'big'));
+  }
+  const label = STREAM_BADGE_META.get(key)?.label ?? '';
+  return estimateBadgeTextWidth(label, qualityMetaTextSize(h, label));
+};
+
+// Plate width for a quality badge: the icon artwork dictates its own aspect ratio,
+// a text-only badge only needs to fit its label plus the plate inset.
+export const getQualityBadgePlateWidth = (key: StreamBadgeKey, height: number, hasIcon = false) => {
+  const h = Math.max(32, height);
+  const meta = STREAM_BADGE_META.get(key);
+  const aspect = meta?.iconWidthRatio ?? Math.max(1.35, 0.72 + (meta?.label.length ?? 2) * 0.34);
+  const iconWidth = Math.round(h * aspect);
+  // Icons keep their size: the plate grows a bit so the artwork never sits on the border.
+  if (hasIcon) return iconWidth + Math.round(h * 0.16);
+  const inset = Math.max(10, Math.round(h * 0.18));
+  return Math.min(iconWidth, Math.max(Math.round(h * 1.15), Math.round(getQualityBadgeTextWidth(key, h) + inset * 2)));
+};
+
+// Shrink-only auto-fit: the label never overflows (or gets clipped by) the plate.
+const fitQualityTextSize = (label: string, size: number, boxWidth: number) => {
+  const natural = estimateBadgeTextWidth(label, size);
+  if (natural <= boxWidth) return size;
+  return Math.max(8, Math.floor((size * boxWidth) / Math.max(1, natural)));
+};
+
+// Square Dark plate color: the same slate used by the ranking badge box, not pure black.
+export const SQUARE_BADGE_FILL = 'rgba(21,35,49,0.92)';
+// Square Dark border: neutral hairline (same idea as the ranking box), never the provider color.
+export const SQUARE_BADGE_STROKE = 'rgba(255,255,255,0.10)';
+
+// Pill Glass material (Apple-style frosted capsule): neutral smoked (or clear) body,
+// top sheen, light rim and a soft drop shadow. The accent color never tints the
+// material: it stays on the icon, text and quality label only.
+// 'colored'  -> smoked dark glass (readable over bright posters)
+// 'transparent' -> clear light glass
+export const buildGlassCapsule = (args: {
+  id: string;
+  clipId: string;
+  width: number;
+  height: number;
+  radius: number;
+  colorMode?: 'colored' | 'transparent';
+}) => {
+  const { id, clipId, width, height, radius, colorMode = 'colored' } = args;
+  const clear = colorMode === 'transparent';
+  const bodyTop = clear ? '#eef1f6' : '#262b35';
+  const bodyBottom = clear ? '#c3c9d4' : '#0a0c10';
+  const bodyTopOpacity = clear ? '0.20' : '0.62';
+  const bodyBottomOpacity = clear ? '0.10' : '0.74';
+  const sheenTopOpacity = clear ? '0.30' : '0.18';
+  const rimTopOpacity = clear ? '0.85' : '0.55';
+  const rimBottomOpacity = clear ? '0.28' : '0.12';
+  const bottomLiftOpacity = clear ? '0.30' : '0.12';
+  const sheenHeight = Math.max(1, Math.round(height * 0.45));
+  const bottomLineY = Math.max(1, height - 2.2);
+  return `
+<defs>
+  <clipPath id="${clipId}">
+    <rect x="0" y="0" width="${width}" height="${height}" rx="${radius}" />
+  </clipPath>
+  <linearGradient id="apple-glass-fill-${id}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="${bodyTop}" stop-opacity="${bodyTopOpacity}" />
+    <stop offset="100%" stop-color="${bodyBottom}" stop-opacity="${bodyBottomOpacity}" />
+  </linearGradient>
+  <linearGradient id="apple-glass-sheen-${id}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="${sheenTopOpacity}" />
+    <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+  </linearGradient>
+  <linearGradient id="apple-glass-border-${id}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="${rimTopOpacity}" />
+    <stop offset="100%" stop-color="#ffffff" stop-opacity="${rimBottomOpacity}" />
+  </linearGradient>
+  <filter id="apple-glass-shadow-${id}" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="2.8" />
+    <feOffset dx="0" dy="3.2" result="offsetblur" />
+    <feFlood flood-color="#000000" flood-opacity="0.54" result="glowcolor" />
+    <feComposite in="glowcolor" in2="offsetblur" operator="in" result="glow" />
+    <feMerge>
+      <feMergeNode in="glow" />
+      <feMergeNode in="SourceGraphic" />
+    </feMerge>
+  </filter>
+</defs>
+<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="${radius}" fill="url(#apple-glass-fill-${id})" filter="url(#apple-glass-shadow-${id})" />
+<g clip-path="url(#${clipId})">
+  <rect x="0" y="0" width="${width}" height="${sheenHeight}" fill="url(#apple-glass-sheen-${id})" />
+  <rect x="1" y="${bottomLineY}" width="${Math.max(0, width - 2)}" height="1.2" rx="0.6" fill="#ffffff" fill-opacity="${bottomLiftOpacity}" />
+</g>
+<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="${radius}" fill="none" stroke="url(#apple-glass-border-${id})" stroke-width="1" />
+`.trim();
+};
+
 export const buildQualityBadgeSvg = (
   key: StreamBadgeKey,
   height: number,
@@ -558,64 +696,32 @@ export const buildQualityBadgeSvg = (
       ? Math.round(h / 2)
       : Math.round(h * 0.18);
   const strokeWidth =
-    style === 'glass'
+    style === 'square'
       ? 1
-      : style === 'square'
-        ? Math.max(1, Math.round(h * 0.05))
+      : style === 'glass'
+        ? 1
         : Math.max(2, Math.round(h * 0.08));
   const innerPadding = Math.max(10, Math.round(h * 0.16));
   const fontFamily = `'Noto Sans','DejaVu Sans','Arial Black',Arial,sans-serif`;
   const baseRect = (width: number, stroke: string, fill: string, extra = '') =>
     `<rect x="${strokeWidth / 2}" y="${strokeWidth / 2}" width="${Math.max(0, width - strokeWidth)}" height="${Math.max(0, h - strokeWidth)}" rx="${radius}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" ${extra}/>`;
-  const resolveChrome = (accentColor: string) => {
+  const resolveChrome = () => {
     if (style === 'plain') return null;
-    if (style === 'glass') {
-      return {
-        stroke: accentColor,
-        strokeOpacity: '0.58',
-        fill: 'rgba(17,24,39,0.70)',
-      };
-    }
-    return { stroke: accentColor, strokeOpacity: '1', fill: '#0b0b0b' };
+    return { stroke: SQUARE_BADGE_STROKE, strokeOpacity: '1', fill: SQUARE_BADGE_FILL };
   };
   const buildRect = (width: number, accentColor: string, extra = '') => {
     if (style === 'plain') return '';
     if (style === 'glass') {
       const gradientId = `apple-glass-q-${key.replace(/[^a-z0-9]/gi, '-')}-${Math.round(accentColor.length)}`;
-      const isWhite = accentColor.toLowerCase() === '#ffffff' || colorMode === 'white';
-      const fillOpacityStart = isWhite ? '0.12' : '0.22';
-      const fillOpacityEnd = isWhite ? '0.04' : '0.10';
-      const borderOpacityStart = isWhite ? '0.25' : '0.42';
-      const borderOpacityEnd = isWhite ? '0.10' : '0.20';
-      return `
-<defs>
-  <clipPath id="capsule-clip-${gradientId}">
-    <rect x="0" y="0" width="${width}" height="${h}" rx="${radius}" />
-  </clipPath>
-  <linearGradient id="apple-glass-fill-${gradientId}" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="${accentColor}" stop-opacity="${fillOpacityStart}" />
-    <stop offset="100%" stop-color="${accentColor}" stop-opacity="${fillOpacityEnd}" />
-  </linearGradient>
-  <linearGradient id="apple-glass-border-${gradientId}" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="${accentColor}" stop-opacity="${borderOpacityStart}" />
-    <stop offset="100%" stop-color="${accentColor}" stop-opacity="${borderOpacityEnd}" />
-  </linearGradient>
-  <filter id="apple-glass-shadow-${gradientId}" x="-30%" y="-30%" width="160%" height="160%">
-    <feGaussianBlur in="SourceAlpha" stdDeviation="2.8" />
-    <feOffset dx="0" dy="3.2" result="offsetblur" />
-    <feFlood flood-color="#000000" flood-opacity="0.54" result="glowcolor" />
-    <feComposite in="glowcolor" in2="offsetblur" operator="in" result="glow" />
-    <feMerge>
-      <feMergeNode in="glow" />
-      <feMergeNode in="SourceGraphic" />
-    </feMerge>
-  </filter>
-</defs>
-<rect x="0.5" y="0.5" width="${width - 1}" height="${h - 1}" rx="${radius}" fill="url(#apple-glass-fill-${gradientId})" filter="url(#apple-glass-shadow-${gradientId})" ${extra} />
-<rect x="0.5" y="0.5" width="${width - 1}" height="${h - 1}" rx="${radius}" fill="none" stroke="url(#apple-glass-border-${gradientId})" stroke-width="1" ${extra} />
-`.trim();
+      return buildGlassCapsule({
+        id: gradientId,
+        clipId: `capsule-clip-${gradientId}`,
+        width,
+        height: h,
+        radius,
+      });
     }
-    const chrome = resolveChrome(accentColor);
+    const chrome = resolveChrome();
     if (!chrome) return '';
     return baseRect(width, chrome.stroke, chrome.fill, extra);
   };
@@ -720,12 +826,14 @@ ${content}
 
   const iconMeta = STREAM_BADGE_META.get(key);
   if (iconMeta && iconDataUri) {
-    const width = widthOverride ?? Math.round(h * (iconMeta.iconWidthRatio ?? Math.max(1.35, 0.72 + iconMeta.label.length * 0.34)));
+    const width = widthOverride ?? getQualityBadgePlateWidth(key, h, true);
     const imageHref = escapeXml(iconDataUri);
     const rectColor = colorMode === 'white' ? '#ffffff' : (iconMeta.accentColor || '#ffffff');
     const rect = isReferencePlain ? '' : buildRect(width, rectColor);
-    const imagePaddingX = Math.max(2, Math.round(h * 0.04));
-    const imagePaddingY = Math.max(2, Math.round(h * 0.04));
+    // The plate keeps its size (so it stays comparable to the ranking box) and the logo
+    // floats inside it: 16% vertical, a bit more on the sides for the pill's rounded ends.
+    const imagePaddingY = Math.max(2, Math.round(h * 0.16));
+    const imagePaddingX = Math.max(imagePaddingY, Math.round(width * 0.1));
     const imageWidth = Math.max(1, width - imagePaddingX * 2);
     const imageHeight = Math.max(1, h - imagePaddingY * 2);
 
@@ -742,15 +850,16 @@ ${rect}
   }
 
   if (key === '4k') {
-    const width = widthOverride ?? Math.round(h * 1.3);
+    const width = widthOverride ?? getQualityBadgePlateWidth(key, h, false);
     if (isReferencePlain) {
       const bigSize = Math.round(h * 0.46);
       const bigY = Math.round(h * 0.64);
-      const content = generateGlowText(`x="${width / 2}" y="${bigY}" font-family="${fontFamily}" font-size="${bigSize}" font-weight="900" text-anchor="middle"`, '4K');
+      const content = generateGlowText(`x="${width / 2}" y="${bigY}" font-family="${fontFamily}" font-size="${bigSize}" font-weight="900" text-anchor="middle"`, QUALITY_BADGE_TEXT['4k'].big);
       return { svg: wrapSvgPadded(content, width, h), width, height: h, isPadded: true };
     }
-    const bigSize = Math.round(h * 0.56);
-    const smallSize = Math.round(h * 0.2);
+    const textBox = Math.max(8, width - innerPadding * 2);
+    const bigSize = fitQualityTextSize(QUALITY_BADGE_TEXT['4k'].big, Math.round(h * 0.56), textBox);
+    const smallSize = fitQualityTextSize(QUALITY_BADGE_TEXT['4k'].small, Math.round(h * 0.2), textBox);
     const bigY = Math.round(h * 0.58);
     const smallY = Math.round(h * 0.86);
     const color = colorMode === 'white' ? '#ffffff' : '#f7c948';
@@ -760,89 +869,82 @@ ${rect}
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
 ${rect}
 ${clipStart}
-<text x="${width / 2}" y="${bigY}" font-family="${fontFamily}" font-size="${bigSize}" font-weight="800" text-anchor="middle" fill="${color}"${universalStroke}>4K</text>
-<text x="${width / 2}" y="${smallY}" font-family="${fontFamily}" font-size="${smallSize}" font-weight="700" text-anchor="middle" fill="${color}" letter-spacing="0.06em"${universalStroke}>ULTRA HD</text>
+<text x="${width / 2}" y="${bigY}" font-family="${fontFamily}" font-size="${bigSize}" font-weight="800" text-anchor="middle" fill="${color}"${universalStroke}>${QUALITY_BADGE_TEXT['4k'].big}</text>
+<text x="${width / 2}" y="${smallY}" font-family="${fontFamily}" font-size="${smallSize}" font-weight="700" text-anchor="middle" fill="${color}" letter-spacing="0.06em"${universalStroke}>${QUALITY_BADGE_TEXT['4k'].small}</text>
 ${clipEnd}
 </svg>`;
     return { svg, width, height: h };
   }
 
   if (key === 'hdr') {
-    const width = widthOverride ?? Math.round(h * 1.45);
+    const width = widthOverride ?? getQualityBadgePlateWidth(key, h, false);
     if (isReferencePlain) {
       const textSize = Math.round(h * 0.46);
       const textY = Math.round(h * 0.64);
-      const content = generateGlowText(`x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="900" text-anchor="middle"`, 'HDR');
+      const content = generateGlowText(`x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="900" text-anchor="middle"`, QUALITY_BADGE_TEXT.hdr.big);
       return { svg: wrapSvgPadded(content, width, h), width, height: h, isPadded: true };
     }
-    const bigSize = Math.round(h * 0.5);
-    const smallSize = Math.round(h * 0.2);
+    const textBox = Math.max(8, width - innerPadding * 2);
+    const bigSize = fitQualityTextSize(QUALITY_BADGE_TEXT.hdr.big, Math.round(h * 0.5), textBox);
+    const smallSize = fitQualityTextSize(QUALITY_BADGE_TEXT.hdr.small, Math.round(h * 0.2), textBox);
     const bigY = Math.round(h * 0.57);
     const smallY = Math.round(h * 0.86);
-    const rectBorder = colorMode === 'white' ? '#ffffff' : 'url(#hdrBorder)';
     const nonSquareAccent = colorMode === 'white' ? '#ffffff' : '#ffbe01';
     const smallTextColor = colorMode === 'white' ? '#ffffff' : '#a7f3d0';
     const rect =
       style === 'square'
-        ? baseRect(width, rectBorder, '#0b0b0b')
+        ? baseRect(width, SQUARE_BADGE_STROKE, SQUARE_BADGE_FILL)
         : buildRect(width, nonSquareAccent);
     const clipStart = style === 'glass' ? `<g clip-path="url(#capsule-clip-apple-glass-q-hdr-7)">` : '';
     const clipEnd = style === 'glass' ? '</g>' : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
-<defs>
-  <linearGradient id="hdrBorder" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0%" stop-color="#22c55e"/>
-    <stop offset="50%" stop-color="#22d3ee"/>
-    <stop offset="100%" stop-color="#facc15"/>
-  </linearGradient>
-</defs>
 ${rect}
 ${clipStart}
-<text x="${width / 2}" y="${bigY}" font-family="${fontFamily}" font-size="${bigSize}" font-weight="800" text-anchor="middle" fill="white"${universalStroke}>HDR</text>
-<text x="${width / 2}" y="${smallY}" font-family="${fontFamily}" font-size="${smallSize}" font-weight="700" text-anchor="middle" fill="${smallTextColor}" letter-spacing="0.05em"${universalStroke}>TRUE COLOR</text>
+<text x="${width / 2}" y="${bigY}" font-family="${fontFamily}" font-size="${bigSize}" font-weight="800" text-anchor="middle" fill="white"${universalStroke}>${QUALITY_BADGE_TEXT.hdr.big}</text>
+<text x="${width / 2}" y="${smallY}" font-family="${fontFamily}" font-size="${smallSize}" font-weight="700" text-anchor="middle" fill="${smallTextColor}" letter-spacing="0.05em"${universalStroke}>${QUALITY_BADGE_TEXT.hdr.small}</text>
 ${clipEnd}
 </svg>`;
     return { svg, width, height: h };
   }
 
   if (key === 'dolbyvision') {
-    const width = widthOverride ?? Math.round(h * 1.7);
+    const width = widthOverride ?? getQualityBadgePlateWidth(key, h, false);
     if (isReferencePlain) {
       const topSize = Math.round(h * 0.24);
       const bottomSize = Math.round(h * 0.34);
       const topY = Math.round(h * 0.35);
       const bottomY = Math.round(h * 0.78);
-      const content = `${generateGlowText(`x="${width / 2}" y="${topY}" font-family="${fontFamily}" font-size="${topSize}" font-weight="900" text-anchor="middle"`, 'DOLBY')}
-${generateGlowText(`x="${width / 2}" y="${bottomY}" font-family="${fontFamily}" font-size="${bottomSize}" font-weight="900" text-anchor="middle" letter-spacing="0.04em"`, 'VISION')}`;
+      const content = `${generateGlowText(`x="${width / 2}" y="${topY}" font-family="${fontFamily}" font-size="${topSize}" font-weight="900" text-anchor="middle"`, QUALITY_BADGE_TEXT.dolbyvision.top)}
+${generateGlowText(`x="${width / 2}" y="${bottomY}" font-family="${fontFamily}" font-size="${bottomSize}" font-weight="900" text-anchor="middle" letter-spacing="0.04em"`, QUALITY_BADGE_TEXT.dolbyvision.bottom)}`;
       return { svg: wrapSvgPadded(content, width, h), width, height: h, isPadded: true };
     }
-    const topSize = Math.round(h * 0.22);
-    const bottomSize = Math.round(h * 0.42);
+    const textBox = Math.max(8, width - innerPadding * 2);
+    const topSize = fitQualityTextSize(QUALITY_BADGE_TEXT.dolbyvision.top, Math.round(h * 0.22), textBox);
+    const bottomSize = fitQualityTextSize(QUALITY_BADGE_TEXT.dolbyvision.bottom, Math.round(h * 0.42), textBox);
     const topY = Math.round(h * 0.36);
     const bottomY = Math.round(h * 0.73);
-    const textLength = Math.max(40, Math.floor(width - innerPadding * 2));
     const rect = buildRect(width, '#ffffff');
     const clipStart = style === 'glass' ? `<g clip-path="url(#capsule-clip-apple-glass-q-dolbyvision-7)">` : '';
     const clipEnd = style === 'glass' ? '</g>' : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
 ${rect}
 ${clipStart}
-<text x="${width / 2}" y="${topY}" font-family="${fontFamily}" font-size="${topSize}" font-weight="700" text-anchor="middle" fill="#ffffff" letter-spacing="0.18em" textLength="${textLength}" lengthAdjust="spacingAndGlyphs"${universalStroke}>DOLBY</text>
-<text x="${width / 2}" y="${bottomY}" font-family="${fontFamily}" font-size="${bottomSize}" font-weight="800" text-anchor="middle" fill="#ffffff" textLength="${textLength}" lengthAdjust="spacingAndGlyphs"${universalStroke}>VISION</text>
+<text x="${width / 2}" y="${topY}" font-family="${fontFamily}" font-size="${topSize}" font-weight="700" text-anchor="middle" fill="#ffffff" letter-spacing="0.18em"${universalStroke}>${QUALITY_BADGE_TEXT.dolbyvision.top}</text>
+<text x="${width / 2}" y="${bottomY}" font-family="${fontFamily}" font-size="${bottomSize}" font-weight="800" text-anchor="middle" fill="#ffffff"${universalStroke}>${QUALITY_BADGE_TEXT.dolbyvision.bottom}</text>
 ${clipEnd}
 </svg>`;
     return { svg, width, height: h };
   }
 
   if (key === 'remux') {
-    const width = widthOverride ?? Math.round(h * 1.5);
+    const width = widthOverride ?? getQualityBadgePlateWidth(key, h, false);
     if (isReferencePlain) {
       const textSize = Math.round(h * 0.42);
       const textY = Math.round(h * 0.63);
-      const content = generateGlowText(`x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="900" text-anchor="middle"`, 'REMUX');
+      const content = generateGlowText(`x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="900" text-anchor="middle"`, QUALITY_BADGE_TEXT.remux.big);
       return { svg: wrapSvgPadded(content, width, h), width, height: h, isPadded: true };
     }
-    const textSize = Math.round(h * 0.42);
+    const textSize = fitQualityTextSize(QUALITY_BADGE_TEXT.remux.big, Math.round(h * 0.42), width - innerPadding * 2);
     const textY = Math.round(h * 0.63);
     const color = colorMode === 'white' ? '#ffffff' : '#27c04f';
     const rect = buildRect(width, color);
@@ -851,7 +953,7 @@ ${clipEnd}
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
 ${rect}
 ${clipStart}
-<text x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="800" text-anchor="middle" fill="${color}" letter-spacing="0.08em"${universalStroke}>REMUX</text>
+<text x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="800" text-anchor="middle" fill="${color}" letter-spacing="0.08em"${universalStroke}>${QUALITY_BADGE_TEXT.remux.big}</text>
 ${clipEnd}
 </svg>`;
     return { svg, width, height: h };
@@ -860,8 +962,8 @@ ${clipEnd}
   const meta = STREAM_BADGE_META.get(key);
   if (meta) {
     const label = escapeXml(meta.label);
-    const width = widthOverride ?? Math.max(Math.round(h * 1.35), Math.round(h * (0.72 + label.length * 0.34)));
-    const textSize = Math.max(12, Math.round(h * (label.length > 6 ? 0.32 : 0.42)));
+    const width = widthOverride ?? getQualityBadgePlateWidth(key, h, false);
+    const textSize = fitQualityTextSize(meta.label, qualityMetaTextSize(h, meta.label), width - innerPadding * 2);
     const textY = Math.round(h * 0.63);
     if (isReferencePlain) {
       const content = generateGlowText(`x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="900" text-anchor="middle"`, label);
@@ -874,7 +976,7 @@ ${clipEnd}
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
 ${rect}
 ${clipStart}
-<text x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="800" text-anchor="middle" fill="${accentColor}" textLength="${Math.max(20, width - innerPadding * 2)}" lengthAdjust="spacingAndGlyphs"${universalStroke}>${label}</text>
+<text x="${width / 2}" y="${textY}" font-family="${fontFamily}" font-size="${textSize}" font-weight="800" text-anchor="middle" fill="${accentColor}"${universalStroke}>${label}</text>
 ${clipEnd}
 </svg>`;
     return { svg, width, height: h };
@@ -939,13 +1041,14 @@ export const buildBadgeSvg = ({
       ? Math.max(16, Math.round(iconSize * 0.78))
       : radius;
   const iconRadius = getBadgeIconRadius(iconSize, ratingStyle);
-  const outerPadding = Math.max(6, Math.round(paddingX * 0.7));
+  const hideIcon = !iconDataUri && monogram === '';
+  // Kept in sync with estimateBadgeWidth: the plate always reserves the full paddingX.
+  const outerPadding = Math.max(6, Math.round(paddingX));
   const innerGap = contentLayout === 'stacked' ? Math.max(4, Math.round(outerPadding * 0.65)) : outerPadding;
   const iconX =
     contentLayout === 'stacked'
       ? Math.max(outerPadding, Math.round((width - iconSize) / 2))
       : outerPadding;
-  const hideIcon = !iconDataUri && monogram === '';
   const iconY =
     contentLayout === 'stacked'
       ? outerPadding
@@ -989,8 +1092,8 @@ export const buildBadgeSvg = ({
     hideIcon || ratingStyle === 'plain' || iconDataUri
       ? ''
       : ratingStyle === 'square'
-        ? `<rect x="${iconX + 0.75}" y="${iconY + 0.75}" width="${Math.max(0, iconSize - 1.5)}" height="${Math.max(0, iconSize - 1.5)}" rx="${Math.max(4, iconCornerRadius || iconRadius)}" fill="rgb(10,10,10)" />`
-        : `<circle cx="${iconCx}" cy="${iconCy}" r="${iconRadius}" fill="${accentColor}" stroke="rgba(255,255,255,0.45)" />`;
+        ? `<rect x="${iconX + 0.75}" y="${iconY + 0.75}" width="${Math.max(0, iconSize - 1.5)}" height="${Math.max(0, iconSize - 1.5)}" rx="${Math.max(4, iconCornerRadius || iconRadius)}" fill="${SQUARE_BADGE_FILL}" />`
+        : `<circle cx="${iconCx}" cy="${iconCy}" r="${iconRadius}" fill="rgba(255,255,255,0.14)" stroke="rgba(255,255,255,0.32)" />`;
   const iconClipPath =
     ratingStyle === 'plain'
       ? ''
@@ -1004,45 +1107,20 @@ export const buildBadgeSvg = ({
         ? iconCornerRadius > 0
           ? `<rect x="${iconX + 1.5}" y="${iconY + 1.5}" width="${Math.max(0, iconSize - 3)}" height="${Math.max(0, iconSize - 3)}" rx="${Math.max(4, iconCornerRadius || iconRadius - 1)}" fill="none" stroke="rgba(255,255,255,0.18)" />`
           : ''
-        : `<circle cx="${iconCx}" cy="${iconCy}" r="${iconRadius}" fill="none" stroke="rgba(255,255,255,0.45)" />`;
-  const glassColor = ratingsColorMode === 'transparent' ? '#ffffff' : accentColor;
-  const glassFillOpacityStart = ratingsColorMode === 'transparent' ? '0.12' : '0.22';
-  const glassFillOpacityEnd = ratingsColorMode === 'transparent' ? '0.04' : '0.10';
-  const glassBorderOpacityStart = ratingsColorMode === 'transparent' ? '0.25' : '0.42';
-  const glassBorderOpacityEnd = ratingsColorMode === 'transparent' ? '0.10' : '0.20';
-
+        : `<circle cx="${iconCx}" cy="${iconCy}" r="${iconRadius}" fill="none" stroke="rgba(255,255,255,0.32)" />`;
   const outerRect =
     ratingStyle === 'plain'
       ? ''
       : ratingStyle === 'square'
-        ? `<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="${outerRadius}" fill="#0b0b0b" stroke="${accentColor}" />`
-        : `
-<defs>
-  <clipPath id="capsule-clip-${clipPathId}">
-    <rect x="0" y="0" width="${width}" height="${height}" rx="${outerRadius}" />
-  </clipPath>
-  <linearGradient id="apple-glass-fill-${clipPathId}" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="${glassColor}" stop-opacity="${glassFillOpacityStart}" />
-    <stop offset="100%" stop-color="${glassColor}" stop-opacity="${glassFillOpacityEnd}" />
-  </linearGradient>
-  <linearGradient id="apple-glass-border-${clipPathId}" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="${glassColor}" stop-opacity="${glassBorderOpacityStart}" />
-    <stop offset="100%" stop-color="${glassColor}" stop-opacity="${glassBorderOpacityEnd}" />
-  </linearGradient>
-  <filter id="apple-glass-shadow-${clipPathId}" x="-30%" y="-30%" width="160%" height="160%">
-    <feGaussianBlur in="SourceAlpha" stdDeviation="2.8" />
-    <feOffset dx="0" dy="3.2" result="offsetblur" />
-    <feFlood flood-color="#000000" flood-opacity="0.54" result="glowcolor" />
-    <feComposite in="glowcolor" in2="offsetblur" operator="in" result="glow" />
-    <feMerge>
-      <feMergeNode in="glow" />
-      <feMergeNode in="SourceGraphic" />
-    </feMerge>
-  </filter>
-</defs>
-<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="${outerRadius}" fill="url(#apple-glass-fill-${clipPathId})" filter="url(#apple-glass-shadow-${clipPathId})" />
-<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="${outerRadius}" fill="none" stroke="url(#apple-glass-border-${clipPathId})" stroke-width="1" />
-`.trim();
+        ? `<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="${outerRadius}" fill="${SQUARE_BADGE_FILL}" stroke="${SQUARE_BADGE_STROKE}" />`
+        : buildGlassCapsule({
+          id: clipPathId,
+          clipId: `capsule-clip-${clipPathId}`,
+          width,
+          height,
+          radius: outerRadius,
+          colorMode: ratingsColorMode,
+        });
   const monogramFill = ratingStyle === 'glass' ? 'white' : accentColor;
   const textShadowFilter = `
     <filter id="text-shadow" x="-50%" y="-50%" width="200%" height="200%">

@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.7.11](https://github.com/realbestia1/erdb/compare/v0.7.10...v0.7.11) - 2026-10-17
+
+- Refine square badge styling and logo sizing ([28c88fd](https://github.com/realbestia1/erdb/commit/28c88fd85710d425d52b6c7c77fa35814104fd00))
+  Use a neutral hairline border for square badges and increase icon insets to balance plate and logo sizing. Bump the renderer cache version and package version.
+
+## [0.7.10](https://github.com/realbestia1/erdb/compare/v0.7.9...v0.7.10) - 2026-10-17
+
+- Bump version to 0.7.10 ([1ac511b](https://github.com/realbestia1/erdb/commit/1ac511b29a0a773177a8465a2c80218bd342c174))
+  Increment the package version from 0.7.9 to 0.7.10.
+- Improve quality badge sizing and layout ([c908fbb](https://github.com/realbestia1/erdb/commit/c908fbb45ad696989f741a0f597624f53ce0ae54))
+  Give text and icon quality badges roomier plate insets, measure labels to size plates, and shrink text to prevent clipping. Scale poster quality badges relative to rating badges while keeping ranking badge proportions stable. Bump the image renderer cache version.
+- Refine badge sizing and glass styling ([728c8f9](https://github.com/realbestia1/erdb/commit/728c8f9fdba396be0de8ff366c83d7c8ddf56cb9))
+  Improve star text width estimates and side padding for iconless badges, and align row measurement with average badges that omit icons. Standardize the Square Dark plate color and add a shared frosted-glass capsule style for rating and quality badges. Bump the image-renderer cache version.
+
 ## [0.7.9](https://github.com/realbestia1/erdb/compare/v0.7.8...v0.7.9) - 2026-10-17
 
 - Fix episode ratings and TVDB mapping ([c36f6b1](https://github.com/realbestia1/erdb/commit/c36f6b10140a500eb1cce1d76556e488b861eab2))
