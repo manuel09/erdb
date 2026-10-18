@@ -11,7 +11,7 @@ import { Card, Field, Notice, NumberStepper, PanelHeader, Section, Toggle } from
 import type { HomePageViewProps } from '@/components/workspace/types';
 import { RatingProviderSortableList } from '@/components/rating-provider-sortable-list';
 import { isVerticalPosterRatingLayout, type PosterRatingLayout } from '@/lib/posterRatingLayout';
-import { POSTER_GENRE_STYLE_OPTIONS, RATING_STYLE_OPTIONS, type RatingStyle } from '@/lib/ratingStyle';
+import { GLASS_COLOR_MODE_OPTIONS, POSTER_GENRE_STYLE_OPTIONS, RATING_STYLE_OPTIONS, glassStyleVariant, type RatingStyle } from '@/lib/ratingStyle';
 import { BACKDROP_RATING_LAYOUT_OPTIONS, type BackdropRatingLayout } from '@/lib/backdropRatingLayout';
 import { BACKDROP_RATINGS_SIZE_OPTIONS, type BackdropRatingsSize } from '@/lib/backdropRatingsSize';
 import { THUMBNAIL_RATING_LAYOUT_OPTIONS, type ThumbnailRatingLayout } from '@/lib/thumbnailRatingLayout';
@@ -699,10 +699,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                     {renderDropdown(
                       activeRatingsColorMode,
                       (value) => setRatingsColorModeForType(value as 'colored' | 'transparent'),
-                      [
-                        { id: 'colored', label: 'Colored' },
-                        { id: 'transparent', label: 'Transparent' },
-                      ]
+                      GLASS_COLOR_MODE_OPTIONS
                     )}
                   </Field>
                 )}
@@ -719,8 +716,26 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                   </Field>
                 )}
                 <Field label="Style">
-                  {renderDropdown(activeQualityBadgesStyle, (value) => setActiveQualityBadgesStyle(value as RatingStyle), RATING_STYLE_OPTIONS)}
+                  {renderDropdown(
+                    glassStyleVariant(activeQualityBadgesStyle) ? 'glass' : activeQualityBadgesStyle,
+                    (value) =>
+                      setActiveQualityBadgesStyle(
+                        value === 'glass' && glassStyleVariant(activeQualityBadgesStyle)
+                          ? activeQualityBadgesStyle
+                          : (value as RatingStyle)
+                      ),
+                    RATING_STYLE_OPTIONS
+                  )}
                 </Field>
+                {activeQualityBadgesStyle.startsWith('glass') && (
+                  <Field label="Glass style">
+                    {renderDropdown(
+                      glassStyleVariant(activeQualityBadgesStyle) ?? 'transparent',
+                      (value) => setActiveQualityBadgesStyle(`glass-${value}` as RatingStyle),
+                      GLASS_COLOR_MODE_OPTIONS
+                    )}
+                  </Field>
+                )}
                 <Field label="Badge style">
                   {renderDropdown(activeQualityBadgesColorMode, setActiveQualityBadgesColorMode, [
                     { id: 'white', label: 'White' },
@@ -734,8 +749,26 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
           {usesPosterSettings && posterGenrePosition !== 'off' && !averageRatingNotice && (
             <Card title="Genre" description="Style of the genre chip drawn on the poster while average ratings are off.">
               <Field label="Style">
-                {renderDropdown(posterGenreStyle, setPosterGenreStyle, POSTER_GENRE_STYLE_OPTIONS)}
+                {renderDropdown(
+                  glassStyleVariant(posterGenreStyle) ? 'glass' : posterGenreStyle,
+                  (value) =>
+                    setPosterGenreStyle(
+                      value === 'glass' && glassStyleVariant(posterGenreStyle)
+                        ? posterGenreStyle
+                        : (value as RatingStyle)
+                    ),
+                  POSTER_GENRE_STYLE_OPTIONS
+                )}
               </Field>
+              {posterGenreStyle.startsWith('glass') && (
+                <Field label="Glass style">
+                  {renderDropdown(
+                    glassStyleVariant(posterGenreStyle) ?? 'transparent',
+                    (value) => setPosterGenreStyle(`glass-${value}` as RatingStyle),
+                    GLASS_COLOR_MODE_OPTIONS
+                  )}
+                </Field>
+              )}
             </Card>
           )}
 

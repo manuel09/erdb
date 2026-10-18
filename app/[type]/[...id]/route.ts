@@ -52,6 +52,7 @@ import {
   DEFAULT_RATING_STYLE,
   normalizeRatingStyle,
   normalizePosterGenreStyle,
+  glassStyleVariant,
   normalizeRatingsColorMode,
   type RatingStyle,
 } from '@/lib/ratingStyle';
@@ -234,9 +235,10 @@ export async function GET(
   const posterRotationCacheControl =
     posterRotationWindow === null ? null : buildPublicImageCacheControl(getImageRotationRemainingMs());
   const posterGenrePosition = normalizePosterGenrePosition(tokenConfig.posterGenrePosition || request.nextUrl.searchParams.get('posterGenrePosition'));
-  const posterGenreStyle = normalizePosterGenreStyle(
-    tokenConfig.posterGenreStyle || request.nextUrl.searchParams.get('posterGenreStyle')
-  );
+  const posterGenreStyleRaw =
+    tokenConfig.posterGenreStyle || request.nextUrl.searchParams.get('posterGenreStyle');
+  const posterGenreGlassMode = glassStyleVariant(posterGenreStyleRaw) ?? undefined;
+  const posterGenreStyle = normalizePosterGenreStyle(posterGenreStyleRaw);
   // Removed duplicate posterConfiguratorPreset declaration
   const backdropRatings = getRatings('backdropRatingPreferences', 'backdropRatings') ?? globalRatings;
   const thumbnailRatings =
@@ -356,21 +358,21 @@ export async function GET(
     tokenConfig.posterQualityBadgesPosition || request.nextUrl.searchParams.get('posterQualityBadgesPosition')
   );
 
-  const globalQualityBadgesStyle = normalizeQualityBadgesStyle(
-    tokenConfig.qualityBadgesStyle || request.nextUrl.searchParams.get('qualityBadgesStyle')
-  );
-  const posterQualityBadgesStyle = normalizeQualityBadgesStyle(
+  const globalQualityBadgesStyleRaw =
+    tokenConfig.qualityBadgesStyle || request.nextUrl.searchParams.get('qualityBadgesStyle');
+  const posterQualityBadgesStyleRaw =
     tokenConfig.posterQualityBadgesStyle ||
     tokenConfig.qualityBadgesStyle ||
     request.nextUrl.searchParams.get('posterQualityBadgesStyle') ||
-    request.nextUrl.searchParams.get('qualityBadgesStyle')
-  );
-  const backdropQualityBadgesStyle = normalizeQualityBadgesStyle(
+    request.nextUrl.searchParams.get('qualityBadgesStyle');
+  const backdropQualityBadgesStyleRaw =
     tokenConfig.backdropQualityBadgesStyle ||
     tokenConfig.qualityBadgesStyle ||
     request.nextUrl.searchParams.get('backdropQualityBadgesStyle') ||
-    request.nextUrl.searchParams.get('qualityBadgesStyle')
-  );
+    request.nextUrl.searchParams.get('qualityBadgesStyle');
+  const globalQualityBadgesStyle = normalizeQualityBadgesStyle(globalQualityBadgesStyleRaw);
+  const posterQualityBadgesStyle = normalizeQualityBadgesStyle(posterQualityBadgesStyleRaw);
+  const backdropQualityBadgesStyle = normalizeQualityBadgesStyle(backdropQualityBadgesStyleRaw);
 
   const globalQualityBadgesColorMode = normalizeQualityBadgesColorMode(
     tokenConfig.qualityBadgesColorMode || request.nextUrl.searchParams.get('qualityBadgesColorMode')
@@ -394,6 +396,15 @@ export async function GET(
       : imageType === 'backdrop'
         ? backdropQualityBadgesStyle
         : globalQualityBadgesStyle;
+
+  const qualityBadgesGlassMode =
+    glassStyleVariant(
+      usesPosterSettings
+        ? posterQualityBadgesStyleRaw
+        : imageType === 'backdrop'
+          ? backdropQualityBadgesStyleRaw
+          : globalQualityBadgesStyleRaw
+    ) ?? undefined;
 
   const qualityBadgesColorMode =
     usesPosterSettings
@@ -650,6 +661,7 @@ export async function GET(
       usesPosterSettings ? String(posterRatingsMode || '-') : '-',
       usesPosterSettings ? posterGenrePosition : '-',
       usesPosterSettings ? posterGenreStyle : '-',
+      usesPosterSettings ? String(posterGenreGlassMode || '-') : '-',
       usesPosterSettings ? String(posterConfiguratorPreset || '-') : '-',
       usesPosterSettings ? String(posterRatingsMaxPerSide ?? 'auto') : '-',
       usesPosterSettings ? String(posterLang || '-') : '-',
@@ -673,6 +685,7 @@ export async function GET(
         : '-',
       imageType !== 'logo' ? qualityBadgesStyle : '-',
       imageType !== 'logo' ? qualityBadgesColorMode : '-',
+      imageType !== 'logo' ? String(qualityBadgesGlassMode || '-') : '-',
       imageType === 'backdrop' ? backdropRatingsLayout : imageType === 'thumbnail' ? thumbnailRatingsLayout : '-',
       imageType === 'backdrop' ? backdropRatingsSize : '-',
       imageType === 'thumbnail' ? thumbnailSize : '-',
@@ -3897,6 +3910,7 @@ export async function GET(
           posterQualityBadgesPosition,
           qualityBadgesStyle,
           qualityBadgesColorMode,
+          qualityBadgesGlassMode,
           posterRatingsLayout,
           posterRatingsMaxPerSide,
           backdropRatingsLayout: activeBackdropLikeLayout,
@@ -3914,6 +3928,7 @@ export async function GET(
           backdropRows,
           posterGenreBadge,
           posterGenreStyle,
+          posterGenreGlassMode,
           posterGenrePosition,
           rankingBadge,
           rankingPosition,

@@ -92,8 +92,41 @@ export const renderWithSharp = async (
       overlays.push({ input: resizedImageBuffer, top: imageTop, left: imageLeft });
     }
 
-    const iconByProvider = new Map<BadgeKey, string | null>();
-    const badgesWithIcons = [
+    // Pill Glass frost: the capsule has no fill, so the poster behind a glass badge is blurred and
+    // slipped under it (the badges are flat SVG overlays and SVG has no backdrop blur). The plate
+    // copies the capsule geometry exactly, so its own edge stays hidden under the badge's rim.
+    const glassBackdropCache = new Map<string, string>();
+    const getGlassBackdrop = async (
+      left: number,
+      top: number,
+      width: number,
+      height: number,
+      radius: number,
+      inset: number
+    ): Promise<string | null> => {
+      if (width < 2 || height < 2) return null;
+      const key = `${left}|${top}|${width}|${height}|${radius}`;
+      const cached = glassBackdropCache.get(key);
+      if (cached) return cached;
+      try {
+        const cropLeft = Math.max(0, Math.min(left, input.outputWidth - 1));
+        const cropTop = Math.max(0, Math.min(top, input.outputHeight - 1));
+        const cropWidth = Math.max(1, Math.min(width, input.outputWidth - cropLeft));
+        const cropHeight = Math.max(1, Math.min(height, input.outputHeight - cropTop));
+        const patch = await sharp(resizedImageBuffer)
+          .extract({ left: cropLeft, top: cropTop, width: cropWidth, height: cropHeight })
+          .blur(Math.max(1, Math.round(height * 0.1)))
+          .toBuffer();
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><defs><clipPath id="glass-plate"><rect x="${inset}" y="${inset}" width="${Math.max(1, width - inset * 2)}" height="${Math.max(1, height - inset * 2)}" rx="${Math.max(0, radius - inset)}" /></clipPath></defs><g clip-path="url(#glass-plate)" opacity="0.62"><image href="data:image/png;base64,${patch.toString('base64')}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="none" /></g></svg>`;
+        const dataUri = `data:image/png;base64,${(await sharp(Buffer.from(svg)).png().toBuffer()).toString('base64')}`;
+        glassBackdropCache.set(key, dataUri);
+        return dataUri;
+      } catch {
+        return null;
+      }
+    };
+
+    const iconByProvider = new Map<BadgeKey, string | null>();    const badgesWithIcons = [
       ...input.badges,
       ...input.qualityBadges.filter((badge) => badge.iconUrl),
     ];
@@ -1200,7 +1233,8 @@ export const renderWithSharp = async (
           uniformBadgeWidth,
           input.qualityBadgesStyle,
           iconByProvider.get(badge.key),
-          input.qualityBadgesColorMode
+          input.qualityBadgesColorMode,
+          input.qualityBadgesGlassMode
         );
         if (!spec) continue;
         const badgeWidth = Math.min(spec.width, uniformBadgeWidth);
@@ -1297,7 +1331,8 @@ export const renderWithSharp = async (
           badgeWidth,
           input.qualityBadgesStyle,
           iconByProvider.get(badge.key),
-          input.qualityBadgesColorMode
+          input.qualityBadgesColorMode,
+          input.qualityBadgesGlassMode
         );
         if (!spec) continue;
         const pad = (spec as any).isPadded ? 12 : 0;
@@ -1407,7 +1442,8 @@ export const renderWithSharp = async (
           uniformBadgeWidth,
           input.qualityBadgesStyle,
           iconByProvider.get(badge.key),
-          input.qualityBadgesColorMode
+          input.qualityBadgesColorMode,
+          input.qualityBadgesGlassMode
         );
         if (!spec) continue;
         const pad = (spec as any).isPadded ? 12 : 0;
@@ -1959,7 +1995,7 @@ export const renderWithSharp = async (
           monogram: '',
           value: badge.value,
           ratingStyle: input.posterGenreStyle,
-          ratingsColorMode: input.ratingsColorMode,
+          ratingsColorMode: input.posterGenreGlassMode ?? 'transparent',
           compactText: false,
         });
         const renderedSvg = badgeSvg
@@ -2093,7 +2129,7 @@ export const renderWithSharp = async (
         monogram: '',
         value: badge.value,
         ratingStyle: input.posterGenreStyle,
-        ratingsColorMode: input.ratingsColorMode,
+        ratingsColorMode: input.posterGenreGlassMode ?? 'transparent',
         compactText: false,
       });
 
@@ -2430,7 +2466,45 @@ export const renderWithSharp = async (
       },
     });
     if (overlays.length > 0) {
-      pipeline = pipeline.composite(overlays);
+      // Pill Glass pass: the blurred poster patch goes under every glass capsule. The capsule box is
+      // read back from the badge SVG (clipPath + viewBox) so padded overlays stay aligned.
+      const glassOverlays: typeof overlays = [];
+      for (const overlay of overlays) {
+        const svg = overlay.input.toString('utf8');
+        const capsule = svg.match(/<clipPath id="capsule-clip-[^"]*">\s*<rect x="(-?[\d.]+)" y="(-?[\d.]+)" width="([\d.]+)" height="([\d.]+)" rx="([\d.]+)"/);
+        if (!capsule) {
+          glassOverlays.push(overlay);
+          continue;
+        }
+        const size = svg.match(/width="([\d.]+)" height="([\d.]+)"/);
+        const viewBox = svg.match(/viewBox="(-?[\d.]+) (-?[\d.]+) ([\d.]+) ([\d.]+)"/);
+        // Badge SVGs use a padded viewBox with the default preserveAspectRatio (xMidYMid meet): the
+        // content is scaled by the SMALLER ratio and centred, so the capsule box has to be mapped
+        // with that same transform, otherwise the plate lands off the pill.
+        const svgW = size ? Number(size[1]) : 0;
+        const svgH = size ? Number(size[2]) : 0;
+        const vbX = viewBox ? Number(viewBox[1]) : 0;
+        const vbY = viewBox ? Number(viewBox[2]) : 0;
+        const vbW = viewBox ? Number(viewBox[3]) : svgW;
+        const vbH = viewBox ? Number(viewBox[4]) : svgH;
+        const scale = svgW > 0 && svgH > 0 && vbW > 0 && vbH > 0 ? Math.min(svgW / vbW, svgH / vbH) : 1;
+        const offsetX = svgW > 0 && vbW > 0 ? (svgW - vbW * scale) / 2 : 0;
+        const offsetY = svgH > 0 && vbH > 0 ? (svgH - vbH * scale) / 2 : 0;
+        const width = Math.round(Number(capsule[3]) * scale);
+        const height = Math.round(Number(capsule[4]) * scale);
+        const left = Math.round(overlay.left + offsetX + (Number(capsule[1]) - vbX) * scale);
+        const top = Math.round(overlay.top + offsetY + (Number(capsule[2]) - vbY) * scale);
+        // The capsule box is now mapped exactly, so a hairline inset is enough everywhere.
+        const plateInset = 0.5;
+        const plate = width > 1 && height > 1
+          ? await getGlassBackdrop(left, top, width, height, Math.round(Number(capsule[5]) * scale), plateInset)
+          : null;
+        if (plate) {
+          glassOverlays.push({ input: Buffer.from(plate.split(',')[1], 'base64'), top, left });
+        }
+        glassOverlays.push(overlay);
+      }
+      pipeline = pipeline.composite(glassOverlays);
     }
     if (input.imageType === 'logo') {
       pipeline = pipeline.trim({ background: transparentBackground });

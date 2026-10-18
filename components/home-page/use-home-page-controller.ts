@@ -257,6 +257,10 @@ export function useHomePageController({
   const [ranking, setRanking] = useState('daily');
   const setPosterConfiguratorPreset = useCallback((value: PosterConfiguratorPreset) => {
     setPosterConfiguratorPresetState(value);
+    // Presets lock the genre chip to the flat style (No Background); Custom is left free.
+    if (value !== 'custom') {
+      setPosterGenreStyle('plain');
+    }
     if (value === 'preset1') {
       setPosterRatingStyle('plain');
       setPosterAnimeImageText('default');

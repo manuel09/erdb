@@ -104,6 +104,7 @@ export type FastRenderInput = {
   posterQualityBadgesPosition: PosterQualityBadgesPosition;
   qualityBadgesStyle: RatingStyle;
   qualityBadgesColorMode?: 'colored' | 'white';
+  qualityBadgesGlassMode?: 'colored' | 'transparent';
   posterRatingsLayout: PosterRatingLayout;
   posterRatingsMaxPerSide: number | null;
   backdropRatingsLayout: BackdropRatingLayout | ThumbnailRatingLayout;
@@ -121,6 +122,7 @@ export type FastRenderInput = {
   backdropRows?: RatingBadge[][];
   posterGenreBadge?: RatingBadge | null;
   posterGenreStyle: RatingStyle;
+  posterGenreGlassMode?: 'colored' | 'transparent';
   posterGenrePosition: PosterGenrePosition;
   rankingBadge?: RankingBadge | null;
   rankingPosition: RankingPosition;

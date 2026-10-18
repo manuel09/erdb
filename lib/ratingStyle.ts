@@ -1,9 +1,26 @@
-export type RatingStyle = 'glass' | 'square' | 'plain' | 'solid-light';
+export type RatingStyle = 'glass' | 'glass-colored' | 'glass-transparent' | 'square' | 'plain' | 'solid-light';
 
-// 'glass' (the glossy pill) is no longer offered in the UI; it stays accepted for saved configs.
-export const DEFAULT_RATING_STYLE: RatingStyle = 'square';
+export type GlassColorMode = 'colored' | 'transparent';
+
+// Quality badges and the genre chip carry their own Glass variant inside the style value
+// ('glass-colored' / 'glass-transparent'), so their Style control stays the single source and no
+// extra parameter has to travel through the stack. The route normalizes it back to 'glass'.
+export const glassStyleVariant = (value?: string | null): GlassColorMode | null => {
+  const normalized = (value || '').trim().toLowerCase();
+  if (normalized === 'glass-transparent') return 'transparent';
+  if (normalized === 'glass-colored') return 'colored';
+  return null;
+};
+
+export const GLASS_COLOR_MODE_OPTIONS: Array<{ id: GlassColorMode; label: string }> = [
+  { id: 'transparent', label: 'Transparent' },
+  { id: 'colored', label: 'Colored' },
+];
+
+export const DEFAULT_RATING_STYLE: RatingStyle = 'glass';
 
 export const RATING_STYLE_OPTIONS: Array<{ id: RatingStyle; label: string }> = [
+  { id: 'glass', label: 'Pill Glass' },
   { id: 'square', label: 'Square Dark' },
   { id: 'plain', label: 'No Background' },
 ];
@@ -22,6 +39,7 @@ export const POSTER_GENRE_STYLE_OPTIONS: Array<{ id: RatingStyle; label: string 
 
 export const normalizePosterGenreStyle = (value?: string | null): RatingStyle => {
   const normalized = (value || '').trim().toLowerCase();
+  if (glassStyleVariant(normalized)) return 'glass';
   if (normalized === 'glass' || normalized === 'square' || normalized === 'plain') {
     return normalized;
   }
@@ -30,6 +48,7 @@ export const normalizePosterGenreStyle = (value?: string | null): RatingStyle =>
 
 export const normalizeRatingStyle = (value?: string | null): RatingStyle => {
   const normalized = (value || '').trim().toLowerCase();
+  if (glassStyleVariant(normalized)) return 'glass';
   if (normalized === 'glass' || normalized === 'square' || normalized === 'plain') {
     return normalized;
   }

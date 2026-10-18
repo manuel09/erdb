@@ -1,5 +1,5 @@
 import { RATING_PROVIDER_OPTIONS, type RatingPreference } from '@/lib/ratingPreferences';
-import type { RatingStyle } from '@/lib/ratingStyle';
+import { glassStyleVariant, type RatingStyle } from '@/lib/ratingStyle';
 import type { PosterRatingLayout } from '@/lib/posterRatingLayout';
 
 export type StreamBadgeKey =
@@ -528,6 +528,7 @@ export const resolvePosterQualityBadgePlacement = (
 
 export const normalizeQualityBadgesStyle = (value?: string | null): RatingStyle => {
   const normalized = (value || '').trim().toLowerCase();
+  if (glassStyleVariant(normalized)) return 'glass';
   if (normalized === 'glass' || normalized === 'square' || normalized === 'plain') {
     return normalized;
   }

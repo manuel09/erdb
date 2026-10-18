@@ -626,11 +626,12 @@ export const SQUARE_BADGE_FILL = 'rgba(21,35,49,0.92)';
 // Square Dark border: neutral hairline (same idea as the ranking box), never the provider color.
 export const SQUARE_BADGE_STROKE = 'rgba(255,255,255,0.10)';
 
-// Pill Glass material (Apple-style frosted capsule): neutral smoked (or clear) body,
-// top sheen, light rim and a soft drop shadow. The accent color never tints the
-// material: it stays on the icon, text and quality label only.
-// 'colored'  -> smoked dark glass (readable over bright posters)
-// 'transparent' -> clear light glass
+// Pill Glass material: the liquid glass capsule from the reference, scaled to the badge height.
+// 'transparent' has no fill at all: the frost comes from the blurred poster patch that the
+// renderer slips under every glass badge (see getGlassBackdrop). 'colored' adds the provider
+// accent color on top of the same frost. Both keep only a crisp 1px rim that brightens towards
+// the bottom right: no inner rings (on a dark artwork they read as white halos) and no outer
+// shadow (the badge SVG is exactly the capsule box, so it would be clipped away).
 export const buildGlassCapsule = (args: {
   id: string;
   clipId: string;
@@ -638,51 +639,23 @@ export const buildGlassCapsule = (args: {
   height: number;
   radius: number;
   colorMode?: 'colored' | 'transparent';
+  accentColor?: string;
 }) => {
-  const { id, clipId, width, height, radius, colorMode = 'colored' } = args;
+  const { id, clipId, width, height, radius, colorMode = 'colored', accentColor = '#ffffff' } = args;
   const clear = colorMode === 'transparent';
-  const bodyTop = clear ? '#eef1f6' : '#262b35';
-  const bodyBottom = clear ? '#c3c9d4' : '#0a0c10';
-  const bodyTopOpacity = clear ? '0.20' : '0.62';
-  const bodyBottomOpacity = clear ? '0.10' : '0.74';
-  const sheenTopOpacity = clear ? '0.30' : '0.18';
-  const rimTopOpacity = clear ? '0.85' : '0.55';
-  const rimBottomOpacity = clear ? '0.28' : '0.12';
-  const bottomLiftOpacity = clear ? '0.30' : '0.12';
-  const sheenHeight = Math.max(1, Math.round(height * 0.45));
-  const bottomLineY = Math.max(1, height - 2.2);
+  const rimDim = clear ? '0.55' : '0.60';
   return `
 <defs>
   <clipPath id="${clipId}">
     <rect x="0" y="0" width="${width}" height="${height}" rx="${radius}" />
   </clipPath>
-  <linearGradient id="apple-glass-fill-${id}" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="${bodyTop}" stop-opacity="${bodyTopOpacity}" />
-    <stop offset="100%" stop-color="${bodyBottom}" stop-opacity="${bodyBottomOpacity}" />
+  <linearGradient id="apple-glass-border-${id}" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="${rimDim}" />
+    <stop offset="100%" stop-color="#ffffff" stop-opacity="0.95" />
   </linearGradient>
-  <linearGradient id="apple-glass-sheen-${id}" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#ffffff" stop-opacity="${sheenTopOpacity}" />
-    <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
-  </linearGradient>
-  <linearGradient id="apple-glass-border-${id}" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#ffffff" stop-opacity="${rimTopOpacity}" />
-    <stop offset="100%" stop-color="#ffffff" stop-opacity="${rimBottomOpacity}" />
-  </linearGradient>
-  <filter id="apple-glass-shadow-${id}" x="-30%" y="-30%" width="160%" height="160%">
-    <feGaussianBlur in="SourceAlpha" stdDeviation="2.8" />
-    <feOffset dx="0" dy="3.2" result="offsetblur" />
-    <feFlood flood-color="#000000" flood-opacity="0.54" result="glowcolor" />
-    <feComposite in="glowcolor" in2="offsetblur" operator="in" result="glow" />
-    <feMerge>
-      <feMergeNode in="glow" />
-      <feMergeNode in="SourceGraphic" />
-    </feMerge>
-  </filter>
 </defs>
-<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="${radius}" fill="url(#apple-glass-fill-${id})" filter="url(#apple-glass-shadow-${id})" />
 <g clip-path="url(#${clipId})">
-  <rect x="0" y="0" width="${width}" height="${sheenHeight}" fill="url(#apple-glass-sheen-${id})" />
-  <rect x="1" y="${bottomLineY}" width="${Math.max(0, width - 2)}" height="1.2" rx="0.6" fill="#ffffff" fill-opacity="${bottomLiftOpacity}" />
+  ${clear ? '' : `<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="${radius}" fill="${accentColor}" fill-opacity="0.22" />`}
 </g>
 <rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="${radius}" fill="none" stroke="url(#apple-glass-border-${id})" stroke-width="1" />
 `.trim();
@@ -694,7 +667,8 @@ export const buildQualityBadgeSvg = (
   widthOverride?: number,
   style: RatingStyle = DEFAULT_QUALITY_BADGES_STYLE,
   iconDataUri?: string | null,
-  colorMode: 'colored' | 'white' = 'white'
+  colorMode: 'colored' | 'white' = 'white',
+  glassColorMode?: 'colored' | 'transparent'
 ) => {
   const h = Math.max(32, height);
   const isReferencePlain = style === 'plain';
@@ -716,7 +690,9 @@ export const buildQualityBadgeSvg = (
     if (style === 'plain') return null;
     return { stroke: SQUARE_BADGE_STROKE, strokeOpacity: '1', fill: SQUARE_BADGE_FILL };
   };
-  const buildRect = (width: number, accentColor: string, extra = '') => {
+  // plateAccent only feeds the Pill Glass tint: it must not follow the Badge style (white/colored),
+  // which is about the icon and the label only.
+  const buildRect = (width: number, accentColor: string, extra = '', plateAccent = accentColor) => {
     if (style === 'plain') return '';
     if (style === 'glass') {
       const gradientId = `apple-glass-q-${key.replace(/[^a-z0-9]/gi, '-')}-${Math.round(accentColor.length)}`;
@@ -726,6 +702,8 @@ export const buildQualityBadgeSvg = (
         width,
         height: h,
         radius,
+        colorMode: glassColorMode ?? 'transparent',
+        accentColor: plateAccent,
       });
     }
     const chrome = resolveChrome();
@@ -735,56 +713,12 @@ export const buildQualityBadgeSvg = (
   const universalStroke = ' stroke="rgba(0,0,0,0.80)" stroke-width="1.8" paint-order="stroke fill"';
   const qualityBadgeColor = '#ffffff';
 
-  const textShadowFilter = `
-    <filter id="text-shadow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="1.8" result="blur" />
-      <feOffset dx="0" dy="1.2" in="blur" result="offsetBlur" />
-      <feComponentTransfer in="offsetBlur" result="shadow">
-        <feFuncA type="linear" slope="0.85" />
-      </feComponentTransfer>
-      <feMerge>
-        <feMergeNode in="shadow" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
-  `.trim();
+  // Shadows removed on purpose: no text-shadow filter at all, the glyphs keep only
+  // their crisp black outline for legibility.
+  const textShadowFilter = '';
 
-  const premiumGlowFilter = `
-    <filter id="premium-glow" x="-50%" y="-50%" width="200%" height="200%">
-      <!-- Wide ambient shadow -->
-      <feGaussianBlur in="SourceAlpha" stdDeviation="6.5" result="blurWide" />
-      <feComponentTransfer in="blurWide" result="glowWide">
-        <feFuncA type="linear" slope="1.2" />
-      </feComponentTransfer>
-
-      <!-- Medium soft shadow -->
-      <feGaussianBlur in="SourceAlpha" stdDeviation="3.6" result="blurMed" />
-      <feComponentTransfer in="blurMed" result="glowMed">
-        <feFuncA type="linear" slope="2.0" />
-      </feComponentTransfer>
-
-      <!-- Core dark shadow -->
-      <feGaussianBlur in="SourceAlpha" stdDeviation="1.6" result="blurCore" />
-      <feComponentTransfer in="blurCore" result="glowCore">
-        <feFuncA type="linear" slope="3.0" />
-      </feComponentTransfer>
-
-      <!-- Sharp drop shadow for depth -->
-      <feGaussianBlur in="SourceAlpha" stdDeviation="0.8" result="blurSharp" />
-      <feOffset dx="0" dy="1.5" in="blurSharp" result="offsetSharp" />
-      <feComponentTransfer in="offsetSharp" result="shadowSharp">
-        <feFuncA type="linear" slope="3.0" />
-      </feComponentTransfer>
-
-      <feMerge>
-        <feMergeNode in="glowWide" />
-        <feMergeNode in="glowMed" />
-        <feMergeNode in="glowCore" />
-        <feMergeNode in="shadowSharp" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
-  `.trim();
+  // Shadows removed on purpose: no premium glow under logos or labels.
+  const premiumGlowFilter = '';
 
   const getTextColor = () => {
     if (colorMode === 'white') return '#ffffff';
@@ -797,14 +731,9 @@ export const buildQualityBadgeSvg = (
 
   const generateGlowText = (attrs: string, content: string) => {
     if (isReferencePlain) {
-      const glowLayers = Array.from({ length: 10 }, (_, i) => {
-        const strokeWidth = 18 - i * 1.6;
-        const opacity = 0.03 + (i * 0.04);
-        return `<text ${attrs} fill="none" stroke="black" stroke-opacity="${opacity}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round">${content}</text>`;
-      }).join('\n');
-      return `${glowLayers}\n<text ${attrs} fill="${textColor}" stroke="black" stroke-width="1.8" paint-order="stroke fill" filter="url(#premium-glow)">${content}</text>`;
+      return `<text ${attrs} fill="${textColor}" stroke="black" stroke-width="1.8" paint-order="stroke fill">${content}</text>`;
     }
-    return `<text ${attrs} fill="${textColor}"${universalStroke} filter="url(#premium-glow)">${content}</text>`;
+    return `<text ${attrs} fill="${textColor}"${universalStroke}>${content}</text>`;
   };
 
   const wrapSvg = (content: string, width: number, height: number) => {
@@ -836,7 +765,7 @@ ${content}
     const width = widthOverride ?? getQualityBadgePlateWidth(key, h, true);
     const imageHref = escapeXml(iconDataUri);
     const rectColor = colorMode === 'white' ? '#ffffff' : (iconMeta.accentColor || '#ffffff');
-    const rect = isReferencePlain ? '' : buildRect(width, rectColor);
+    const rect = isReferencePlain ? '' : buildRect(width, rectColor, '', iconMeta.accentColor || '#ffffff');
     // The plate keeps its size (so it stays comparable to the ranking box) and the logo
     // floats inside it with the same inset on every side.
     const imagePaddingY = qualityIconInset(h);
@@ -845,7 +774,7 @@ ${content}
     const imageHeight = Math.max(1, h - imagePaddingY * 2);
 
     if (isReferencePlain) {
-      const content = `<image href="${imageHref}" x="${imagePaddingX}" y="${imagePaddingY}" width="${imageWidth}" height="${imageHeight}" preserveAspectRatio="xMidYMid meet" filter="url(#premium-glow)"/>`;
+      const content = `<image href="${imageHref}" x="${imagePaddingX}" y="${imagePaddingY}" width="${imageWidth}" height="${imageHeight}" preserveAspectRatio="xMidYMid meet"/>`;
       return { svg: wrapSvgPadded(content, width, h), width, height: h, isPadded: true };
     }
 
@@ -862,14 +791,14 @@ ${rect}
   if (iconMeta && !isReferencePlain) {
     const width = widthOverride ?? getQualityBadgePlateWidth(key, h, true);
     const labelColor = colorMode === 'white' ? '#ffffff' : iconMeta.accentColor || '#ffffff';
-    const rect = buildRect(width, labelColor);
+    const rect = buildRect(width, labelColor, '', iconMeta.accentColor || '#ffffff');
     const labelInset = Math.max(8, Math.round(h * 0.16));
     const labelSize = fitQualityTextSize(iconMeta.label, Math.round(h * 0.5), Math.max(8, width - labelInset * 2));
     const labelY = Math.round(h / 2 + labelSize * 0.36);
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
 ${premiumGlowFilter}
 ${rect}
-<text x="${width / 2}" y="${labelY}" font-family="${fontFamily}" font-size="${labelSize}" font-weight="800" text-anchor="middle" fill="${labelColor}" filter="url(#premium-glow)">${escapeXml(iconMeta.label)}</text>
+<text x="${width / 2}" y="${labelY}" font-family="${fontFamily}" font-size="${labelSize}" font-weight="800" text-anchor="middle" fill="${labelColor}">${escapeXml(iconMeta.label)}</text>
 </svg>`;
     return { svg, width, height: h };
   }
@@ -888,7 +817,7 @@ ${rect}
     const bigY = Math.round(h * 0.58);
     const smallY = Math.round(h * 0.86);
     const color = colorMode === 'white' ? '#ffffff' : '#f7c948';
-    const rect = buildRect(width, color);
+    const rect = buildRect(width, color, '', '#f7c948');
     const clipStart = style === 'glass' ? `<g clip-path="url(#capsule-clip-apple-glass-q-4k-${Math.round(color.length)})">` : '';
     const clipEnd = style === 'glass' ? '</g>' : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
@@ -919,7 +848,7 @@ ${clipEnd}
     const rect =
       style === 'square'
         ? baseRect(width, SQUARE_BADGE_STROKE, SQUARE_BADGE_FILL)
-        : buildRect(width, nonSquareAccent);
+        : buildRect(width, nonSquareAccent, '', '#ffbe01');
     const clipStart = style === 'glass' ? `<g clip-path="url(#capsule-clip-apple-glass-q-hdr-7)">` : '';
     const clipEnd = style === 'glass' ? '</g>' : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
@@ -972,7 +901,7 @@ ${clipEnd}
     const textSize = fitQualityTextSize(QUALITY_BADGE_TEXT.remux.big, Math.round(h * 0.42), width - innerPadding * 2);
     const textY = Math.round(h * 0.63);
     const color = colorMode === 'white' ? '#ffffff' : '#27c04f';
-    const rect = buildRect(width, color);
+    const rect = buildRect(width, color, '', '#27c04f');
     const clipStart = style === 'glass' ? `<g clip-path="url(#capsule-clip-apple-glass-q-remux-${Math.round(color.length)})">` : '';
     const clipEnd = style === 'glass' ? '</g>' : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
@@ -995,7 +924,7 @@ ${clipEnd}
       return { svg: wrapSvgPadded(content, width, h), width, height: h, isPadded: true };
     }
     const accentColor = colorMode === 'white' ? '#ffffff' : meta.accentColor;
-    const rect = buildRect(width, accentColor);
+    const rect = buildRect(width, accentColor, '', meta.accentColor || '#ffffff');
     const clipStart = style === 'glass' ? `<g clip-path="url(#capsule-clip-apple-glass-q-${key.replace(/[^a-z0-9]/gi, '-')}-${Math.round(accentColor.length)})">` : '';
     const clipEnd = style === 'glass' ? '</g>' : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${h}" viewBox="0 0 ${width} ${h}">
@@ -1145,28 +1074,19 @@ export const buildBadgeSvg = ({
           height,
           radius: outerRadius,
           colorMode: ratingsColorMode,
+          accentColor,
         });
   const monogramFill = ratingStyle === 'glass' ? 'white' : accentColor;
-  const textShadowFilter = `
-    <filter id="text-shadow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="1.8" result="blur" />
-      <feOffset dx="0" dy="1.2" in="blur" result="offsetBlur" />
-      <feComponentTransfer in="offsetBlur" result="shadow">
-        <feFuncA type="linear" slope="0.85" />
-      </feComponentTransfer>
-      <feMerge>
-        <feMergeNode in="shadow" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
-  `.trim();
+  // Shadows removed on purpose: no text-shadow filter at all, the glyphs keep only
+  // their crisp black outline for legibility.
+  const textShadowFilter = '';
   const itemFilter = '';
   const iconImage =
     !iconDataUri
       ? ''
       : ratingStyle === 'plain'
-        ? `<image href="${iconDataUri}" x="${iconImageX}" y="${iconImageY}" width="${renderedIconSize}" height="${renderedIconSize}" preserveAspectRatio="xMidYMid meet" filter="url(#text-shadow)" />`
-        : `<defs><clipPath id="${clipPathId}">${iconClipPath}</clipPath></defs><image href="${iconDataUri}" x="${iconImageX}" y="${iconImageY}" width="${renderedIconSize}" height="${renderedIconSize}" preserveAspectRatio="xMidYMid meet" clip-path="url(#${clipPathId})" filter="url(#text-shadow)" />${iconBorder}`;
+        ? `<image href="${iconDataUri}" x="${iconImageX}" y="${iconImageY}" width="${renderedIconSize}" height="${renderedIconSize}" preserveAspectRatio="xMidYMid meet" />`
+        : `<defs><clipPath id="${clipPathId}">${iconClipPath}</clipPath></defs><image href="${iconDataUri}" x="${iconImageX}" y="${iconImageY}" width="${renderedIconSize}" height="${renderedIconSize}" preserveAspectRatio="xMidYMid meet" clip-path="url(#${clipPathId})" />${iconBorder}`;
   const monogramText =
     iconDataUri || hideIcon
       ? ''
@@ -1198,11 +1118,11 @@ export const buildBadgeSvg = ({
     ? Array.from({ length: 10 }, (_, i) => {
       const strokeWidth = 18 - i * 1.6;
       const opacity = 0.03 + (i * 0.04);
-      return `<text ${commonAttrs} fill="none" stroke="black" stroke-opacity="${opacity}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round">${textInnerContent}</text>`;
+      return `<text ${commonAttrs} fill="none" stroke="none" stroke-opacity="${opacity}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round">${textInnerContent}</text>`;
     }).join('\n')
     : '';
 
-  const valueText = `${glowLayers}<text ${commonAttrs} fill="white"${valueStroke} filter="url(#text-shadow)">${textInnerContent}</text>`;
+  const valueText = `${glowLayers}<text ${commonAttrs} fill="white"${valueStroke}>${textInnerContent}</text>`;
   const capsuleClipStart = ratingStyle === 'glass' ? `<g clip-path="url(#capsule-clip-${clipPathId})">` : '';
   const capsuleClipEnd = ratingStyle === 'glass' ? '</g>' : '';
 
@@ -1289,7 +1209,7 @@ export const buildRankingBadgeSvg = (
       ? Array.from({ length: 8 }, (_, i) => {
         const strokeWidth = 20 - i * 2.5;
         const opacity = 0.05 + (i * 0.05);
-        return `<text x="${textX}" y="${textBaselineY}" font-family="${RANKING_TEXT_FONT_FAMILY}" font-size="${compactFontSize}" font-style="${fontStyle}" font-weight="${fontWeight}" text-anchor="middle" fill="none" stroke="rgba(0,0,0,${opacity})" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" style="font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1, 'lnum' 1;">${escapeXml(value)}</text>`;
+        return `<text x="${textX}" y="${textBaselineY}" font-family="${RANKING_TEXT_FONT_FAMILY}" font-size="${compactFontSize}" font-style="${fontStyle}" font-weight="${fontWeight}" text-anchor="middle" fill="none" stroke="rgba(0,0,0,0)" data-glow=${opacity})" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" style="font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1, 'lnum' 1;">${escapeXml(value)}</text>`;
       }).join('\\n')
       : '';
 
@@ -1312,7 +1232,7 @@ ${textOpen}${rankGlowLayers}
       ? Array.from({ length: 8 }, (_, i) => {
         const strokeWidth = 20 - i * 2.5;
         const opacity = 0.05 + (i * 0.05);
-        return `<text x="${rankX}" y="${textY}" font-family="'Noto Sans','DejaVu Sans',Arial,sans-serif" font-size="${rankFontSize}" font-style="italic" font-weight="500" fill="none" stroke="rgba(0,0,0,${opacity})" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" style="font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1, 'lnum' 1;">${escapeXml(value)}</text>`;
+        return `<text x="${rankX}" y="${textY}" font-family="'Noto Sans','DejaVu Sans',Arial,sans-serif" font-size="${rankFontSize}" font-style="italic" font-weight="500" fill="none" stroke="rgba(0,0,0,0)" data-glow=${opacity})" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" style="font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1, 'lnum' 1;">${escapeXml(value)}</text>`;
       }).join('\\n')
       : '';
 
@@ -1337,7 +1257,7 @@ ${rankGlowLayers}
     ? Array.from({ length: 8 }, (_, i) => {
       const strokeWidth = 20 - i * 2.5;
       const opacity = 0.05 + (i * 0.05);
-      return `<text x="${rankX}" y="${textY}" font-family="'Noto Sans','DejaVu Sans',Arial,sans-serif" font-size="${rankFontSize}" font-style="italic" font-weight="500" fill="none" stroke="rgba(0,0,0,${opacity})" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" style="font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1, 'lnum' 1;">${escapeXml(value)}</text>`;
+      return `<text x="${rankX}" y="${textY}" font-family="'Noto Sans','DejaVu Sans',Arial,sans-serif" font-size="${rankFontSize}" font-style="italic" font-weight="500" fill="none" stroke="rgba(0,0,0,0)" data-glow=${opacity})" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" style="font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1, 'lnum' 1;">${escapeXml(value)}</text>`;
     }).join('\\n')
     : '';
 
@@ -1345,7 +1265,7 @@ ${rankGlowLayers}
     ? Array.from({ length: 8 }, (_, i) => {
       const strokeWidth = 20 - i * 2.5;
       const opacity = 0.05 + (i * 0.05);
-      return `<text x="${labelX}" y="${textY}" font-family="'Noto Sans','DejaVu Sans',Arial,sans-serif" font-size="${labelFontSize}" font-weight="800" fill="none" stroke="rgba(0,0,0,${opacity})" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round">${escapeXml(label)}</text>`;
+      return `<text x="${labelX}" y="${textY}" font-family="'Noto Sans','DejaVu Sans',Arial,sans-serif" font-size="${labelFontSize}" font-weight="800" fill="none" stroke="rgba(0,0,0,0)" data-glow=${opacity})" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round">${escapeXml(label)}</text>`;
     }).join('\\n')
     : '';
 
