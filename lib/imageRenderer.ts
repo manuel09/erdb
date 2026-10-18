@@ -233,19 +233,21 @@ export const renderWithSharp = async (
         posterSideOverlayGap
       )
       : posterRowRegionWidth;
+    // Rows that share space with the quality chips follow the chips' side (left/right), so the
+    // artwork keeps one element on each side. Centre is only the default when nothing is placed.
     const alignPosterRowWithQuality =
       usePosterLayout && input.qualityBadges.length > 0 && posterQualityBadgeSidePlacement !== null;
+    const posterQualityRowAlign: 'left' | 'center' | 'right' = alignPosterRowWithQuality
+      ? posterQualityBadgeSidePlacement === 'right'
+        ? 'right'
+        : 'left'
+      : 'center';
     const topRatingsShareRankingRow =
       usePosterLayout &&
       input.rankingBadge != null &&
       input.rankingPosition === 'top' &&
       input.topBadges.length > 0 &&
       (input.posterRatingsLayout === 'top' || input.posterRatingsLayout === 'top-bottom');
-    const posterQualityRowAlign: 'left' | 'center' | 'right' = alignPosterRowWithQuality
-      ? posterQualityBadgeSidePlacement === 'right'
-        ? 'right'
-        : 'left'
-      : 'center';
     const posterTopRowAlign: 'left' | 'center' | 'right' = topRatingsShareRankingRow
       ? 'right'
       : posterQualityRowAlign;
@@ -1319,7 +1321,7 @@ export const renderWithSharp = async (
       if (!layout) return 0;
       const { badgeWidths, height: qualityHeight, rowGap } = layout;
       const rowInset = usePosterLayout ? input.posterRowHorizontalInset : 12;
-      let rowX = align === 'left' ? rowInset : align === 'right' ? Math.max(rowInset, input.outputWidth - layout.rowWidth - rowInset) : layout.rowX;
+      let rowX = align === 'left' ? rowInset : align === 'right' ? Math.max(rowInset, input.outputWidth - layout.rowWidth - rowInset) : Math.max(rowInset, Math.round((input.outputWidth - layout.rowWidth) / 2));
       const rowStartX = rowX;
       for (let index = 0; index < rowBadges.length; index += 1) {
         const badge = rowBadges[index];
@@ -1620,9 +1622,36 @@ export const renderWithSharp = async (
       const resolvedRankingPos: string = rankingPosRaw === 'auto'
         ? (lastOverlayTopY > 0 ? 'above-logo' : 'top')
         : rankingPosRaw;
-      const rankingSharesQualityRow = input.rankingBadge != null && resolvedRankingPos === qualityPlacement;
-      const genreSharesQualityRow = input.posterGenreBadge != null && input.posterGenrePosition === qualityPlacement && !rankingSharesQualityRow;
-      const qualityAlign = (rankingSharesQualityRow || genreSharesQualityRow) ? 'right' : 'center';
+      // The chips shift to one side only when the ranking actually fits beside them; otherwise they
+      // stay centred and the ranking drops to its own row below. The ranking is built later, so its
+      // width is derived here with the same geometry (formula kept in sync with the ranking block).
+      const earlyRankingWidth = (() => {
+        if (!usePosterLayout || !input.rankingBadge) return 0;
+        const rankingBadge = input.rankingBadge;
+        const rankingScale = (input.posterConfiguratorPreset === 'advanced' ? 1.3 : 1.15) * posterOutputScale;
+        const spec = buildRankingBadgeSvg(
+          rankingBadge.value,
+          rankingBadge.compact ? '' : rankingBadge.label,
+          null,
+          rankingBadge.noBox ?? (input.posterConfiguratorPreset === 'simple'),
+          rankingScale,
+          null
+        );
+        const maxWidth = Math.max(1, input.outputWidth - 24);
+        let width = Math.min(spec.width, maxWidth);
+        const plateRatio = (spec.height - 1.5) / (spec.height + 8);
+        const targetHeight = Math.round(posterRankingTargetHeight / plateRatio);
+        if (spec.height > targetHeight) width = Math.round(width * (targetHeight / spec.height));
+        return Math.round(width);
+      })();
+      const qualityRowWidth = getQualityBadgeRowLayout(input.qualityBadges, posterReferenceBadgeHeight)?.rowWidth ?? 0;
+      const rowInsetForAlign = usePosterLayout ? input.posterRowHorizontalInset : 12;
+      const rankingFitsBesideChips =
+        earlyRankingWidth > 0 &&
+        qualityRowWidth > 0 &&
+        qualityRowWidth + earlyRankingWidth + rowInsetForAlign * 2 <= input.outputWidth;
+      const genreSharesQualityRow = input.posterGenreBadge != null && input.posterGenrePosition === qualityPlacement;
+      const qualityAlign: 'left' | 'center' | 'right' = (rankingFitsBesideChips || genreSharesQualityRow) ? 'right' : 'center';
       if (qualityPlacement === 'top') {
         const qualityLayout = getQualityBadgeRowLayout(input.qualityBadges, posterReferenceBadgeHeight);
         if (qualityLayout) {
@@ -2399,7 +2428,29 @@ export const renderWithSharp = async (
           (rankingPosition === 'auto' && lastOverlayTopY > 0)
           ? 'up'
           : 'down';
-      const sameRowResult = trySameRowAsTopRatings() ?? trySameRowAsQuality();
+      // A same-row slot is accepted only when it does not overlap anything already placed: the row
+      // helpers estimate the free space and in practice collided with the quality chips.
+      const sameRowCandidate = trySameRowAsTopRatings() ?? trySameRowAsQuality();
+      let sameRowResult = sameRowCandidate;
+      if (sameRowCandidate) {
+        // Validate with the size the badge will actually have: the same-row slots shrink the
+        // ranking to the chip height, so the unscaled box produced false collisions.
+        const chipHeight = lastPosterQualityBottomY - lastPosterQualityTopY;
+        const targetHeight =
+          sameRowCandidate.scaled && rankingPlateRatio > 0
+            ? Math.min(renderedHeight, Math.round(chipHeight / rankingPlateRatio))
+            : renderedHeight;
+        const scale = renderedHeight > 0 ? targetHeight / renderedHeight : 1;
+        const checkWidth = Math.max(1, Math.round(renderedWidth * scale));
+        const checkHeight = Math.max(1, Math.round(renderedHeight * scale));
+        const overlaps = posterBlockingRects.some((rect) =>
+          rectsOverlap(
+            { left: sameRowCandidate.left, top: sameRowCandidate.top, width: checkWidth, height: checkHeight },
+            rect
+          )
+        );
+        if (overlaps) sameRowResult = null;
+      }
       if (sameRowResult) {
         let useBuffer = rankingBuffer;
         let useWidth = renderedWidth;

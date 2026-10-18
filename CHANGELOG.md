@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.7.24](https://github.com/realbestia1/erdb/compare/v0.7.23...v0.7.24) - 2026-10-18
+
+- Prevent poster badge overlap ([35cb415](https://github.com/realbestia1/erdb/commit/35cb4158b4c353af77927631733070d0b849dae0))
+  Improve quality-row alignment and validate ranking badge placement against existing overlays. Bump the application and image-renderer cache versions.
+
 ## [0.7.23](https://github.com/realbestia1/erdb/compare/v0.7.22...v0.7.23) - 2026-10-18
 
 - Fix glow attributes in ranking badge SVG ([277359e](https://github.com/realbestia1/erdb/commit/277359e73a093b3b5e0fca63832fc767e58eb3dc))
