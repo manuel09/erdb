@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.7.23](https://github.com/realbestia1/erdb/compare/v0.7.22...v0.7.23) - 2026-10-18
+
+- Fix glow attributes in ranking badge SVG ([277359e](https://github.com/realbestia1/erdb/commit/277359e73a093b3b5e0fca63832fc767e58eb3dc))
+  Correctly quote the data-glow attribute in ranking text layers so the generated SVG remains valid. Bump the package version to 0.7.23.
+- Polish workspace panel styling ([8ed3ebd](https://github.com/realbestia1/erdb/commit/8ed3ebd69e8f9ec53ea944e8c769877b9c403af6))
+  Improve contrast, spacing, and control states across workspace panels and modals. Add a checkmark to the selected dropdown option.
+- Improve workspace accessibility and controls ([e3db604](https://github.com/realbestia1/erdb/commit/e3db6049ec3e1ce7744d69813a6649d7471af250))
+  Add visible keyboard focus states, Escape handling and ARIA semantics for dropdowns and modals. Make API keys revealable, enlarge toggles, and improve supporting text contrast.
+
 ## [0.7.22](https://github.com/realbestia1/erdb/compare/v0.7.21...v0.7.22) - 2026-10-18
 
 - Tune badge rendering and glass overlays ([f588974](https://github.com/realbestia1/erdb/commit/f58897421fded9c4fb6b84fdef5896031e478f87))

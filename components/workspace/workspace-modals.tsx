@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   DndContext,
@@ -125,7 +125,7 @@ function SortableCatalogCard({
         {...listeners}
         aria-label={`Drag to reorder ${label}`}
         title="Drag to reorder"
-        className="mt-4 shrink-0 cursor-grab touch-none rounded-lg border border-white/10 bg-[#121212] p-1.5 text-slate-200 transition-colors hover:border-orange-400/40 hover:text-orange-300 active:cursor-grabbing [-webkit-tap-highlight-color:transparent]"
+        className="mt-4 shrink-0 cursor-grab touch-none rounded-lg border border-white/10 bg-white/[0.05] p-1.5 text-slate-200 transition-colors hover:border-orange-400/40 hover:text-orange-300 active:cursor-grabbing [-webkit-tap-highlight-color:transparent]"
         style={{ touchAction: 'none' }}
       >
         <GripVertical className="h-4 w-4" />
@@ -240,6 +240,18 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
   const [rotatedNewToken, setRotatedNewToken] = useState('');
   const [rotateCopied, setRotateCopied] = useState(false);
 
+  // Escape closes whichever modal is open (all three live in this component).
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (isRotateModalOpen) setIsRotateModalOpen(false);
+      else if (isAiometadataModalOpen) setIsAiometadataModalOpen(false);
+      else if (isCatalogModalOpen) setIsCatalogModalOpen(false);
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [isRotateModalOpen, isAiometadataModalOpen, isCatalogModalOpen, setIsRotateModalOpen, setIsAiometadataModalOpen, setIsCatalogModalOpen]);
+
   const handleRotateToken = async () => {
     if (!rotatePassword) {
       setRotateStatus('error');
@@ -321,7 +333,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
   return (
     <AnimatePresence>
       {isCatalogModalOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center px-4 py-6">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center px-4 py-6" role="dialog" aria-modal="true">
           <motion.div
             variants={backdropVariants}
             initial="hidden"
@@ -352,7 +364,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                   <button
                     type="button"
                     onClick={() => setProxyCatalogOrder([])}
-                    className="rounded-lg border border-white/10 bg-[#121212] px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-[#181818]"
+                    className="rounded-lg border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-white/[0.08]"
                   >
                     Reset order
                   </button>
@@ -361,14 +373,14 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                   type="button"
                   onClick={resetProxyCatalogCustomizations}
                   disabled={!hasCatalogCustomizations}
-                  className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors ${hasCatalogCustomizations ? 'border border-white/10 bg-[#121212] text-white hover:bg-[#181818]' : 'border border-white/5 bg-[#080808] text-slate-300 cursor-not-allowed'}`}
+                  className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors ${hasCatalogCustomizations ? 'border border-white/10 bg-white/[0.05] text-white hover:bg-white/[0.08]' : 'border border-white/[0.08] bg-black/25 text-slate-300 cursor-not-allowed'}`}
                 >
                   Reset All
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsCatalogModalOpen(false)}
-                  className="rounded-lg border border-white/10 bg-[#121212] px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-[#181818]"
+                  className="rounded-lg border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-white/[0.08]"
                 >
                   Close
                 </button>
@@ -376,7 +388,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
             </div>
             <div className="overflow-y-auto overscroll-contain px-5 py-4 premium-scrollbar">
               {proxyCatalogsStatus === 'loading' && (
-                <div className="rounded-2xl border border-white/10 bg-[#080808] p-4 text-sm text-slate-100">
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4 text-sm text-slate-100">
                   Loading catalogs from the manifest...
                 </div>
               )}
@@ -386,7 +398,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                 </div>
               )}
               {proxyCatalogsStatus === 'ready' && proxyCatalogs.length === 0 && (
-                <div className="rounded-2xl border border-white/10 bg-[#080808] p-4 text-sm text-slate-100">
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4 text-sm text-slate-100">
                   This manifest does not include configurable catalogs.
                 </div>
               )}
@@ -415,7 +427,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                           const canSetDiscoverOnly = blockingRequiredExtraKeys.length === 0;
                           return (
                             <SortableCatalogCard key={catalog.key} id={catalog.key} label={catalog.name}>
-                              <div className="rounded-2xl border border-white/10 bg-[#080808]/90 p-4">
+                              <div className="rounded-2xl border border-white/10 bg-black/25/90 p-4">
                                 <div className="flex flex-wrap items-start justify-between gap-3">
                                   <div>
                                     <div className="text-sm font-semibold text-white">{catalog.name}</div>
@@ -437,7 +449,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                                     <button
                                       type="button"
                                       onClick={() => updateProxyCatalogName(catalog.key, '')}
-                                      className="rounded-lg border border-white/10 bg-[#121212] px-2.5 py-1 text-[10px] font-semibold text-slate-100 transition-colors hover:bg-[#181818]"
+                                      className="rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[10px] font-semibold text-slate-100 transition-colors hover:bg-white/[0.08]"
                                     >
                                       Reset
                                     </button>
@@ -447,7 +459,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                                   <button
                                     type="button"
                                     onClick={() => toggleProxyCatalogHidden(catalog.key)}
-                                    className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${isHidden ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-[#121212] text-slate-100 hover:bg-[#181818]'}`}
+                                    className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${isHidden ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-white/[0.05] text-slate-100 hover:bg-white/[0.08]'}`}
                                   >
                                     {isHidden ? 'Hidden' : 'Visible'}
                                   </button>
@@ -455,7 +467,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                                     <button
                                       type="button"
                                       onClick={() => toggleProxyCatalogSearchDisabled(catalog.key)}
-                                      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${isSearchDisabled ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-[#121212] text-slate-100 hover:bg-[#181818]'}`}
+                                      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${isSearchDisabled ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-white/[0.05] text-slate-100 hover:bg-white/[0.08]'}`}
                                     >
                                       {isSearchDisabled ? 'Search Off' : 'Search On'}
                                     </button>
@@ -464,7 +476,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                                     type="button"
                                     disabled={!canSetDiscoverOnly}
                                     onClick={() => setProxyCatalogDiscoverOnly(catalog.key, !isDiscoverOnly)}
-                                    className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${!canSetDiscoverOnly ? 'border border-white/5 bg-[#080808] text-slate-300 cursor-not-allowed' : isDiscoverOnly ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-[#121212] text-slate-100 hover:bg-[#181818]'}`}
+                                    className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${!canSetDiscoverOnly ? 'border border-white/[0.08] bg-black/25 text-slate-300 cursor-not-allowed' : isDiscoverOnly ? 'border-orange-500/50 bg-orange-500/10 text-orange-200' : 'border-white/10 bg-white/[0.05] text-slate-100 hover:bg-white/[0.08]'}`}
                                   >
                                     {isDiscoverOnly ? 'Discover Only' : 'Home + Discover'}
                                   </button>
@@ -535,7 +547,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
       )}
 
       {isAiometadataModalOpen && (
-        <div className="fixed inset-0 z-[81] flex items-center justify-center px-4 py-6">
+        <div className="fixed inset-0 z-[81] flex items-center justify-center px-4 py-6" role="dialog" aria-modal="true">
           <motion.div
             variants={backdropVariants}
             initial="hidden"
@@ -564,7 +576,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
               <button
                 type="button"
                 onClick={() => setIsAiometadataModalOpen(false)}
-                className="rounded-lg border border-white/10 bg-[#121212] px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-[#181818]"
+                className="rounded-lg border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-white/[0.08]"
               >
                 Close
               </button>
@@ -589,7 +601,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                     const value = `${rendererBaseUrl}/${rendererToken}/${suffix}`;
                     const isCopied = copiedPatternKey === patternKey;
                     return (
-                      <div key={key} className="rounded-2xl border border-white/10 bg-[#080808]/90 p-3">
+                      <div key={key} className="rounded-2xl border border-white/10 bg-black/25/90 p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="text-[11px] font-semibold text-slate-100">{label}</div>
                           <button
@@ -627,13 +639,13 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                       Every image type paired with supported IMDb, TMDB, TVDB, bridge, and anime ID formats, split by movie/series.
                     </p>
                   </div>
-                  <span className="rounded-full border border-white/10 bg-[#121212] px-2.5 py-1 text-[10px] font-mono text-slate-200">
+                  <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[10px] font-mono text-slate-200">
                     {rendererBaseUrl}/{rendererToken}
                   </span>
                 </div>
                 <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
                   {URL_PATTERN_GROUPS.map((group) => (
-                    <div key={group.type} className="rounded-2xl border border-white/10 bg-[#080808]/90 p-3">
+                    <div key={group.type} className="rounded-2xl border border-white/10 bg-black/25/90 p-3">
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-[11px] font-semibold text-slate-100">{group.label}</div>
                         <span className="text-[10px] text-slate-300">
@@ -651,7 +663,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                               const value = buildRendererUrl(group.type, kind, id);
                               const isCopied = copiedPatternKey === key;
                               return (
-                                <div key={id} className="flex items-center gap-2 rounded-xl border border-white/5 p-2">
+                                <div key={id} className="flex items-center gap-2 rounded-xl border border-white/[0.08] p-2">
                                   <div className="min-w-0 flex-1">
                                     <div className="text-[10px] text-slate-300">{label}</div>
                                     <code className="mt-0.5 block break-all font-mono text-[11px] leading-5 text-slate-100">{value}</code>
@@ -697,14 +709,14 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                     const isCopied = copiedPatternKey === `aiometadata-${type}`;
                     const isAvailable = Boolean(value);
                     return (
-                      <div key={type} className="rounded-2xl border border-white/10 bg-[#080808]/90 p-3">
+                      <div key={type} className="rounded-2xl border border-white/10 bg-black/25/90 p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="text-[11px] font-semibold text-slate-100">{label}</div>
                           <button
                             type="button"
                             onClick={() => handleCopyAiometadataPattern(type)}
                             disabled={!isAvailable}
-                            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-all ${isAvailable ? (isCopied ? 'cursor-pointer bg-green-500 text-white' : 'cursor-pointer bg-orange-500 text-black hover:bg-orange-400') : 'cursor-not-allowed bg-[#121212] text-slate-200'}`}
+                            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-all ${isAvailable ? (isCopied ? 'cursor-pointer bg-green-500 text-white' : 'cursor-pointer bg-orange-500 text-black hover:bg-orange-400') : 'cursor-not-allowed bg-white/[0.05] text-slate-200'}`}
                           >
                             {isCopied ? (
                               <>
@@ -735,7 +747,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
       )}
 
       {isRotateModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <motion.div
             variants={backdropVariants}
             initial="hidden"
@@ -842,7 +854,7 @@ export function WorkspaceModals({ state, actions, derived, isCatalogModalOpen, s
                       <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-200">
                         New Token
                       </div>
-                      <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#080808] px-4 py-3">
+                      <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-4 py-3">
                         <span className="flex-1 break-all font-mono text-xs text-white">{rotatedNewToken}</span>
                         <button
                           onClick={handleCopyRotatedToken}

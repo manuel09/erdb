@@ -51,7 +51,7 @@ function Step({
         </span>
         <div className="min-w-0">
           <h3 className="text-xs font-semibold text-white">{title}</h3>
-          <p className="mt-0.5 text-[11px] leading-relaxed text-slate-200">{description}</p>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-slate-400">{description}</p>
         </div>
       </div>
       <div className="pl-9">{children}</div>
@@ -222,7 +222,7 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
                   </button>
                 ))}
               </div>
-              <p className="mt-2 text-[10px] leading-relaxed text-slate-200">
+              <p className="mt-2 text-[10px] leading-relaxed text-slate-400">
                 Metadata provider used to resolve series and episode entries.
               </p>
             </Card>
@@ -260,7 +260,7 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
             >
               Translate addon metadata
             </button>
-            <p className="text-[10px] leading-relaxed text-slate-200">
+            <p className="text-[10px] leading-relaxed text-slate-400">
               Injects the selected language into plots, titles and episodes directly into the stream metadata.
             </p>
           </div>
@@ -285,7 +285,7 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
               </button>
             </div>
 
-            <div className="mt-3 overflow-hidden rounded-xl border border-white/5 bg-black/40 p-3">
+            <div className="mt-3 overflow-hidden rounded-xl border border-white/[0.08] bg-black/40 p-3">
               <div
                 className={`w-full max-w-full break-all font-mono text-[11px] leading-relaxed text-slate-100 ${
                   !isProxyUrlVisible ? 'select-none blur-sm opacity-50' : ''
@@ -315,7 +315,7 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
                 target="_blank"
                 rel="noreferrer"
                 className={`${BTN_BASE_CLASS} flex-1 px-4 py-2.5 ${
-                  canGenerateProxy ? BTN_GHOST_CLASS : 'pointer-events-none border border-white/5 text-slate-300'
+                  canGenerateProxy ? BTN_GHOST_CLASS : 'pointer-events-none border border-white/[0.08] text-slate-300'
                 }`}
               >
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -325,7 +325,7 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
           </Card>
         </Step>
 
-        <div className="flex items-center gap-2 border-t border-white/5 pt-4 text-[10px] text-slate-300">
+        <div className="flex items-center gap-2 border-t border-white/[0.08] pt-4 text-[10px] text-slate-300">
           <Share2 className="h-3 w-3" />
           <span>
             {enabledTypeCount} artwork type{enabledTypeCount === 1 ? '' : 's'} replaced ·{' '}
@@ -334,7 +334,7 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
         </div>
       </div>
 
-      <div className="shrink-0 space-y-2 border-t border-white/5 bg-black/20 p-3">
+      <div className="shrink-0 space-y-2 border-t border-white/[0.08] bg-black/20 p-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <Terminal className="h-4 w-4 shrink-0 text-teal-400" />
@@ -352,7 +352,7 @@ export function WorkspaceProxyPanel({ state, derived, actions, onOpenCatalogModa
           </button>
         </div>
 
-        <div className="border-t border-white/5 pt-3">
+        <div className="border-t border-white/[0.08] pt-3">
           <div className="flex items-center gap-2">
             <Download className="h-3.5 w-3.5 shrink-0 text-orange-400" />
             <span className="text-xs font-semibold text-white">Import &amp; export</span>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   type LucideIcon, Settings2, KeyRound, Palette, Globe2, LayoutGrid, Trophy, ListOrdered,
   Image as ImageIcon, Check, Type, SlidersHorizontal,
@@ -53,27 +53,39 @@ function KeyField({
   placeholder: string;
   onChange: (value: string) => void;
 }) {
+  const [revealed, setRevealed] = useState(false);
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-100">{label}</span>
-        <span
-          className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
-            value ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-300' : 'border-white/10 text-slate-200'
-          }`}
-        >
-          {value ? 'Active' : 'Missing'}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setRevealed((current) => !current)}
+            aria-pressed={revealed}
+            aria-label={`${revealed ? 'Hide' : 'Show'} ${label}`}
+            className="h-6 cursor-pointer rounded-full border border-white/10 px-2 text-[9px] font-bold uppercase tracking-wider text-slate-200 transition-colors hover:border-orange-400/40 hover:text-white focus-visible:ring-2 focus-visible:ring-orange-400/50 focus-visible:outline-none"
+          >
+            {revealed ? 'Hide' : 'Show'}
+          </button>
+          <span
+            className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+              value ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-300' : 'border-white/10 text-slate-200'
+            }`}
+          >
+            {value ? 'Active' : 'Missing'}
+          </span>
+        </div>
       </div>
       <input
-        type="password"
+        type={revealed ? 'text' : 'password'}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         aria-label={label}
         className={INPUT_CLASS}
       />
-      <span className="text-[10px] leading-relaxed text-slate-200">{hint}</span>
+      <span className="text-[10px] leading-relaxed text-slate-400">{hint}</span>
     </div>
   );
 }
@@ -267,7 +279,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
         />
       </div>
 
-      <div className="premium-scrollbar flex-1 space-y-6 overflow-y-auto p-4">
+      <div className="premium-scrollbar flex-1 space-y-5 overflow-y-auto px-4 pb-6 pt-4">
         <Section
           icon={KeyRound}
           title="API keys"
@@ -331,17 +343,17 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                     type="button"
                     onClick={() => setPosterConfiguratorPreset(preset.id)}
                     aria-pressed={isActive}
-                    className={`flex cursor-pointer flex-col gap-1 rounded-2xl border p-3 text-left transition-all ${
+                    className={`flex cursor-pointer flex-col gap-1 rounded-2xl border p-3 text-left transition-all focus-visible:ring-2 focus-visible:ring-orange-400/50 focus-visible:outline-none ${
                       isActive
-                        ? 'border-orange-400/40 bg-orange-500/10 shadow-[0_0_24px_-14px_rgba(249,115,22,0.9)]'
-                        : 'border-white/5 bg-black/30 hover:border-white/10 hover:bg-white/[0.04]'
+                        ? 'border-orange-400/50 bg-orange-500/[0.12] shadow-[0_0_28px_-12px_rgba(249,115,22,0.85)]'
+                        : 'border-white/[0.08] bg-black/30 hover:border-white/[0.14] hover:bg-white/[0.05]'
                     }`}
                   >
                     <span className="flex items-center justify-between gap-2">
-                      <span className={`text-xs font-semibold ${isActive ? 'text-white' : 'text-white'}`}>{preset.name}</span>
+                      <span className="text-xs font-semibold text-white">{preset.name}</span>
                       {isActive && <Check className="h-3.5 w-3.5 shrink-0 text-orange-400" />}
                     </span>
-                    <span className="text-[10px] leading-relaxed text-slate-200">{preset.description}</span>
+                    <span className="text-[10px] leading-relaxed text-slate-400">{preset.description}</span>
                     <span className="text-[10px] leading-relaxed text-slate-300">{preset.summary}</span>
                   </button>
                 );
@@ -480,7 +492,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                       />
 
                       {posterConfiguratorPreset === 'custom' && (
-                        <div className="space-y-2 border-t border-white/5 pt-3">
+                        <div className="space-y-2 border-t border-white/[0.08] pt-3">
                           <Toggle
                             checked={rankingCompact}
                             onChange={setRankingCompact}
@@ -520,7 +532,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                 )}
 
                 {posterConfiguratorPreset === 'custom' && (
-                  <div className="space-y-2 border-t border-white/5 pt-3">
+                  <div className="space-y-2 border-t border-white/[0.08] pt-3">
                     <Field label="Ratings position">
                       {renderDropdown(posterRatingsLayout, setPosterRatingsLayout, POSTER_RATING_LAYOUT_OPTIONS)}
                     </Field>

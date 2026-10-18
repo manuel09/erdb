@@ -157,6 +157,7 @@ export function WorkspacePreviewPanel({ state, derived }: WorkspacePreviewPanelP
             onClick={() => setIsExpanded(true)}
           >
             <div className="pointer-events-none overflow-hidden rounded-xl border border-white/15 bg-[#06070b]/80 shadow-2xl ring-1 ring-white/10 ">
+              {/* eslint-disable-next-line @next/next/no-img-element -- dynamic renderer preview URL, next/image would proxy it */}
               <img key={previewUrl} src={previewUrl} alt="Preview" className="block h-auto w-24 object-cover" />
             </div>
           </motion.div>
