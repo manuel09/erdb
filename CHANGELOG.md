@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.7.28](https://github.com/realbestia1/erdb/compare/v0.7.27...v0.7.28) - 2026-10-19
+
+- Prefer left edge for ranking badge ([8d374c1](https://github.com/realbestia1/erdb/commit/8d374c17c036ea67cf435436804b7a70316a67cb))
+  Place the ranking badge at the far-left row slot before falling back beside the ratings. Bump the image renderer cache version and package version.
+
+## [0.7.27](https://github.com/realbestia1/erdb/compare/v0.7.26...v0.7.27) - 2026-10-19
+
+- Fix badge placement on textless posters ([c5819c1](https://github.com/realbestia1/erdb/commit/c5819c1e5fe97dbd884ef93bedd186716a73cdcd))
+  Place genre and ranking badges at the bottom when no logo/title overlay is drawn, and reserve overlay space only when an overlay is rendered. Bump the renderer cache key and package version.
+- Update README.md ([0b64e6a](https://github.com/realbestia1/erdb/commit/0b64e6a6b6f0ae07954c498a93a5a16be3750836))
+
 ## [0.7.26](https://github.com/realbestia1/erdb/compare/v0.7.25...v0.7.26) - 2026-10-19
 
 - Add original Kitsu artwork preference ([e59dd96](https://github.com/realbestia1/erdb/commit/e59dd966b278e12d71408e6ea97339d46173527e))
