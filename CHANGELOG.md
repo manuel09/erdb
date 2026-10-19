@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.7.26](https://github.com/realbestia1/erdb/compare/v0.7.25...v0.7.26) - 2026-10-19
+
+- Add original Kitsu artwork preference ([e59dd96](https://github.com/realbestia1/erdb/commit/e59dd966b278e12d71408e6ea97339d46173527e))
+  Add an anime artwork option that prefers original Kitsu assets, and prevent browser preview settings from overriding token-based configuration. Bump the app and image cache versions.
+- Add Kitsu logo override for Mezase ([f6d7295](https://github.com/realbestia1/erdb/commit/f6d7295ff994b367ea00cbebd07abd50825f0396))
+  Use the Ultimate Journeys (S25) logo for Mezase, which has no dedicated logo.
+
+## [0.7.25](https://github.com/realbestia1/erdb/compare/v0.7.24...v0.7.25) - 2026-10-19
+
+- Refine badge rendering and Pokémon logos ([20c7c42](https://github.com/realbestia1/erdb/commit/20c7c42eff4fe1d0f15f266edc3fbb9d1a38d496))
+  Pin Kitsu Pokémon entries to matching TMDB logos, remove SVG glow layers and the obsolete rating style, and bump the image-renderer cache version. Also update the package version and remove unused dependencies.
+
 ## [0.7.24](https://github.com/realbestia1/erdb/compare/v0.7.23...v0.7.24) - 2026-10-18
 
 - Prevent poster badge overlap ([35cb415](https://github.com/realbestia1/erdb/commit/35cb4158b4c353af77927631733070d0b849dae0))

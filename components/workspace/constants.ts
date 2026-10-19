@@ -165,7 +165,6 @@ export const BTN_ACCENT_CLASS =
   'bg-orange-500 text-black hover:bg-orange-400 shadow-[0_0_18px_-6px_rgba(249,115,22,0.6)]';
 export const BTN_GHOST_CLASS =
   'border border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08] hover:text-white';
-export const BTN_ACTIVE_CLASS = 'border border-orange-500/30 bg-orange-500/15 text-white';
 export const BTN_INACTIVE_CLASS =
   'border border-white/[0.08] text-slate-400 hover:bg-white/[0.05] hover:text-slate-200';
 

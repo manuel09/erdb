@@ -1,4 +1,4 @@
-export type RatingStyle = 'glass' | 'glass-colored' | 'glass-transparent' | 'square' | 'plain' | 'solid-light';
+export type RatingStyle = 'glass' | 'glass-colored' | 'glass-transparent' | 'square' | 'plain';
 
 export type GlassColorMode = 'colored' | 'transparent';
 
@@ -23,10 +23,6 @@ export const RATING_STYLE_OPTIONS: Array<{ id: RatingStyle; label: string }> = [
   { id: 'glass', label: 'Pill Glass' },
   { id: 'square', label: 'Square Dark' },
   { id: 'plain', label: 'No Background' },
-];
-
-export const QUALITY_BADGE_STYLE_OPTIONS: Array<{ id: RatingStyle; label: string }> = [
-  ...RATING_STYLE_OPTIONS,
 ];
 
 // The genre chip has its own style so it can differ from the rating badges; default stays the

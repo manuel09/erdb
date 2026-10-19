@@ -37,8 +37,8 @@ export type HomePageViewState = {
   backdropAnimeLang: string;
   logoLang: string;
   logoAnimeLang: string;
-  posterAnimeImageText: 'default' | 'clean' | 'alternative';
-  backdropAnimeImageText: 'default' | 'clean' | 'alternative';
+  posterAnimeImageText: 'default' | 'clean' | 'alternative' | 'original' | 'original';
+  backdropAnimeImageText: 'default' | 'clean' | 'alternative' | 'original' | 'original';
   supportedLanguages: SupportedLanguage[];
   tmdbKey: string;
   mdblistKey: string;
@@ -119,7 +119,7 @@ export type HomePageViewDerived = {
   textLabel: string;
   providersLabel: string;
   activeRatingStyle: RatingStyle;
-  activeImageText: 'default' | 'clean' | 'alternative';
+  activeImageText: 'default' | 'clean' | 'alternative' | 'original';
   ratingProviderRows: RatingProviderRow[];
   shouldShowQualityBadgesPosition: boolean;
   shouldShowQualityBadgesSide: boolean;
@@ -148,8 +148,8 @@ export type HomePageViewActions = {
   setBackdropAnimeLang: Dispatch<SetStateAction<string>>;
   setLogoLang: Dispatch<SetStateAction<string>>;
   setLogoAnimeLang: Dispatch<SetStateAction<string>>;
-  setPosterAnimeImageText: Dispatch<SetStateAction<'default' | 'clean' | 'alternative'>>;
-  setBackdropAnimeImageText: Dispatch<SetStateAction<'default' | 'clean' | 'alternative'>>;
+  setPosterAnimeImageText: Dispatch<SetStateAction<'default' | 'clean' | 'alternative' | 'original'>>;
+  setBackdropAnimeImageText: Dispatch<SetStateAction<'default' | 'clean' | 'alternative' | 'original'>>;
   setTmdbKey: Dispatch<SetStateAction<string>>;
   setMdblistKey: Dispatch<SetStateAction<string>>;
   setSimklClientId: Dispatch<SetStateAction<string>>;
@@ -185,7 +185,7 @@ export type HomePageViewActions = {
   setQualityBadgesSide: Dispatch<SetStateAction<QualityBadgesSide>>;
   setRatingStyleForType: (value: RatingStyle) => void;
   setRatingsColorModeForType: (value: 'colored' | 'transparent') => void;
-  setImageTextForType: (value: 'default' | 'clean' | 'alternative') => void;
+  setImageTextForType: (value: 'default' | 'clean' | 'alternative' | 'original') => void;
   setActiveStreamBadges: Dispatch<SetStateAction<StreamBadgesSetting>>;
   setActiveQualityBadgesStyle: Dispatch<SetStateAction<RatingStyle>>;
   setActiveQualityBadgesColorMode: Dispatch<SetStateAction<'colored' | 'white'>>;

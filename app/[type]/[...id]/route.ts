@@ -75,6 +75,7 @@ import { buildPublicImageCacheControl } from '@/lib/imageCacheTtl';
 import { getTokenConfig } from '@/lib/tokens';
 import { MDBLIST_API_KEYS, buildMdbListCacheSeed, fetchFilmwebCriticsRating, fetchFilmwebIdBySearch, fetchFilmwebIdFromWikidata, fetchFilmwebRating, fetchMdbListRatings, fetchSimklRating, getMdbListCacheTtlMs, getRatingCacheTtlMs } from '@/lib/ratingProviders';
 import { fetchJsonCached, fetchTextCached } from '@/lib/cachedFetch';
+import { getKitsuLogoOverride } from '@/lib/logoOverrides';
 import { fetchStreamBadges } from '@/lib/streamBadges';
 import { buildFallbackBadge, fetchRanking, getFirstTmdbGenreName, getRankingLabel, isTmdbAnimationTitle, normalizeRankingInterval } from '@/lib/tmdbMetadata';
 import { buildGeneratedLogoVariantDataUrl, buildTmdbImageUrl, getSourceImagePayload } from '@/lib/imageAssetPipeline';
@@ -581,7 +582,7 @@ export async function GET(
   const normalizedPosterImageText =
     imageText === 'original' ? 'default' : imageText;
   const normalizedPosterAnimeImageText =
-    posterAnimeImageTextParam === 'original' ? 'default' : posterAnimeImageTextParam;
+    posterAnimeImageTextParam;
   const posterTextPreference: PosterTextPreference =
     normalizedPosterImageText === 'clean' ||
       normalizedPosterImageText === 'alternative' ||
@@ -595,7 +596,7 @@ export async function GET(
       ? normalizedPosterAnimeImageText
       : 'clean';
   const normalizedBackdropAnimeImageText =
-    backdropAnimeImageTextParam === 'original' ? 'default' : backdropAnimeImageTextParam;
+    backdropAnimeImageTextParam;
   const backdropAnimeTextPreference: PosterTextPreference =
     normalizedBackdropAnimeImageText === 'clean' ||
       normalizedBackdropAnimeImageText === 'alternative' ||
@@ -740,6 +741,23 @@ export async function GET(
         hasConfirmedAnimeMapping = false;
         return true;
       };
+
+      // Anime override "original": prefer the Kitsu artwork over TMDB for anime inputs.
+      const wantedAnimeImageText =
+        imageType === 'backdrop' ? backdropAnimeImageTextParam : posterAnimeImageTextParam;
+      if (wantedAnimeImageText === 'original' && (isKitsu || ANIME_NATIVE_INPUT_ID_PREFIX_SET.has(idPrefix))) {
+        const kitsuOriginalAsset = await fetchKitsuFallbackAsset(
+          mediaId,
+          imageType,
+          logoMode,
+          logoFontVariant,
+          logoPrimary,
+          logoSecondary,
+          logoOutline,
+          phases
+        );
+        applyAnimeCdnFallback(kitsuOriginalAsset, 'kitsu');
+      }
 
       if (isTmdb) {
         if (explicitTmdbMediaType) {
@@ -2649,11 +2667,16 @@ export async function GET(
                     ? effectiveLogoRequestedImageLang
                     : requestedImageLang;
           const preferredBackdropPath = details?.backdrop_path || media?.backdrop_path || null;
-          const selectedLogo = pickByLanguageWithFallback(
-            logoCollection,
-            preferredLogoLanguage,
-            FALLBACK_IMAGE_LANGUAGE
-          );
+          const kitsuLogoOverridePath = isKitsu ? getKitsuLogoOverride(mediaId) : null;
+          const selectedLogo =
+            (kitsuLogoOverridePath
+              ? logoCollection.find((item: any) => item?.file_path === kitsuLogoOverridePath)
+              : null) ||
+            pickByLanguageWithFallback(
+              logoCollection,
+              preferredLogoLanguage,
+              FALLBACK_IMAGE_LANGUAGE
+            );
           const logoPath = selectedLogo?.file_path || null;
           const logoLanguageMatch =
             usesPosterSettings

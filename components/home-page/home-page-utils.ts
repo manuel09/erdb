@@ -100,7 +100,7 @@ export const isPosterQualityBadgesPosition = (value: unknown): value is PosterQu
   value === 'auto' || value === 'left' || value === 'right' || value === 'top' || value === 'bottom' || value === 'above-logo';
 export const isPosterGenrePosition = (value: unknown): value is PosterGenrePosition =>
   value === 'off' || value === 'top' || value === 'bottom' || value === 'above-logo';
-export const isImageText = (value: unknown): value is 'default' | 'clean' | 'alternative' =>
+export const isImageText = (value: unknown): value is 'default' | 'clean' | 'alternative' | 'original' =>
   value === 'default' || value === 'original' || value === 'clean' || value === 'alternative';
 export const isRatingStyle = (value: unknown): value is RatingStyle =>
   RATING_STYLE_OPTIONS.some((option) => option.id === value);
@@ -290,8 +290,8 @@ export const buildAiometadataPattern = (options: {
   backdropAnimeLang: string;
   logoLang: string;
   logoAnimeLang: string;
-  posterAnimeImageText: 'default' | 'clean' | 'alternative';
-  backdropAnimeImageText: 'default' | 'clean' | 'alternative';
+  posterAnimeImageText: 'default' | 'clean' | 'alternative' | 'original' | 'original';
+  backdropAnimeImageText: 'default' | 'clean' | 'alternative' | 'original' | 'original';
   posterRatings: string;
   backdropRatings: string;
   thumbnailRatings: string;
@@ -322,8 +322,8 @@ export const buildAiometadataPattern = (options: {
   backdropRatingStyle: RatingStyle;
   thumbnailRatingStyle: RatingStyle;
   logoRatingStyle: RatingStyle;
-  posterImageText: 'default' | 'clean' | 'alternative';
-  backdropImageText: 'default' | 'clean' | 'alternative';
+  posterImageText: 'default' | 'clean' | 'alternative' | 'original';
+  backdropImageText: 'default' | 'clean' | 'alternative' | 'original';
   posterRatingsLayout: PosterRatingLayout;
   posterRatingsMaxPerSide: number | null;
   backdropRatingsLayout: BackdropRatingLayout;

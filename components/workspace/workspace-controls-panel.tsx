@@ -438,6 +438,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                       { id: 'default', label: 'Default' },
                       { id: 'clean', label: 'Clean' },
                       { id: 'alternative', label: 'Alternative' },
+                      { id: 'original', label: 'Original (Kitsu)' },
                     ]
                   )}
                 </Field>

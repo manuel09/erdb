@@ -194,8 +194,8 @@ export function useHomePageController({
   const [backdropAnimeLang, setBackdropAnimeLang] = useState('');
   const [logoLang, setLogoLang] = useState('');
   const [logoAnimeLang, setLogoAnimeLang] = useState('');
-  const [posterImageText, setPosterImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
-  const [posterAnimeImageText, setPosterAnimeImageText] = useState<'default' | 'clean' | 'alternative'>('default');
+  const [posterImageText, setPosterImageText] = useState<'default' | 'clean' | 'alternative' | 'original' | 'original'>('clean');
+  const [posterAnimeImageText, setPosterAnimeImageText] = useState<'default' | 'clean' | 'alternative' | 'original' | 'original'>('default');
   const [posterConfiguratorPreset, setPosterConfiguratorPresetState] = useState<PosterConfiguratorPreset>('preset1');
   const [posterAverageRatingsEnabled, setPosterAverageRatingsEnabled] = useState(true);
   const [posterVignetteEnabled, setPosterVignetteEnabled] = useState(true);
@@ -203,9 +203,9 @@ export function useHomePageController({
   const [posterGenrePosition, setPosterGenrePosition] = useState<PosterGenrePosition>('top');
   const [posterGenreStyle, setPosterGenreStyle] = useState<RatingStyle>(DEFAULT_POSTER_GENRE_STYLE);
   const [posterSimpleRatingSource, setPosterSimpleRatingSource] = useState<'average' | RatingPreference>('average');
-  const [backdropImageText, setBackdropImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
+  const [backdropImageText, setBackdropImageText] = useState<'default' | 'clean' | 'alternative' | 'original' | 'original'>('clean');
   const [backdropAsPoster, setBackdropAsPoster] = useState(false);
-  const [backdropAnimeImageText, setBackdropAnimeImageText] = useState<'default' | 'clean' | 'alternative'>('clean');
+  const [backdropAnimeImageText, setBackdropAnimeImageText] = useState<'default' | 'clean' | 'alternative' | 'original' | 'original'>('clean');
   const [posterRatingRows, setPosterRatingRows] = useState<RatingProviderRow[]>(() =>
     enabledOrderedToRows([
       'myanimelist',
@@ -2510,6 +2510,12 @@ export function useHomePageController({
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    // With a token the whole configuration comes from the token, so the browser copy is ignored and
+    // the token alone defines what gets rendered. Without a token the browser copy still hydrates.
+    if (initialConfig) {
+      isPreviewHydrated.current = true;
+      return;
+    }
     const storedPreviewConfig = safeLocalStorageGet(PREVIEW_CONFIG_STORAGE_KEY);
     if (!storedPreviewConfig) {
       isPreviewHydrated.current = true;
@@ -2518,8 +2524,6 @@ export function useHomePageController({
     const frameId = window.requestAnimationFrame(() => {
       try {
         const parsed = JSON.parse(storedPreviewConfig) as Record<string, unknown>;
-        // The genre style is a token-level setting: never take it from the browser copy.
-        delete parsed.posterGenreStyle;
         applyImportedConfig(parsed);
       } catch {
         safeLocalStorageRemove(PREVIEW_CONFIG_STORAGE_KEY);
@@ -2527,7 +2531,7 @@ export function useHomePageController({
       isPreviewHydrated.current = true;
     });
     return () => window.cancelAnimationFrame(frameId);
-  }, [applyImportedConfig]);
+  }, [applyImportedConfig, initialConfig]);
 
   useEffect(() => {
     if (!initialConfig) {
@@ -3139,7 +3143,7 @@ export function useHomePageController({
     setLogoRatingsColorMode(value);
   };
 
-  const setImageTextForType = (value: 'default' | 'clean' | 'alternative') => {
+  const setImageTextForType = (value: 'default' | 'clean' | 'alternative' | 'original') => {
     if (usesPosterSettings) {
       setPosterImageText(value);
       return;
