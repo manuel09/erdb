@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.7.29](https://github.com/realbestia1/erdb/compare/v0.7.28...v0.7.29) - 2026-10-20
+
+- Centre the genre and quality group when the bottom-left corner is taken ([b1d3965](https://github.com/realbestia1/erdb/commit/b1d3965703436405bb2fdba59ed8160982e00b5f))
+- Fit three backdrop-as-poster badges per column and group the bottom row ([3b44034](https://github.com/realbestia1/erdb/commit/3b440346852e2a42130371ad66fa27285ce68e55))
+- Share the genre and quality row without colliding with side columns ([812f28c](https://github.com/realbestia1/erdb/commit/812f28c96774b36763a7d95739d0aa37e5e910fc))
+- Keep poster badge scale and free the logo band in backdrop-as-poster ([dfbd397](https://github.com/realbestia1/erdb/commit/dfbd3971a88d8c48bb252caec325193e2f7a4873))
+
 ## [0.7.28](https://github.com/realbestia1/erdb/compare/v0.7.27...v0.7.28) - 2026-10-19
 
 - Prefer left edge for ranking badge ([8d374c1](https://github.com/realbestia1/erdb/commit/8d374c17c036ea67cf435436804b7a70316a67cb))
