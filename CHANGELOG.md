@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.7.30](https://github.com/realbestia1/erdb/compare/v0.7.29...v0.7.30) - 2026-10-20
+
+- Add configurable ranking badge styles ([207f046](https://github.com/realbestia1/erdb/commit/207f0461ace58746737bb60726e730289477c6b5))
+  Support square, glass, and plain ranking badge styles across rendering, workspace settings, and proxy configuration. Preserve compatibility with the legacy rankingNoBox option.
+- Keep bottom ranking above the logo on normal posters with side columns ([37d9f05](https://github.com/realbestia1/erdb/commit/37d9f05f2b3ebf6fa3e591a7eb76d6ceafa58254))
+- Spread backdrop rows left-center-right and keep classic rows split ([5ec53e1](https://github.com/realbestia1/erdb/commit/5ec53e17a1075aa7c47b4222b7838353aab6e8fa))
+- Keep classic presets left/right and fall back when above-logo chips do not fit ([c7a50b3](https://github.com/realbestia1/erdb/commit/c7a50b36150e715ac471c1e7b36d5afc591b61f0))
+- Restore classic poster row alignment and keep new layout only for backdrop-as-poster ([1fc798d](https://github.com/realbestia1/erdb/commit/1fc798dddd83192cff054a37d2a23f18f00398e8))
+- Pack and centre backdrop rows and reserve the bottom strip only when the ranking joins it ([8b09392](https://github.com/realbestia1/erdb/commit/8b09392c4c922f81076b400ca69c6f3030c9036a))
+- Fit five standard rows in backdrop-as-poster without shrinking badges ([49cf1c7](https://github.com/realbestia1/erdb/commit/49cf1c793df70c359bda2b25ea61ad01c5d2f1e3))
+- Center multi-item rows for backdrop-as-poster and fix bottom ranking placement ([115e214](https://github.com/realbestia1/erdb/commit/115e214c20b276cc0a0de3f95f1b65f4f9002b8c))
+- Reserve the bottom row for backdrop-as-poster and centre it precisely ([2ca78c3](https://github.com/realbestia1/erdb/commit/2ca78c3a65d1e3c4de54565324efe0ba3ac2f7cd))
+- Center genre, ranking and quality as one bottom row ([e8852b6](https://github.com/realbestia1/erdb/commit/e8852b61bd8119c78590ac4198381490d6253b15))
+- Bump version to 0.7.30 ([6c253dc](https://github.com/realbestia1/erdb/commit/6c253dc601a19a22287693b93f488bc8e4696d3a))
+- Fix quality badge cache key and quality placement fallbacks ([fc10bb1](https://github.com/realbestia1/erdb/commit/fc10bb1158f8c8d5450fe7c2e18a915f7dde8d41))
+
 ## [0.7.29](https://github.com/realbestia1/erdb/compare/v0.7.28...v0.7.29) - 2026-10-20
 
 - Centre the genre and quality group when the bottom-left corner is taken ([b1d3965](https://github.com/realbestia1/erdb/commit/b1d3965703436405bb2fdba59ed8160982e00b5f))

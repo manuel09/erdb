@@ -133,7 +133,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     posterQualityBadgesPosition,
     ranking,
     rankingCountry,
-    rankingNoBox,
+    rankingStyle,
     rankingCompact,
     rankingPosition,
   } = state;
@@ -197,7 +197,7 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
     toggleRatingPreference,
     setRanking,
     setRankingCountry,
-    setRankingNoBox,
+    setRankingStyle,
     setRankingCompact,
     setRankingPosition,
   } = actions;
@@ -485,12 +485,9 @@ export function WorkspaceControlsPanel({ state, derived, actions }: WorkspaceCon
                         </div>
                       </Field>
 
-                      <Toggle
-                        checked={rankingNoBox}
-                        onChange={setRankingNoBox}
-                        label="Hide background box"
-                        hint="Draw the rank directly on the artwork without a container."
-                      />
+                      <Field label="Style">
+                        {renderDropdown(rankingStyle, (value) => setRankingStyle(value as RatingStyle), RATING_STYLE_OPTIONS)}
+                      </Field>
 
                       {posterConfiguratorPreset === 'custom' && (
                         <div className="space-y-2 border-t border-white/[0.08] pt-3">

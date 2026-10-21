@@ -198,6 +198,13 @@ export async function GET(
   const rankingCompact = rankingCompactParam === 'on' || rankingCompactParam === 'true' || rankingCompactParam === true;
   const rankingCountry = (tokenConfig.rankingCountry || request.nextUrl.searchParams.get('rankingCountry') || 'global').trim().toUpperCase();
   const rankingPosition = normalizeRankingPosition(tokenConfig.rankingPosition || request.nextUrl.searchParams.get('rankingPosition'));
+  // Unified badge style for the ranking; legacy rankingNoBox=on maps to the plateless style.
+  const rankingStyleRaw = tokenConfig.rankingStyle || request.nextUrl.searchParams.get('rankingStyle');
+  const rankingStyle = rankingStyleRaw
+    ? normalizeRatingStyle(rankingStyleRaw)
+    : rankingNoBox
+      ? 'plain'
+      : 'square';
 
   const lang = tokenConfig.lang || request.nextUrl.searchParams.get('lang') || FALLBACK_IMAGE_LANGUAGE;
   const language = lang.split('-')[0].toLowerCase();
@@ -681,9 +688,7 @@ export async function GET(
       imageType === 'logo' ? logoSecondary : DEFAULT_LOGO_CUSTOM_SECONDARY,
       imageType === 'logo' ? logoOutline : DEFAULT_LOGO_CUSTOM_OUTLINE,
       usesPosterSettings ? qualityBadgesSide : '-',
-      usesPosterSettings && (posterRatingsLayout === 'top' || posterRatingsLayout === 'bottom' || posterRatingsLayout === 'top-bottom')
-        ? posterQualityBadgesPosition
-        : '-',
+      usesPosterSettings ? posterQualityBadgesPosition : '-',
       imageType !== 'logo' ? qualityBadgesStyle : '-',
       imageType !== 'logo' ? qualityBadgesColorMode : '-',
       imageType !== 'logo' ? String(qualityBadgesGlassMode || '-') : '-',
@@ -1559,6 +1564,7 @@ export async function GET(
         rankingParam,
         rankingCountry,
         rankingNoBox ? 'nobox' : 'box',
+        `ranking-style:${rankingStyle}`,
         rankingCompact ? 'compact' : 'full',
         rankingPosition,
         posterVignetteEnabled ? 'vignette' : 'no-vignette',
@@ -3249,6 +3255,7 @@ export async function GET(
           value: `#${rankingValue}`,
           noBox: rankingNoBox,
           compact: rankingCompact,
+          style: rankingStyle,
         };
       } else if (rankingParam !== 'off') {
         const detailsBundle = detailsBundlePromise ? await detailsBundlePromise : null;
@@ -3268,6 +3275,7 @@ export async function GET(
             value: fallbackBadge.value,
             noBox: rankingNoBox,
             compact: fallbackBadge.compact ?? rankingCompact,
+            style: rankingStyle,
           };
         }
       }
@@ -3449,6 +3457,11 @@ export async function GET(
         badgePaddingY = Math.round(8 * posterScale);
         badgePaddingX = Math.round(13 * posterScale);
         badgeGap = Math.round(9 * posterScale);
+        // Backdrop-as-poster is height-constrained: a slightly tighter gap lets one more row fit
+        // at the same badge size instead of shrinking the text.
+        if (isBackdropAsPoster) {
+          badgeGap = Math.min(badgeGap, 10);
+        }
         baseBadgeIconSize = badgeIconSize;
         baseBadgeFontSize = badgeFontSize;
         baseBadgePaddingX = badgePaddingX;
@@ -3542,11 +3555,16 @@ export async function GET(
               posterOverlayBodyReservedHeight +
               (bottomQualityReservedHeight > 0 ? bottomQualityReservedHeight : baseBadgeHeight)
               : 0;
-          // Backdrop-as-poster: the title/logo is placed by the renderer in the free centre
-          // between the side columns, so it must not reserve a full-width band. The bottom row
-          // is handled by the renderer too, which slides it aside when a column reaches it.
+          // Backdrop-as-poster: when anything sits on the bottom row, reserve that strip so the
+          // genre/ranking/quality group can always be centred instead of being split to the edges.
+          // Only reserve the bottom strip when the ranking actually joins that row: genre+chips
+          // are narrow enough to sit between full-height columns, which frees one more row.
+          const backdropBottomRowRequested = rankingPosition === 'bottom';
+          const backdropBottomRowReserved = backdropBottomRowRequested
+            ? baseBadgeHeight
+            : 0;
           const overlayReservedHeight = isBackdropAsPoster
-            ? 0
+            ? backdropBottomRowReserved
             : posterOverlayPresent
               ? posterOverlayReservedHeight
               : bottomQualityReservedHeight;

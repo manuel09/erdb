@@ -51,6 +51,7 @@ export type RankingBadge = {
   label: string;
   noBox?: boolean;
   compact?: boolean;
+  style?: RatingStyle;
 };
 export type OutputFormat = 'png' | 'jpeg' | 'webp';
 export const PERCENTAGE_RATING_PROVIDERS = new Set<RatingPreference>([

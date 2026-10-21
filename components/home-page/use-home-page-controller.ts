@@ -275,7 +275,6 @@ export function useHomePageController({
       setRankingCountry('IT');
       setRankingPosition('top');
       setRankingCompact(false);
-      setRankingNoBox(false);
       setPosterVignetteEnabled(true);
     } else if (value === 'preset2') {
       setPosterRatingStyle('plain');
@@ -291,7 +290,6 @@ export function useHomePageController({
       setRankingCountry('US');
       setRankingPosition('above-logo');
       setRankingCompact(false);
-      setRankingNoBox(false);
       setPosterVignetteEnabled(true);
     } else if (value === 'preset3') {
       setPosterRatingStyle('plain');
@@ -307,7 +305,6 @@ export function useHomePageController({
       setRankingCountry('IT');
       setRankingPosition('above-logo');
       setRankingCompact(false);
-      setRankingNoBox(false);
       setPosterVignetteEnabled(true);
     } else if (value === 'preset4') {
       setPosterRatingStyle('plain');
@@ -323,7 +320,6 @@ export function useHomePageController({
       setRankingCountry('IT');
       setRankingPosition('above-logo');
       setRankingCompact(false);
-      setRankingNoBox(false);
       setPosterVignetteEnabled(true);
     } else if (value === 'preset5') {
       setPosterRatingStyle('plain');
@@ -339,7 +335,6 @@ export function useHomePageController({
       setRankingCountry('IT');
       setRankingPosition('top');
       setRankingCompact(false);
-      setRankingNoBox(false);
       setPosterVignetteEnabled(true);
     } else if (value === 'preset6') {
       setPosterRatingStyle('plain');
@@ -356,7 +351,6 @@ export function useHomePageController({
       setRankingCountry('IT');
       setRankingPosition('above-logo');
       setRankingCompact(false);
-      setRankingNoBox(false);
       setPosterVignetteEnabled(true);
     } else if (value === 'preset7') {
       setPosterRatingStyle('plain');
@@ -373,7 +367,6 @@ export function useHomePageController({
       setRankingCountry('IT');
       setRankingPosition('above-logo');
       setRankingCompact(false);
-      setRankingNoBox(false);
       setPosterVignetteEnabled(true);
     }
   }, []);
@@ -391,7 +384,7 @@ export function useHomePageController({
   const [backdropRatingsColorMode, setBackdropRatingsColorMode] = useState<'colored' | 'transparent'>('colored');
   const [rankingCountry, setRankingCountry] = useState('IT');
   const [rankingCountryTouched, setRankingCountryTouched] = useState(false);
-  const [rankingNoBox, setRankingNoBox] = useState(false);
+  const [rankingStyle, setRankingStyle] = useState<RatingStyle>('square');
   const [rankingCompact, setRankingCompact] = useState(false);
   const [rankingPosition, setRankingPosition] = useState<RankingPosition>('top');
   const updateRankingCountry = useCallback((value: SetStateAction<string>) => {
@@ -963,7 +956,7 @@ export function useHomePageController({
       if (isPreset1 || shouldUsePosterAverageRatings) {
         query.set('posterRatingsMode', 'average');
       }
-      const effectiveGenrePos = isPreset1 ? 'top' : (isPreset2 ? 'top' : (isPreset3 ? 'bottom' : (isPreset5 ? 'above-logo' : (isPreset4 ? 'off' : ((isPreset6 || isPreset7) ? 'bottom' : posterGenrePosition)))));
+      const effectiveGenrePos = posterGenrePosition;
       if (effectiveGenrePos !== 'off') {
         query.set('posterGenrePosition', effectiveGenrePos);
       }
@@ -1015,7 +1008,7 @@ export function useHomePageController({
     if (shouldShowQualityBadgesSide && qualityBadgesSide !== 'left') {
       query.set('qualityBadgesSide', qualityBadgesSide);
     }
-    const effectivePosterQualityBadgesPosition = (isPreset3 || isPreset6 || isPreset7) ? 'bottom' : (isPreset5 ? 'above-logo' : (isPreset ? 'top' : posterQualityBadgesPosition));
+    const effectivePosterQualityBadgesPosition = posterQualityBadgesPosition;
     if (shouldShowQualityBadgesPosition && effectivePosterQualityBadgesPosition !== 'auto') {
       query.set('posterQualityBadgesPosition', effectivePosterQualityBadgesPosition);
     }
@@ -1094,8 +1087,8 @@ export function useHomePageController({
       if (effectiveRankingCountry !== 'global') {
         query.set('rankingCountry', effectiveRankingCountry);
       }
-      if (rankingNoBox) {
-        query.set('rankingNoBox', 'on');
+      if (rankingStyle !== 'square') {
+        query.set('rankingStyle', rankingStyle);
       }
       if (!isPreset && rankingCompact) {
         query.set('rankingCompact', 'on');
@@ -1196,7 +1189,7 @@ export function useHomePageController({
     posterGenreStyle,
     ranking,
     effectiveRankingCountry,
-    rankingNoBox,
+    rankingStyle,
     rankingCompact,
     rankingPosition,
     mdblistKey,
@@ -1293,7 +1286,7 @@ export function useHomePageController({
     if (shouldShowPosterQualityBadgesSide && qualityBadgesSide !== 'left') {
       config.qualityBadgesSide = qualityBadgesSide;
     }
-    const effectivePosterQualityBadgesPosition = (isPreset3 || isPreset6 || isPreset7) ? 'bottom' : (isPreset5 ? 'above-logo' : (isPreset ? 'top' : posterQualityBadgesPosition));
+    const effectivePosterQualityBadgesPosition = posterQualityBadgesPosition;
     if (shouldShowPosterQualityBadgesPosition && effectivePosterQualityBadgesPosition !== 'auto') {
       config.posterQualityBadgesPosition = effectivePosterQualityBadgesPosition;
     }
@@ -1347,7 +1340,7 @@ export function useHomePageController({
         config.posterRatingsMode = 'average';
       }
       config.posterRatingsLayout = effectivePosterRatingsLayout;
-      const effectiveGenrePos = isPreset1 ? 'top' : (isPreset2 ? 'top' : (isPreset3 ? 'bottom' : (isPreset5 ? 'above-logo' : (isPreset4 ? 'off' : ((isPreset6 || isPreset7) ? 'bottom' : posterGenrePosition)))));
+      const effectiveGenrePos = posterGenrePosition;
       if (effectiveGenrePos !== 'off') {
         config.posterGenrePosition = effectiveGenrePos;
       }
@@ -1406,8 +1399,8 @@ export function useHomePageController({
       if (effectiveRankingCountry !== 'global') {
         config.rankingCountry = effectiveRankingCountry;
       }
-      if (rankingNoBox) {
-        config.rankingNoBox = 'on';
+      if (rankingStyle !== 'square') {
+        config.rankingStyle = rankingStyle;
       }
       if (!isPreset && rankingCompact) {
         config.rankingCompact = 'on';
@@ -1494,7 +1487,7 @@ export function useHomePageController({
     logoRatingsColorMode,
     ranking,
     effectiveRankingCountry,
-    rankingNoBox,
+    rankingStyle,
     rankingCompact,
     rankingPosition,
     posterVignetteEnabled,
@@ -1633,7 +1626,7 @@ export function useHomePageController({
     if (shouldShowPosterQualityBadgesSide && qualityBadgesSide !== 'left') {
       config.qualityBadgesSide = qualityBadgesSide;
     }
-    const effectivePosterQualityBadgesPosition = (isPreset3 || isPreset6 || isPreset7) ? 'bottom' : (isPreset5 ? 'above-logo' : (isPreset ? 'top' : posterQualityBadgesPosition));
+    const effectivePosterQualityBadgesPosition = posterQualityBadgesPosition;
     if (shouldShowPosterQualityBadgesPosition && effectivePosterQualityBadgesPosition !== 'auto') {
       config.posterQualityBadgesPosition = effectivePosterQualityBadgesPosition;
     }
@@ -1656,7 +1649,7 @@ export function useHomePageController({
         config.posterRatingsMode = 'average';
       }
       config.posterRatingsLayout = effectivePosterRatingsLayout;
-      const effectiveGenrePos = isPreset1 ? 'top' : (isPreset2 ? 'top' : (isPreset3 ? 'bottom' : (isPreset5 ? 'above-logo' : (isPreset4 ? 'off' : ((isPreset6 || isPreset7) ? 'bottom' : posterGenrePosition)))));
+      const effectiveGenrePos = posterGenrePosition;
       if (effectiveGenrePos !== 'off') {
         config.posterGenrePosition = effectiveGenrePos;
       }
@@ -1748,8 +1741,8 @@ export function useHomePageController({
       if (effectiveRankingCountry !== 'global') {
         config.rankingCountry = effectiveRankingCountry;
       }
-      if (rankingNoBox) {
-        config.rankingNoBox = 'on';
+      if (rankingStyle !== 'square') {
+        config.rankingStyle = rankingStyle;
       }
       if (!isPreset && rankingCompact) {
         config.rankingCompact = 'on';
@@ -1850,7 +1843,7 @@ export function useHomePageController({
     posterSimpleRatingSource,
     ranking,
     effectiveRankingCountry,
-    rankingNoBox,
+    rankingStyle,
     rankingCompact,
     rankingPosition,
     posterRotateDailyEnabled,
@@ -1871,7 +1864,7 @@ export function useHomePageController({
       typeQuery: '{type}',
       ranking,
       rankingCountry: effectiveRankingCountry,
-      rankingNoBox,
+      rankingStyle,
     });
 
     return {
@@ -1884,7 +1877,7 @@ export function useHomePageController({
         typeQuery: '{type}',
         ranking,
         rankingCountry: effectiveRankingCountry,
-        rankingNoBox,
+        rankingStyle,
       }),
       background: buildAiometadataPatternBlock({
         baseUrl,
@@ -1895,7 +1888,7 @@ export function useHomePageController({
         typeQuery: '{type}',
         ranking,
         rankingCountry: effectiveRankingCountry,
-        rankingNoBox,
+        rankingStyle,
       }),
       logo: buildAiometadataPatternBlock({
         baseUrl,
@@ -1906,7 +1899,7 @@ export function useHomePageController({
         typeQuery: '{type}',
         ranking,
         rankingCountry: effectiveRankingCountry,
-        rankingNoBox,
+        rankingStyle,
       }),
       episodeThumbnail: episodePattern,
     };
@@ -1917,7 +1910,7 @@ export function useHomePageController({
     aiometadataEpisodeProvider,
     ranking,
     effectiveRankingCountry,
-    rankingNoBox,
+    rankingStyle,
     rankingCompact,
   ]);
 
@@ -2084,7 +2077,7 @@ export function useHomePageController({
       proxyDiscoverOnlyCatalogs: sanitizedProxyDiscoverOnlyCatalogs,
       ranking,
       rankingCountry: effectiveRankingCountry,
-      rankingNoBox,
+      rankingStyle,
       rankingCompact,
       rankingPosition,
     };
@@ -2297,10 +2290,10 @@ export function useHomePageController({
     if (typeof payload.rankingCountry === 'string') {
       setRankingCountry(payload.rankingCountry);
     }
-    if (typeof payload.rankingNoBox === 'boolean') {
-      setRankingNoBox(payload.rankingNoBox);
-    } else if (payload.rankingNoBox === 'on') {
-      setRankingNoBox(true);
+    if (typeof payload.rankingStyle === 'string' && isRatingStyle(payload.rankingStyle)) {
+      setRankingStyle(payload.rankingStyle);
+    } else if (payload.rankingNoBox === 'on' || payload.rankingNoBox === true) {
+      setRankingStyle('plain');
     }
     if (typeof payload.rankingCompact === 'boolean') {
       setRankingCompact(payload.rankingCompact);
@@ -2614,7 +2607,7 @@ export function useHomePageController({
       proxyDiscoverOnlyCatalogs: sanitizedProxyDiscoverOnlyCatalogs,
       ranking,
       rankingCountry: effectiveRankingCountry,
-      rankingNoBox: rankingNoBox ? 'on' : undefined,
+      rankingStyle: rankingStyle !== 'square' ? rankingStyle : undefined,
       rankingCompact: rankingCompact ? 'on' : undefined,
       rankingPosition,
     };
@@ -2683,7 +2676,7 @@ export function useHomePageController({
     sanitizedProxyDiscoverOnlyCatalogs,
     ranking,
     effectiveRankingCountry,
-    rankingNoBox,
+    rankingStyle,
     rankingCompact,
     rankingPosition,
   ]);
@@ -2790,7 +2783,7 @@ export function useHomePageController({
       fanartKey,
       ranking,
       rankingCountry: effectiveRankingCountry,
-      rankingNoBox,
+      rankingStyle,
       rankingCompact,
       rankingPosition,
     }),
@@ -2856,7 +2849,7 @@ export function useHomePageController({
       fanartKey,
       ranking,
       effectiveRankingCountry,
-      rankingNoBox,
+      rankingStyle,
       rankingCompact,
       rankingPosition,
     ]
@@ -2931,7 +2924,7 @@ export function useHomePageController({
       fanartKey,
       ranking,
       rankingCountry: effectiveRankingCountry,
-      rankingNoBox: rankingNoBox ? 'on' : undefined,
+      rankingStyle: rankingStyle !== 'square' ? rankingStyle : undefined,
       rankingCompact: rankingCompact ? 'on' : undefined,
       rankingPosition,
     }),
@@ -3002,7 +2995,7 @@ export function useHomePageController({
       fanartKey,
       ranking,
       effectiveRankingCountry,
-      rankingNoBox,
+      rankingStyle,
       rankingCompact,
       rankingPosition,
     ]
@@ -3240,7 +3233,7 @@ export function useHomePageController({
       configSaveStatus,
       ranking,
       rankingCountry: effectiveRankingCountry,
-      rankingNoBox,
+      rankingStyle,
       rankingCompact,
       rankingPosition,
     },
@@ -3425,7 +3418,7 @@ export function useHomePageController({
       handleSaveConfig,
       setRanking,
       setRankingCountry: updateRankingCountry,
-      setRankingNoBox,
+      setRankingStyle,
       setRankingCompact,
       setRankingPosition,
     },

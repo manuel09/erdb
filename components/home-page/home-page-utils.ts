@@ -336,7 +336,7 @@ export const buildAiometadataPattern = (options: {
   thumbnailSize: ThumbnailSize;
   ranking: string;
   rankingCountry: string;
-  rankingNoBox?: boolean;
+  rankingStyle?: RatingStyle;
   rankingPosition: RankingPosition;
 }) => {
   const {
@@ -401,7 +401,7 @@ export const buildAiometadataPattern = (options: {
     thumbnailSize,
     ranking,
     rankingCountry,
-    rankingNoBox,
+    rankingStyle,
     rankingPosition,
   } = options;
 
@@ -428,8 +428,8 @@ export const buildAiometadataPattern = (options: {
     if (rankingCountry !== 'global') {
       params.push(['rankingCountry', rankingCountry]);
     }
-    if (rankingNoBox) {
-      params.push(['rankingNoBox', 'on']);
+    if (rankingStyle && rankingStyle !== 'square') {
+      params.push(['rankingStyle', rankingStyle]);
     }
     if (rankingPosition !== 'auto') {
       params.push(['rankingPosition', rankingPosition]);
@@ -568,7 +568,7 @@ export const buildAiometadataPatternBlock = (options: {
   typeQuery?: string;
   ranking: string;
   rankingCountry: string;
-  rankingNoBox?: boolean;
+  rankingStyle?: RatingStyle;
 }) => {
   if (!options.baseUrl) {
     return '';
@@ -623,7 +623,9 @@ export const buildAiometadataPatternBlock = (options: {
     pushIfString('ranking');
     pushIfString('rankingCountry');
     if (config.rankingNoBox === 'on' || config.rankingNoBox === true) {
-      params.push(['rankingNoBox', 'on']);
+      params.push(['rankingStyle', 'plain']);
+    } else {
+      pushIfString('rankingStyle');
     }
     pushIfString('rankingPosition');
   }

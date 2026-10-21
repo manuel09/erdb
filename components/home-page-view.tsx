@@ -102,7 +102,7 @@ type HomePageViewState = {
   configSaveStatus: 'idle' | 'saving' | 'saved' | 'error';
   ranking: string;
   rankingCountry: string;
-  rankingNoBox: boolean;
+  rankingStyle: RatingStyle;
   rankingCompact: boolean;
   rankingPosition: RankingPosition;
 };
@@ -213,7 +213,7 @@ type HomePageViewActions = {
   handleSaveConfig: () => void;
   setRanking: Dispatch<SetStateAction<string>>;
   setRankingCountry: Dispatch<SetStateAction<string>>;
-  setRankingNoBox: Dispatch<SetStateAction<boolean>>;
+  setRankingStyle: Dispatch<SetStateAction<RatingStyle>>;
   setRankingCompact: Dispatch<SetStateAction<boolean>>;
   setRankingPosition: Dispatch<SetStateAction<RankingPosition>>;
 };

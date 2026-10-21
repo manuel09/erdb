@@ -98,6 +98,9 @@ export const buildProxyConfigFromToken = (
   if (typeof t.rankingNoBox === 'boolean' || typeof t.rankingNoBox === 'string') {
     config.rankingNoBox = t.rankingNoBox;
   }
+  if (typeof t.rankingStyle === 'string') {
+    config.rankingStyle = t.rankingStyle;
+  }
   if (typeof t.rankingCompact === 'boolean' || typeof t.rankingCompact === 'string') {
     config.rankingCompact = t.rankingCompact;
   }

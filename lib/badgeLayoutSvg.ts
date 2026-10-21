@@ -1132,7 +1132,9 @@ export const buildRankingBadgeSvg = (
   iconDataUri?: string | null,
   noBox = false,
   scale = 1.0,
-  measuredTextWidth?: number | null
+  measuredTextWidth?: number | null,
+  style: RatingStyle = 'square',
+  glassColorMode: 'colored' | 'transparent' = 'transparent'
 ) => {
   const height = Math.round(66 * scale);
   const paddingX = Math.round(22 * scale);
@@ -1146,6 +1148,25 @@ export const buildRankingBadgeSvg = (
 
   const hasIcon = Boolean(iconDataUri);
   const hasLabel = label.length > 0;
+
+  // Same plate language as rating and quality badges: 'plain' (and legacy noBox) draws no
+  // container, 'glass' draws the frosted capsule (the renderer slips the blurred patch under
+  // every capsule-clip plate automatically), anything else keeps the solid slate box.
+  const rankingPlate = (width: number) => {
+    if (noBox || style === 'plain') return '';
+    if (style === 'glass') {
+      return buildGlassCapsule({
+        id: 'ranking',
+        clipId: 'capsule-clip-ranking',
+        width,
+        height,
+        radius: Math.round(height / 2),
+        colorMode: glassColorMode,
+        accentColor: '#ffffff',
+      });
+    }
+    return `<rect x="0.75" y="0.75" width="${width - 1.5}" height="${height - 1.5}" rx="20" fill="rgb(21,35,49)" fill-opacity="0.92" stroke="rgba(255,255,255,0.10)" stroke-width="1" />`;
+  };
 
   if (!hasIcon && !hasLabel) {
     const isTextBadge = value.length > 3 && !value.startsWith('#');
@@ -1191,7 +1212,7 @@ export const buildRankingBadgeSvg = (
 
 
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="-4 -4 ${width + 8} ${height + 8}">
-${!noBox ? `<rect x="0.75" y="0.75" width="${width - 1.5}" height="${height - 1.5}" rx="20" fill="rgb(21,35,49)" fill-opacity="0.92" stroke="rgba(255,255,255,0.10)" stroke-width="1" />` : ''}
+${rankingPlate(width)}
 ${textOpen}
 <text x="${textX}" y="${textBaselineY}" font-family="${RANKING_TEXT_FONT_FAMILY}" font-size="${compactFontSize}" font-style="${fontStyle}" font-weight="${fontWeight}" text-anchor="middle" fill="white" stroke="rgba(0,0,0,0.85)" stroke-width="2.2" paint-order="stroke fill" style="font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1, 'lnum' 1;">${escapeXml(value)}</text>${textClose}
 </svg>`;
@@ -1207,7 +1228,7 @@ ${textOpen}
 
 
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="-4 -4 ${width + 8} ${height + 8}">
-${!noBox ? `<rect x="0.75" y="0.75" width="${width - 1.5}" height="${height - 1.5}" rx="20" fill="rgb(21,35,49)" fill-opacity="0.92" stroke="rgba(255,255,255,0.10)" stroke-width="1" />` : ''}
+${rankingPlate(width)}
 <image href="${iconDataUri}" x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize}" />
 
 <text x="${rankX}" y="${textY}" font-family="'Noto Sans','DejaVu Sans',Arial,sans-serif" font-size="${rankFontSize}" font-style="italic" font-weight="500" fill="white" stroke="rgba(0,0,0,0.85)" stroke-width="2.2" paint-order="stroke fill" style="font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1, 'lnum' 1;">${escapeXml(value)}</text>
@@ -1229,7 +1250,7 @@ ${!noBox ? `<rect x="0.75" y="0.75" width="${width - 1.5}" height="${height - 1.
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="-4 -4 ${width + 8} ${height + 8}">
 ${blurDef}
-${!noBox ? `<rect x="0.75" y="0.75" width="${width - 1.5}" height="${height - 1.5}" rx="20" fill="rgb(21,35,49)" fill-opacity="0.92" stroke="rgba(255,255,255,0.10)" stroke-width="1" />` : ''}
+${rankingPlate(width)}
 ${hasIcon ? `<image href="${iconDataUri}" x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize}" />` : ''}
 
 <text x="${rankX}" y="${textY}" font-family="'Noto Sans','DejaVu Sans',Arial,sans-serif" font-size="${rankFontSize}" font-style="italic" font-weight="500" fill="white" stroke="rgba(0,0,0,0.85)" stroke-width="2.2" paint-order="stroke fill" style="font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1, 'lnum' 1;">${escapeXml(value)}</text>
